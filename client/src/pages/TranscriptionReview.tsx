@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, ArrowLeft, Play, Pause, Check, Edit2, AudioLines, FileText } from "lucide-react";
+import { Loader2, ArrowLeft, Play, Pause, Check, Edit2, AudioLines, FileText, LayoutDashboard, Users } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -78,7 +78,6 @@ export default function TranscriptionReview() {
   const handleConfirmAndAnalyze = () => {
     if (!consultationId) return;
     
-    // Save any edits first
     if (isEditing && editedTranscript !== consultation?.transcript) {
       updateTranscriptMutation.mutate(
         { consultationId, transcript: editedTranscript },
@@ -138,30 +137,70 @@ export default function TranscriptionReview() {
                        generateSOAPMutation.isPending;
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">{consultation.patientName}</h1>
-                <p className="text-sm text-muted-foreground">
-                  Revisão da Transcrição
-                </p>
-              </div>
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
+        <div className="p-6 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
+            <span className="text-xl font-bold text-foreground">Zeal</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4">
+          <ul className="space-y-2">
+            <li>
+              <button
+                onClick={() => setLocation("/")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                Dashboard
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setLocation("/patients")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <Users className="h-5 w-5" />
+                Pacientes
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
         </div>
-      </header>
+      </aside>
 
       {/* Main Content */}
-      <main className="container py-8 max-w-4xl">
-        <div className="space-y-6">
+      <main className="flex-1 overflow-auto">
+        <header className="p-6 border-b border-border">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar
+            </Button>
+            <div>
+              <h1 className="text-xl font-bold">{consultation.patientName}</h1>
+              <p className="text-sm text-muted-foreground">
+                Revisão da Transcrição
+              </p>
+            </div>
+          </div>
+        </header>
+
+        <div className="p-6 max-w-4xl mx-auto space-y-6">
           {/* Audio Player */}
           {consultation.audioUrl && (
             <Card>

@@ -60,3 +60,11 @@
 
 ## Bugs Corrigidos
 - [x] Corrigir feedbacks.getByConsultation retornando undefined
+
+## Atualizações Solicitadas (v2)
+- [x] Mudar paleta de cores de verde/teal para Roxo/Azul Escuro
+- [x] Implementar layout com sidebar lateral
+- [x] Adicionar cards de estatísticas no dashboard (Total de Pacientes, Consultas Realizadas, Em Andamento, Avaliação Média)
+- [x] Adicionar opção de entrada de texto além de áudio
+- [x] Criar página de login
+- [x] Manter perfil do usuário no rodapé da sidebar

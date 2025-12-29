@@ -5,8 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText, LayoutDashboard, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -19,6 +21,8 @@ export default function NewConsultation() {
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
   const [newPatientName, setNewPatientName] = useState("");
   const [isNewPatient, setIsNewPatient] = useState(false);
+  const [inputMode, setInputMode] = useState<"audio" | "text">("audio");
+  const [consultationText, setConsultationText] = useState("");
   
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
@@ -43,6 +47,7 @@ export default function NewConsultation() {
   const createPatientMutation = trpc.patients.create.useMutation();
   const createConsultationMutation = trpc.consultations.create.useMutation();
   const uploadAudioMutation = trpc.consultations.uploadAudio.useMutation();
+  const updateTranscriptMutation = trpc.consultations.updateTranscript.useMutation();
 
   // Cleanup on unmount
   useEffect(() => {
@@ -73,7 +78,7 @@ export default function NewConsultation() {
         stream.getTracks().forEach(track => track.stop());
       };
 
-      mediaRecorder.start(1000); // Collect data every second
+      mediaRecorder.start(1000);
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -119,14 +124,12 @@ export default function NewConsultation() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // Validate file type
       const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/m4a', 'audio/mp4'];
       if (!validTypes.some(type => file.type.includes(type.split('/')[1]))) {
         toast.error('Formato de arquivo não suportado. Use MP3, WAV, M4A ou WebM.');
         return;
       }
       
-      // Validate file size (16MB limit)
       if (file.size > 16 * 1024 * 1024) {
         toast.error('Arquivo muito grande. O limite é 16MB.');
         return;
@@ -151,8 +154,14 @@ export default function NewConsultation() {
   };
 
   const handleSubmit = async () => {
-    if (!audioBlob) {
+    // Validate input based on mode
+    if (inputMode === "audio" && !audioBlob) {
       toast.error('Por favor, grave ou faça upload de um áudio.');
+      return;
+    }
+    
+    if (inputMode === "text" && !consultationText.trim()) {
+      toast.error('Por favor, digite o texto da consulta.');
       return;
     }
 
@@ -183,22 +192,33 @@ export default function NewConsultation() {
         patientName,
       });
 
-      // Convert blob to base64 and upload
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const base64 = (reader.result as string).split(',')[1];
-        
-        await uploadAudioMutation.mutateAsync({
+      if (inputMode === "audio" && audioBlob) {
+        // Convert blob to base64 and upload
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const base64 = (reader.result as string).split(',')[1];
+          
+          await uploadAudioMutation.mutateAsync({
+            consultationId: consultationResult.consultationId,
+            audioBase64: base64,
+            mimeType: audioBlob.type || 'audio/webm',
+            durationSeconds: recordingTime || undefined,
+          });
+
+          toast.success('Áudio enviado com sucesso!');
+          setLocation(`/consultation/${consultationResult.consultationId}/review`);
+        };
+        reader.readAsDataURL(audioBlob);
+      } else if (inputMode === "text") {
+        // Save text directly as transcript
+        await updateTranscriptMutation.mutateAsync({
           consultationId: consultationResult.consultationId,
-          audioBase64: base64,
-          mimeType: audioBlob.type || 'audio/webm',
-          durationSeconds: recordingTime || undefined,
+          transcript: consultationText,
         });
 
-        toast.success('Áudio enviado com sucesso!');
+        toast.success('Consulta criada com sucesso!');
         setLocation(`/consultation/${consultationResult.consultationId}/review`);
-      };
-      reader.readAsDataURL(audioBlob);
+      }
     } catch (error) {
       console.error('Error creating consultation:', error);
       toast.error('Erro ao criar consulta. Tente novamente.');
@@ -207,7 +227,8 @@ export default function NewConsultation() {
 
   const isSubmitting = createPatientMutation.isPending || 
                        createConsultationMutation.isPending || 
-                       uploadAudioMutation.isPending;
+                       uploadAudioMutation.isPending ||
+                       updateTranscriptMutation.isPending;
 
   if (authLoading) {
     return (
@@ -223,10 +244,55 @@ export default function NewConsultation() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
+        <div className="p-6 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
+            <span className="text-xl font-bold text-foreground">Zeal</span>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-4">
+          <ul className="space-y-2">
+            <li>
+              <button
+                onClick={() => setLocation("/")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                Dashboard
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setLocation("/patients")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <Users className="h-5 w-5" />
+                Pacientes
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 overflow-auto">
+        <header className="p-6 border-b border-border">
           <div className="flex items-center gap-4">
             <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
               <ArrowLeft className="h-4 w-4 mr-2" />
@@ -235,16 +301,13 @@ export default function NewConsultation() {
             <div>
               <h1 className="text-xl font-bold">Nova Consulta</h1>
               <p className="text-sm text-muted-foreground">
-                Grave ou faça upload do áudio da consulta
+                Grave áudio ou digite o texto da consulta
               </p>
             </div>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Main Content */}
-      <main className="container py-8 max-w-2xl">
-        <div className="space-y-6">
+        <div className="p-6 max-w-3xl mx-auto space-y-6">
           {/* Patient Selection */}
           <Card>
             <CardHeader>
@@ -309,111 +372,144 @@ export default function NewConsultation() {
             </CardContent>
           </Card>
 
-          {/* Audio Recording */}
+          {/* Input Mode Selection */}
           <Card>
             <CardHeader>
-              <CardTitle>Áudio da Consulta</CardTitle>
+              <CardTitle>Entrada da Consulta</CardTitle>
               <CardDescription>
-                Grave a consulta em tempo real ou faça upload de um arquivo de áudio
+                Escolha como deseja registrar a consulta
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {!audioBlob ? (
-                <>
-                  {/* Recording Controls */}
-                  <div className="flex flex-col items-center gap-6 py-8">
-                    {isRecording ? (
-                      <>
-                        <div className="relative">
-                          <div className="w-24 h-24 rounded-full bg-destructive/20 flex items-center justify-center">
-                            <div className="w-16 h-16 rounded-full bg-destructive recording-pulse flex items-center justify-center">
-                              <Mic className="h-8 w-8 text-white" />
+            <CardContent>
+              <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "audio" | "text")}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="audio" className="flex items-center gap-2">
+                    <Mic className="h-4 w-4" />
+                    Áudio
+                  </TabsTrigger>
+                  <TabsTrigger value="text" className="flex items-center gap-2">
+                    <FileText className="h-4 w-4" />
+                    Texto
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="audio" className="mt-6">
+                  {!audioBlob ? (
+                    <>
+                      <div className="flex flex-col items-center gap-6 py-8">
+                        {isRecording ? (
+                          <>
+                            <div className="relative">
+                              <div className="w-24 h-24 rounded-full bg-destructive/20 flex items-center justify-center">
+                                <div className="w-16 h-16 rounded-full bg-destructive animate-pulse flex items-center justify-center">
+                                  <Mic className="h-8 w-8 text-white" />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-3xl font-mono font-bold">
+                              {formatTime(recordingTime)}
+                            </div>
+                            <div className="flex gap-4">
+                              <Button variant="outline" onClick={pauseRecording}>
+                                {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
+                                {isPaused ? 'Continuar' : 'Pausar'}
+                              </Button>
+                              <Button variant="destructive" onClick={stopRecording}>
+                                <Square className="h-4 w-4 mr-2" />
+                                Parar
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <Button
+                              size="lg"
+                              className="h-24 w-24 rounded-full"
+                              onClick={startRecording}
+                            >
+                              <Mic className="h-10 w-10" />
+                            </Button>
+                            <p className="text-muted-foreground">
+                              Clique para iniciar a gravação
+                            </p>
+                          </>
+                        )}
+                      </div>
+
+                      {!isRecording && (
+                        <>
+                          <div className="relative my-6">
+                            <div className="absolute inset-0 flex items-center">
+                              <span className="w-full border-t border-border" />
+                            </div>
+                            <div className="relative flex justify-center text-xs uppercase">
+                              <span className="bg-card px-2 text-muted-foreground">ou</span>
                             </div>
                           </div>
-                        </div>
-                        <div className="text-3xl font-mono font-bold">
-                          {formatTime(recordingTime)}
-                        </div>
-                        <div className="flex gap-4">
-                          <Button variant="outline" onClick={pauseRecording}>
-                            {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
-                            {isPaused ? 'Continuar' : 'Pausar'}
-                          </Button>
-                          <Button variant="destructive" onClick={stopRecording}>
-                            <Square className="h-4 w-4 mr-2" />
-                            Parar
-                          </Button>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <Button
-                          size="lg"
-                          className="h-24 w-24 rounded-full"
-                          onClick={startRecording}
-                        >
-                          <Mic className="h-10 w-10" />
-                        </Button>
-                        <p className="text-muted-foreground">
-                          Clique para iniciar a gravação
-                        </p>
-                      </>
-                    )}
-                  </div>
 
-                  {/* Divider */}
-                  {!isRecording && (
-                    <>
-                      <div className="relative">
-                        <div className="absolute inset-0 flex items-center">
-                          <span className="w-full border-t border-border" />
-                        </div>
-                        <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-card px-2 text-muted-foreground">
-                            ou
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* File Upload */}
-                      <div className="flex flex-col items-center gap-4">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept="audio/*"
-                          className="hidden"
-                          onChange={handleFileUpload}
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                        >
-                          <Upload className="h-4 w-4 mr-2" />
-                          Fazer Upload de Áudio
-                        </Button>
-                        <p className="text-xs text-muted-foreground">
-                          Formatos aceitos: MP3, WAV, M4A, WebM (máx. 16MB)
-                        </p>
-                      </div>
+                          <div className="flex flex-col items-center gap-4">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept="audio/*"
+                              className="hidden"
+                              onChange={handleFileUpload}
+                            />
+                            <Button
+                              variant="outline"
+                              onClick={() => fileInputRef.current?.click()}
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Fazer Upload de Áudio
+                            </Button>
+                            <p className="text-xs text-muted-foreground">
+                              Formatos aceitos: MP3, WAV, M4A, WebM (máx. 16MB)
+                            </p>
+                          </div>
+                        </>
+                      )}
                     </>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-4 rounded-lg bg-muted">
+                        <audio src={audioUrl || undefined} controls className="w-full" />
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <p className="text-sm text-muted-foreground">
+                          {recordingTime > 0 ? `Duração: ${formatTime(recordingTime)}` : 'Áudio carregado'}
+                        </p>
+                        <Button variant="outline" onClick={resetAudio}>
+                          Gravar Novamente
+                        </Button>
+                      </div>
+                    </div>
                   )}
-                </>
-              ) : (
-                /* Audio Preview */
-                <div className="space-y-4">
-                  <div className="p-4 rounded-lg bg-muted">
-                    <audio src={audioUrl || undefined} controls className="w-full" />
-                  </div>
-                  <div className="flex justify-between items-center">
-                    <p className="text-sm text-muted-foreground">
-                      {recordingTime > 0 ? `Duração: ${formatTime(recordingTime)}` : 'Áudio carregado'}
+                </TabsContent>
+
+                <TabsContent value="text" className="mt-6">
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="consultationText">Texto da Consulta</Label>
+                      <Textarea
+                        id="consultationText"
+                        placeholder="Digite ou cole o texto da consulta aqui...
+
+Exemplo:
+Dentista: Bom dia, como posso ajudar?
+Paciente: Estou sentindo dor no dente 25.
+Dentista: Há quanto tempo sente essa dor?
+..."
+                        className="min-h-[300px] resize-none"
+                        value={consultationText}
+                        onChange={(e) => setConsultationText(e.target.value)}
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Dica: Identifique claramente as falas do dentista e do paciente para melhor análise.
                     </p>
-                    <Button variant="outline" onClick={resetAudio}>
-                      Gravar Novamente
-                    </Button>
                   </div>
-                </div>
-              )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
 
@@ -423,12 +519,25 @@ export default function NewConsultation() {
               <div className="flex gap-3">
                 <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium text-primary mb-1">Dicas para melhor transcrição</p>
+                  <p className="font-medium text-primary mb-1">
+                    {inputMode === "audio" ? "Dicas para melhor transcrição" : "Dicas para melhor análise"}
+                  </p>
                   <ul className="text-muted-foreground space-y-1">
-                    <li>• Fale claramente e em volume normal</li>
-                    <li>• Evite ruídos de fundo quando possível</li>
-                    <li>• Identifique-se como dentista no início da consulta</li>
-                    <li>• Mencione claramente os números dos dentes</li>
+                    {inputMode === "audio" ? (
+                      <>
+                        <li>• Fale claramente e em volume normal</li>
+                        <li>• Evite ruídos de fundo quando possível</li>
+                        <li>• Identifique-se como dentista no início</li>
+                        <li>• Mencione claramente os números dos dentes</li>
+                      </>
+                    ) : (
+                      <>
+                        <li>• Use "Dentista:" e "Paciente:" para identificar falas</li>
+                        <li>• Inclua todas as informações clínicas relevantes</li>
+                        <li>• Mencione claramente os números dos dentes</li>
+                        <li>• Descreva sintomas, histórico e observações</li>
+                      </>
+                    )}
                   </ul>
                 </div>
               </div>
@@ -440,7 +549,12 @@ export default function NewConsultation() {
             className="w-full"
             size="lg"
             onClick={handleSubmit}
-            disabled={!audioBlob || (!selectedPatientId && !newPatientName) || isSubmitting}
+            disabled={
+              (inputMode === "audio" && !audioBlob) ||
+              (inputMode === "text" && !consultationText.trim()) ||
+              (!selectedPatientId && !newPatientName) ||
+              isSubmitting
+            }
           >
             {isSubmitting ? (
               <>
@@ -448,7 +562,7 @@ export default function NewConsultation() {
                 Processando...
               </>
             ) : (
-              'Continuar para Transcrição'
+              inputMode === "audio" ? 'Continuar para Transcrição' : 'Continuar para Revisão'
             )}
           </Button>
         </div>

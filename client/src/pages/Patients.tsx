@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, ArrowLeft, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit } from "lucide-react";
+import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -142,248 +142,284 @@ export default function Patients() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card">
-        <div className="container py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
-              </Button>
-              <div>
-                <h1 className="text-xl font-bold">Pacientes</h1>
-                <p className="text-sm text-muted-foreground">
-                  Gerencie o cadastro de pacientes
-                </p>
-              </div>
-            </div>
-
-            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-              <DialogTrigger asChild>
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Paciente
-                </Button>
-              </DialogTrigger>
-              <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-                <DialogHeader>
-                  <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
-                  <DialogDescription>
-                    Preencha os dados do paciente. Apenas o nome é obrigatório.
-                  </DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Nome Completo *</Label>
-                    <Input
-                      id="name"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      placeholder="Nome do paciente"
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="birthDate">Data de Nascimento</Label>
-                      <Input
-                        id="birthDate"
-                        type="date"
-                        value={formData.birthDate}
-                        onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="cpf">CPF</Label>
-                      <Input
-                        id="cpf"
-                        value={formData.cpf}
-                        onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                        placeholder="000.000.000-00"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="phone">Telefone</Label>
-                      <Input
-                        id="phone"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        placeholder="(00) 00000-0000"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="email">E-mail</Label>
-                      <Input
-                        id="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        placeholder="email@exemplo.com"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="medicalHistory">Histórico Médico</Label>
-                    <Textarea
-                      id="medicalHistory"
-                      value={formData.medicalHistory}
-                      onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
-                      placeholder="Condições médicas relevantes..."
-                      rows={3}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="allergies">Alergias</Label>
-                    <Input
-                      id="allergies"
-                      value={formData.allergies}
-                      onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                      placeholder="Alergias conhecidas"
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="medications">Medicamentos em Uso</Label>
-                    <Textarea
-                      id="medications"
-                      value={formData.medications}
-                      onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
-                      placeholder="Medicamentos que o paciente utiliza..."
-                      rows={2}
-                    />
-                  </div>
-
-                  <div className="flex justify-end gap-2 pt-4">
-                    <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                      Cancelar
-                    </Button>
-                    <Button type="submit" disabled={createMutation.isPending}>
-                      {createMutation.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Salvando...
-                        </>
-                      ) : (
-                        'Cadastrar'
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </DialogContent>
-            </Dialog>
+    <div className="min-h-screen bg-background flex">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
+        <div className="p-6 border-b border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
+            <span className="text-xl font-bold text-foreground">Zeal</span>
           </div>
         </div>
-      </header>
+
+        <nav className="flex-1 p-4">
+          <ul className="space-y-2">
+            <li>
+              <button
+                onClick={() => setLocation("/")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <LayoutDashboard className="h-5 w-5" />
+                Dashboard
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => setLocation("/patients")}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium"
+              >
+                <Users className="h-5 w-5" />
+                Pacientes
+              </button>
+            </li>
+          </ul>
+        </nav>
+
+        <div className="p-4 border-t border-sidebar-border">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
+              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
+              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+            </div>
+          </div>
+        </div>
+      </aside>
 
       {/* Main Content */}
-      <main className="container py-8">
-        {/* Search */}
-        <div className="mb-6">
-          <div className="relative max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar paciente..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+      <main className="flex-1 overflow-auto">
+        <header className="p-6 flex items-center justify-between border-b border-border">
+          <div>
+            <h1 className="text-2xl font-bold">Pacientes</h1>
+            <p className="text-sm text-muted-foreground">
+              Gerencie o cadastro de pacientes
+            </p>
           </div>
-        </div>
 
-        {/* Patient List */}
-        {isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : filteredPatients?.length === 0 ? (
-          <Card>
-            <CardContent className="py-12 text-center">
-              <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <p className="text-muted-foreground">
-                {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
-              </p>
-              {!searchQuery && (
-                <Button 
-                  variant="link" 
-                  className="mt-2"
-                  onClick={() => setIsCreateOpen(true)}
-                >
-                  Cadastrar primeiro paciente
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredPatients?.map((patient) => (
-              <Card key={patient.id} className="hover:border-primary/50 transition-colors">
-                <CardHeader className="pb-2">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-full bg-primary/10">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-base">{patient.name}</CardTitle>
-                        {patient.birthDate && (
-                          <CardDescription className="flex items-center gap-1 mt-1">
-                            <Calendar className="h-3 w-3" />
-                            {new Date(patient.birthDate).toLocaleDateString('pt-BR')}
-                          </CardDescription>
-                        )}
-                      </div>
-                    </div>
-                    <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8"
-                        onClick={() => handleEdit(patient)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="icon" 
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(patient.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Novo Paciente
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
+                <DialogDescription>
+                  Preencha os dados do paciente. Apenas o nome é obrigatório.
+                </DialogDescription>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome Completo *</Label>
+                  <Input
+                    id="name"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    placeholder="Nome do paciente"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="birthDate">Data de Nascimento</Label>
+                    <Input
+                      id="birthDate"
+                      type="date"
+                      value={formData.birthDate}
+                      onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+                    />
                   </div>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {patient.phone && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-3 w-3" />
-                      {patient.phone}
-                    </div>
-                  )}
-                  {patient.email && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-3 w-3" />
-                      {patient.email}
-                    </div>
-                  )}
-                  {patient.allergies && (
-                    <div className="mt-2 p-2 rounded bg-destructive/10 text-destructive text-xs">
-                      <strong>Alergias:</strong> {patient.allergies}
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="space-y-2">
+                    <Label htmlFor="cpf">CPF</Label>
+                    <Input
+                      id="cpf"
+                      value={formData.cpf}
+                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+                      placeholder="000.000.000-00"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <Input
+                      id="phone"
+                      value={formData.phone}
+                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                      placeholder="(00) 00000-0000"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">E-mail</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      placeholder="email@exemplo.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="medicalHistory">Histórico Médico</Label>
+                  <Textarea
+                    id="medicalHistory"
+                    value={formData.medicalHistory}
+                    onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
+                    placeholder="Condições médicas relevantes..."
+                    rows={3}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="allergies">Alergias</Label>
+                  <Input
+                    id="allergies"
+                    value={formData.allergies}
+                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+                    placeholder="Alergias conhecidas"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="medications">Medicamentos em Uso</Label>
+                  <Textarea
+                    id="medications"
+                    value={formData.medications}
+                    onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
+                    placeholder="Medicamentos que o paciente utiliza..."
+                    rows={2}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2 pt-4">
+                  <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button type="submit" disabled={createMutation.isPending}>
+                    {createMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      'Cadastrar'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </header>
+
+        <div className="p-6">
+          {/* Search */}
+          <div className="mb-6">
+            <div className="relative max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar paciente..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
-        )}
+
+          {/* Patient List */}
+          {isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filteredPatients?.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">
+                  {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
+                </p>
+                {!searchQuery && (
+                  <Button 
+                    variant="link" 
+                    className="mt-2"
+                    onClick={() => setIsCreateOpen(true)}
+                  >
+                    Cadastrar primeiro paciente
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {filteredPatients?.map((patient) => (
+                <Card key={patient.id} className="hover:border-primary/50 transition-colors">
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-full bg-primary/10">
+                          <User className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <CardTitle className="text-base">{patient.name}</CardTitle>
+                          {patient.birthDate && (
+                            <CardDescription className="flex items-center gap-1 mt-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(patient.birthDate).toLocaleDateString('pt-BR')}
+                            </CardDescription>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex gap-1">
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={() => handleEdit(patient)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(patient.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="space-y-2 text-sm">
+                    {patient.phone && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Phone className="h-3 w-3" />
+                        {patient.phone}
+                      </div>
+                    )}
+                    {patient.email && (
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                        <Mail className="h-3 w-3" />
+                        {patient.email}
+                      </div>
+                    )}
+                    {patient.allergies && (
+                      <div className="mt-2 p-2 rounded bg-destructive/10 text-destructive text-xs">
+                        <strong>Alergias:</strong> {patient.allergies}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
       </main>
 
       {/* Edit Dialog */}

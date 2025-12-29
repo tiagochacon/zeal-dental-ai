@@ -9,11 +9,13 @@ import NewConsultation from "./pages/NewConsultation";
 import TranscriptionReview from "./pages/TranscriptionReview";
 import ConsultationDetail from "./pages/ConsultationDetail";
 import Patients from "./pages/Patients";
+import Login from "./pages/Login";
 
 function Router() {
   return (
     <Switch>
       <Route path="/" component={Dashboard} />
+      <Route path="/login" component={Login} />
       <Route path="/new-consultation" component={NewConsultation} />
       <Route path="/consultation/:id/review" component={TranscriptionReview} />
       <Route path="/consultation/:id" component={ConsultationDetail} />
