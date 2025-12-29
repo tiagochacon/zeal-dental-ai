@@ -344,6 +344,11 @@ export default function ConsultationDetail() {
               <Odontogram 
                 affectedTeeth={soapNote?.objective?.dentes_afetados || []}
                 diagnoses={soapNote?.assessment?.diagnosticos}
+                teethData={soapNote?.objective?.classificacoes_dentes?.map((d: { numero: string; classificacao: string; notas?: string }) => ({
+                  number: d.numero,
+                  classification: d.classificacao as "not_evaluated" | "healthy" | "cavity" | "restored" | "missing" | "fractured" | "root_canal" | "crown" | "extraction",
+                  notes: d.notas,
+                }))}
               />
             </TabsContent>
 

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback, memo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,6 +33,142 @@ const initialFormData: PatientFormData = {
   allergies: "",
   medications: "",
 };
+
+// Componente de formulário movido para fora para evitar re-renderização
+interface PatientFormProps {
+  formData: PatientFormData;
+  onFieldChange: (field: keyof PatientFormData, value: string) => void;
+  onSubmit: (e: React.FormEvent) => void;
+  onCancel: () => void;
+  isEdit: boolean;
+  isPending: boolean;
+}
+
+const PatientForm = memo(function PatientForm({ 
+  formData, 
+  onFieldChange, 
+  onSubmit, 
+  onCancel, 
+  isEdit, 
+  isPending 
+}: PatientFormProps) {
+  const prefix = isEdit ? 'edit-' : '';
+  
+  return (
+    <form onSubmit={onSubmit} className="space-y-4 mt-4">
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}name`} className="text-sm">Nome Completo *</Label>
+        <Input
+          id={`${prefix}name`}
+          value={formData.name}
+          onChange={(e) => onFieldChange('name', e.target.value)}
+          placeholder="Nome do paciente"
+          required
+          autoComplete="off"
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}birthDate`} className="text-sm">Data de Nascimento</Label>
+          <Input
+            id={`${prefix}birthDate`}
+            type="date"
+            value={formData.birthDate}
+            onChange={(e) => onFieldChange('birthDate', e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}cpf`} className="text-sm">CPF</Label>
+          <Input
+            id={`${prefix}cpf`}
+            value={formData.cpf}
+            onChange={(e) => onFieldChange('cpf', e.target.value)}
+            placeholder="000.000.000-00"
+            autoComplete="off"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}phone`} className="text-sm">Telefone</Label>
+          <Input
+            id={`${prefix}phone`}
+            value={formData.phone}
+            onChange={(e) => onFieldChange('phone', e.target.value)}
+            placeholder="(00) 00000-0000"
+            autoComplete="off"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${prefix}email`} className="text-sm">E-mail</Label>
+          <Input
+            id={`${prefix}email`}
+            type="email"
+            value={formData.email}
+            onChange={(e) => onFieldChange('email', e.target.value)}
+            placeholder="email@exemplo.com"
+            autoComplete="off"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}medicalHistory`} className="text-sm">Histórico Médico</Label>
+        <Textarea
+          id={`${prefix}medicalHistory`}
+          value={formData.medicalHistory}
+          onChange={(e) => onFieldChange('medicalHistory', e.target.value)}
+          placeholder="Condições médicas relevantes..."
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}allergies`} className="text-sm">Alergias</Label>
+        <Input
+          id={`${prefix}allergies`}
+          value={formData.allergies}
+          onChange={(e) => onFieldChange('allergies', e.target.value)}
+          placeholder="Alergias conhecidas"
+          autoComplete="off"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${prefix}medications`} className="text-sm">Medicamentos em Uso</Label>
+        <Textarea
+          id={`${prefix}medications`}
+          value={formData.medications}
+          onChange={(e) => onFieldChange('medications', e.target.value)}
+          placeholder="Medicamentos que o paciente utiliza..."
+          rows={2}
+        />
+      </div>
+
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={onCancel}
+        >
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isPending}>
+          {isPending ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            isEdit ? 'Salvar Alterações' : 'Cadastrar'
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+});
 
 export default function Patients() {
   const [, setLocation] = useLocation();
@@ -85,7 +221,12 @@ export default function Patients() {
     },
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Callback estável para atualização de campos
+  const handleFieldChange = useCallback((field: keyof PatientFormData, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  }, []);
+
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -101,9 +242,9 @@ export default function Patients() {
     } else {
       createMutation.mutate(formData);
     }
-  };
+  }, [formData, editingPatient, updateMutation, createMutation]);
 
-  const handleEdit = (patient: NonNullable<typeof patients>[number]) => {
+  const handleEdit = useCallback((patient: NonNullable<typeof patients>[number]) => {
     setEditingPatient(patient.id);
     setFormData({
       name: patient.name,
@@ -115,13 +256,23 @@ export default function Patients() {
       allergies: patient.allergies || "",
       medications: patient.medications || "",
     });
-  };
+  }, []);
 
-  const handleDelete = (id: number) => {
+  const handleDelete = useCallback((id: number) => {
     if (confirm("Tem certeza que deseja remover este paciente?")) {
       deleteMutation.mutate({ id });
     }
-  };
+  }, [deleteMutation]);
+
+  const handleCancelCreate = useCallback(() => {
+    setIsCreateOpen(false);
+    setFormData(initialFormData);
+  }, []);
+
+  const handleCancelEdit = useCallback(() => {
+    setEditingPatient(null);
+    setFormData(initialFormData);
+  }, []);
 
   const filteredPatients = patients?.filter(patient =>
     patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -141,116 +292,6 @@ export default function Patients() {
     window.location.href = getLoginUrl();
     return null;
   }
-
-  const PatientForm = ({ isEdit = false }: { isEdit?: boolean }) => (
-    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-      <div className="space-y-2">
-        <Label htmlFor={`${isEdit ? 'edit-' : ''}name`} className="text-sm">Nome Completo *</Label>
-        <Input
-          id={`${isEdit ? 'edit-' : ''}name`}
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          placeholder="Nome do paciente"
-          required
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${isEdit ? 'edit-' : ''}birthDate`} className="text-sm">Data de Nascimento</Label>
-          <Input
-            id={`${isEdit ? 'edit-' : ''}birthDate`}
-            type="date"
-            value={formData.birthDate}
-            onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`${isEdit ? 'edit-' : ''}cpf`} className="text-sm">CPF</Label>
-          <Input
-            id={`${isEdit ? 'edit-' : ''}cpf`}
-            value={formData.cpf}
-            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-            placeholder="000.000.000-00"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${isEdit ? 'edit-' : ''}phone`} className="text-sm">Telefone</Label>
-          <Input
-            id={`${isEdit ? 'edit-' : ''}phone`}
-            value={formData.phone}
-            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-            placeholder="(00) 00000-0000"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`${isEdit ? 'edit-' : ''}email`} className="text-sm">E-mail</Label>
-          <Input
-            id={`${isEdit ? 'edit-' : ''}email`}
-            type="email"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-            placeholder="email@exemplo.com"
-          />
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor={`${isEdit ? 'edit-' : ''}medicalHistory`} className="text-sm">Histórico Médico</Label>
-        <Textarea
-          id={`${isEdit ? 'edit-' : ''}medicalHistory`}
-          value={formData.medicalHistory}
-          onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
-          placeholder="Condições médicas relevantes..."
-          rows={3}
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor={`${isEdit ? 'edit-' : ''}allergies`} className="text-sm">Alergias</Label>
-        <Input
-          id={`${isEdit ? 'edit-' : ''}allergies`}
-          value={formData.allergies}
-          onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-          placeholder="Alergias conhecidas"
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor={`${isEdit ? 'edit-' : ''}medications`} className="text-sm">Medicamentos em Uso</Label>
-        <Textarea
-          id={`${isEdit ? 'edit-' : ''}medications`}
-          value={formData.medications}
-          onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
-          placeholder="Medicamentos que o paciente utiliza..."
-          rows={2}
-        />
-      </div>
-
-      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
-        <Button 
-          type="button" 
-          variant="outline" 
-          onClick={() => isEdit ? setEditingPatient(null) : setIsCreateOpen(false)}
-        >
-          Cancelar
-        </Button>
-        <Button type="submit" disabled={isEdit ? updateMutation.isPending : createMutation.isPending}>
-          {(isEdit ? updateMutation.isPending : createMutation.isPending) ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            isEdit ? 'Salvar Alterações' : 'Cadastrar'
-          )}
-        </Button>
-      </div>
-    </form>
-  );
 
   return (
     <div className="min-h-screen bg-background flex">
@@ -295,8 +336,7 @@ export default function Patients() {
             </li>
             <li>
               <button
-                onClick={() => { setLocation("/patients"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-primary-foreground"
               >
                 <Users className="h-5 w-5" />
                 Pacientes
@@ -307,8 +347,10 @@ export default function Patients() {
 
         <div className="p-4 border-t border-sidebar-border">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
-              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
+            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+              <span className="text-sm font-medium text-primary">
+                {user.name?.charAt(0).toUpperCase() || "U"}
+              </span>
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
@@ -319,7 +361,7 @@ export default function Patients() {
             variant="outline" 
             size="sm" 
             className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={logout}
+            onClick={() => logout()}
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sair
@@ -328,99 +370,82 @@ export default function Patients() {
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <header className="p-4 lg:p-6 flex items-center justify-between gap-4 border-b border-border">
-          <div className="flex items-center gap-3">
+      <main className="flex-1 flex flex-col min-w-0">
+        <header className="border-b border-border bg-card p-4 lg:p-6 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
             <button 
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
+              className="lg:hidden p-2 hover:bg-accent rounded-lg"
             >
               <Menu className="h-5 w-5" />
             </button>
             <div>
               <h1 className="text-xl lg:text-2xl font-bold">Pacientes</h1>
-              <p className="text-xs lg:text-sm text-muted-foreground hidden sm:block">
-                Gerencie o cadastro de pacientes
-              </p>
+              <p className="text-sm text-muted-foreground">Gerencie os pacientes cadastrados</p>
             </div>
           </div>
-
-          <Dialog 
-            open={isCreateOpen} 
-            onOpenChange={(open) => {
-              setIsCreateOpen(open);
-              if (!open) setFormData(initialFormData);
-            }}
-          >
+          
+          <Dialog open={isCreateOpen} onOpenChange={(open) => {
+            setIsCreateOpen(open);
+            if (!open) setFormData(initialFormData);
+          }}>
             <DialogTrigger asChild>
-              <Button size="sm">
-                <Plus className="h-4 w-4 mr-1 lg:mr-2" />
-                <span className="hidden sm:inline">Novo</span> Paciente
+              <Button className="shrink-0">
+                <Plus className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Novo Paciente</span>
+                <span className="sm:hidden">Novo</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4" key="create-dialog">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
                 <DialogDescription className="text-sm">
                   Preencha os dados do paciente. Apenas o nome é obrigatório.
                 </DialogDescription>
               </DialogHeader>
-              <PatientForm key="create-form" />
+              <PatientForm 
+                formData={formData}
+                onFieldChange={handleFieldChange}
+                onSubmit={handleSubmit}
+                onCancel={handleCancelCreate}
+                isEdit={false}
+                isPending={createMutation.isPending}
+              />
             </DialogContent>
           </Dialog>
         </header>
 
         <div className="p-4 lg:p-6">
           {/* Search */}
-          <div className="mb-4 lg:mb-6">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar paciente..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
-            </div>
+          <div className="relative mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar paciente por nome, email ou telefone..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10"
+            />
           </div>
 
           {/* Patient List */}
           {isLoading ? (
-            <div className="flex justify-center py-12">
+            <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : filteredPatients?.length === 0 ? (
-            <Card>
-              <CardContent className="py-8 lg:py-12 text-center">
-                <User className="h-10 w-10 lg:h-12 lg:w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-sm lg:text-base text-muted-foreground">
-                  {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
-                </p>
-                {!searchQuery && (
-                  <Button 
-                    variant="link" 
-                    className="mt-2"
-                    onClick={() => setIsCreateOpen(true)}
-                  >
-                    Cadastrar primeiro paciente
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-3 lg:gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredPatients?.map((patient) => (
-                <Card key={patient.id} className="hover:border-primary/50 transition-colors">
-                  <CardHeader className="pb-2 p-4">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2 lg:gap-3 min-w-0">
-                        <div className="p-1.5 lg:p-2 rounded-full bg-primary/10 shrink-0">
-                          <User className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
+          ) : filteredPatients && filteredPatients.length > 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {filteredPatients.map((patient) => (
+                <Card key={patient.id} className="hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                          <User className="h-5 w-5 text-primary" />
                         </div>
                         <div className="min-w-0">
-                          <CardTitle className="text-sm lg:text-base truncate">{patient.name}</CardTitle>
+                          <CardTitle className="text-base truncate">{patient.name}</CardTitle>
                           {patient.birthDate && (
-                            <CardDescription className="flex items-center gap-1 mt-1 text-xs">
+                            <CardDescription className="text-xs flex items-center gap-1">
                               <Calendar className="h-3 w-3" />
                               {new Date(patient.birthDate).toLocaleDateString('pt-BR')}
                             </CardDescription>
@@ -431,66 +456,86 @@ export default function Patients() {
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-7 w-7 lg:h-8 lg:w-8"
+                          className="h-8 w-8"
                           onClick={() => handleEdit(patient)}
                         >
-                          <Edit className="h-3 w-3 lg:h-4 lg:w-4" />
+                          <Edit className="h-4 w-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-7 w-7 lg:h-8 lg:w-8 text-destructive hover:text-destructive"
+                          className="h-8 w-8 text-destructive hover:text-destructive"
                           onClick={() => handleDelete(patient.id)}
                         >
-                          <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-xs lg:text-sm p-4 pt-0">
-                    {patient.phone && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Phone className="h-3 w-3" />
-                        <span className="truncate">{patient.phone}</span>
-                      </div>
-                    )}
-                    {patient.email && (
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Mail className="h-3 w-3" />
-                        <span className="truncate">{patient.email}</span>
-                      </div>
-                    )}
-                    {patient.allergies && (
-                      <div className="mt-2 p-2 rounded bg-destructive/10 text-destructive text-xs">
-                        <strong>Alergias:</strong> {patient.allergies}
-                      </div>
-                    )}
+                  <CardContent className="pt-0">
+                    <div className="space-y-2 text-sm">
+                      {patient.phone && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Phone className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{patient.phone}</span>
+                        </div>
+                      )}
+                      {patient.email && (
+                        <div className="flex items-center gap-2 text-muted-foreground">
+                          <Mail className="h-3.5 w-3.5 shrink-0" />
+                          <span className="truncate">{patient.email}</span>
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
+          ) : (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-12 w-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground text-center">
+                  {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado ainda"}
+                </p>
+                {!searchQuery && (
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => setIsCreateOpen(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Cadastrar Primeiro Paciente
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
           )}
         </div>
       </main>
 
-      {/* Edit Dialog */}
-      <Dialog 
-        open={editingPatient !== null} 
-        onOpenChange={(open) => {
-          if (!open) {
-            setEditingPatient(null);
-            setFormData(initialFormData);
-          }
-        }}
-      >
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4" key={`edit-dialog-${editingPatient}`}>
+      {/* Edit Patient Dialog */}
+      <Dialog open={editingPatient !== null} onOpenChange={(open) => {
+        if (!open) {
+          setEditingPatient(null);
+          setFormData(initialFormData);
+        }
+      }}>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar Paciente</DialogTitle>
             <DialogDescription className="text-sm">
               Atualize os dados do paciente.
             </DialogDescription>
           </DialogHeader>
-          <PatientForm isEdit key={`edit-form-${editingPatient}`} />
+          <PatientForm 
+            formData={formData}
+            onFieldChange={handleFieldChange}
+            onSubmit={handleSubmit}
+            onCancel={handleCancelEdit}
+            isEdit={true}
+            isPending={updateMutation.isPending}
+          />
         </DialogContent>
       </Dialog>
     </div>

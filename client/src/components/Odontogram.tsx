@@ -3,9 +3,16 @@ import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "lucide-react";
 
+interface ToothData {
+  number: string;
+  classification: ToothClassification;
+  notes?: string;
+}
+
 interface OdontogramProps {
   affectedTeeth: string[];
   diagnoses?: string[];
+  teethData?: ToothData[];
 }
 
 // Dental notation mapping (FDI - Fédération Dentaire Internationale)
@@ -50,7 +57,7 @@ const TOOTH_NAMES: Record<string, string> = {
   "48": "Terceiro Molar Inferior Direito",
 };
 
-// Tooth classifications - Simplified (General only)
+// Tooth classifications - Simplified (General only, no faces)
 export type ToothClassification = 
   | "not_evaluated"
   | "healthy"
@@ -74,94 +81,189 @@ const CLASSIFICATION_LABELS: Record<ToothClassification, string> = {
   extraction: "Indicação de Extração",
 };
 
-// Distinct colors for each classification (highly contrasting)
-const CLASSIFICATION_COLORS: Record<ToothClassification, { fill: string; stroke: string; bg: string }> = {
+// Distinct colors for each classification (highly contrasting, unique colors)
+const CLASSIFICATION_COLORS: Record<ToothClassification, { fill: string; stroke: string; bg: string; text: string }> = {
   not_evaluated: { 
-    fill: "fill-gray-200 dark:fill-gray-700", 
-    stroke: "stroke-gray-400 dark:stroke-gray-600",
-    bg: "bg-gray-200 dark:bg-gray-700"
+    fill: "#6B7280", // Gray
+    stroke: "#4B5563",
+    bg: "bg-gray-500",
+    text: "text-gray-500"
   },
   healthy: { 
-    fill: "fill-green-400", 
-    stroke: "stroke-green-600",
-    bg: "bg-green-400"
+    fill: "#22C55E", // Green
+    stroke: "#16A34A",
+    bg: "bg-green-500",
+    text: "text-green-500"
   },
   cavity: { 
-    fill: "fill-red-500", 
-    stroke: "stroke-red-700",
-    bg: "bg-red-500"
+    fill: "#EF4444", // Red
+    stroke: "#DC2626",
+    bg: "bg-red-500",
+    text: "text-red-500"
   },
   restored: { 
-    fill: "fill-blue-400", 
-    stroke: "stroke-blue-600",
-    bg: "bg-blue-400"
+    fill: "#3B82F6", // Blue
+    stroke: "#2563EB",
+    bg: "bg-blue-500",
+    text: "text-blue-500"
   },
   missing: { 
-    fill: "fill-gray-900 dark:fill-gray-950", 
-    stroke: "stroke-black",
-    bg: "bg-gray-900"
+    fill: "#1F2937", // Dark Gray/Black
+    stroke: "#111827",
+    bg: "bg-gray-800",
+    text: "text-gray-800"
   },
   fractured: { 
-    fill: "fill-orange-500", 
-    stroke: "stroke-orange-700",
-    bg: "bg-orange-500"
+    fill: "#F97316", // Orange
+    stroke: "#EA580C",
+    bg: "bg-orange-500",
+    text: "text-orange-500"
   },
   root_canal: { 
-    fill: "fill-purple-500", 
-    stroke: "stroke-purple-700",
-    bg: "bg-purple-500"
+    fill: "#A855F7", // Purple
+    stroke: "#9333EA",
+    bg: "bg-purple-500",
+    text: "text-purple-500"
   },
   crown: { 
-    fill: "fill-yellow-400", 
-    stroke: "stroke-yellow-600",
-    bg: "bg-yellow-400"
+    fill: "#EAB308", // Yellow
+    stroke: "#CA8A04",
+    bg: "bg-yellow-500",
+    text: "text-yellow-500"
   },
   extraction: { 
-    fill: "fill-red-800", 
-    stroke: "stroke-red-900",
-    bg: "bg-red-800"
+    fill: "#BE123C", // Rose/Dark Red
+    stroke: "#9F1239",
+    bg: "bg-rose-700",
+    text: "text-rose-700"
   },
+};
+
+// Keywords for automatic classification based on transcription
+const CLASSIFICATION_KEYWORDS: Record<ToothClassification, RegExp[]> = {
+  not_evaluated: [],
+  healthy: [
+    /saud[áa]vel/i,
+    /h[íi]gido/i,
+    /normal/i,
+    /sem altera[çc][õo]es/i,
+    /sem les[õo]es/i,
+    /integro/i,
+    /bom estado/i,
+  ],
+  cavity: [
+    /c[áa]rie/i,
+    /les[ãa]o.*c[áa]rie/i,
+    /cavidade/i,
+    /podre/i,
+    /cariado/i,
+    /les[ãa]o cariosa/i,
+  ],
+  restored: [
+    /restaura/i,
+    /obtura/i,
+    /resina/i,
+    /am[áa]lgama/i,
+    /restaurado/i,
+    /obturado/i,
+  ],
+  missing: [
+    /ausente/i,
+    /perdido/i,
+    /extra[íi]do/i,
+    /sem o dente/i,
+    /falta/i,
+    /n[ãa]o.*presente/i,
+    /edentulo/i,
+  ],
+  fractured: [
+    /fratura/i,
+    /quebrado/i,
+    /partido/i,
+    /rachado/i,
+    /trinca/i,
+    /lascado/i,
+  ],
+  root_canal: [
+    /canal/i,
+    /endodontia/i,
+    /tratamento.*canal/i,
+    /endod[ôo]ntico/i,
+    /pulpectomia/i,
+    /desvitalizado/i,
+  ],
+  crown: [
+    /coroa/i,
+    /pr[óo]tese.*fixa/i,
+    /coroado/i,
+    /jaqueta/i,
+  ],
+  extraction: [
+    /extra[çc][ãa]o/i,
+    /extrair/i,
+    /remover/i,
+    /indica[çc][ãa]o.*extra/i,
+    /necessita.*extra/i,
+    /precisa.*extrair/i,
+  ],
 };
 
 // Automatic classification based on diagnosis keywords
 function classifyToothFromDiagnosis(toothNumber: string, diagnoses: string[]): ToothClassification {
   const diagnosisText = diagnoses.join(" ").toLowerCase();
-  const toothMentions = diagnosisText.match(new RegExp(`dente[\\s]*${toothNumber}[^0-9]*([a-záàâãéèêíïóôõöúçñ\\s]+)`, 'gi'));
   
-  if (!toothMentions || toothMentions.length === 0) {
+  // Look for mentions of this specific tooth
+  const toothPatterns = [
+    new RegExp(`dente\\s*${toothNumber}[^0-9]`, 'gi'),
+    new RegExp(`${toothNumber}\\s*[-:]`, 'gi'),
+    new RegExp(`elemento\\s*${toothNumber}`, 'gi'),
+    new RegExp(`\\b${toothNumber}\\b.*?(?=\\b\\d{2}\\b|$)`, 'gi'),
+  ];
+  
+  let toothMentions: string[] = [];
+  for (const pattern of toothPatterns) {
+    const matches = diagnosisText.match(pattern);
+    if (matches) {
+      // Get context around the match (100 chars before and after)
+      for (const match of matches) {
+        const index = diagnosisText.indexOf(match.toLowerCase());
+        const start = Math.max(0, index - 100);
+        const end = Math.min(diagnosisText.length, index + match.length + 100);
+        toothMentions.push(diagnosisText.substring(start, end));
+      }
+    }
+  }
+  
+  if (toothMentions.length === 0) {
     return "not_evaluated";
   }
 
-  const mention = toothMentions.join(" ").toLowerCase();
+  const mentionText = toothMentions.join(" ");
 
-  // Priority order matters - more specific conditions first
-  if (mention.match(/ausente|perdido|extraído|sem o dente|falta/)) {
-    return "missing";
-  }
-  if (mention.match(/extração|extrair|remover|indicação.*extra/)) {
-    return "extraction";
-  }
-  if (mention.match(/coroa|prótese fixa/)) {
-    return "crown";
-  }
-  if (mention.match(/canal|endodontia|tratamento de canal|endodôntico/)) {
-    return "root_canal";
-  }
-  if (mention.match(/fratura|quebrado|partido|rachado/)) {
-    return "fractured";
-  }
-  if (mention.match(/restaura|obtura|resina|amálgama/)) {
-    return "restored";
-  }
-  if (mention.match(/cárie|lesão de cárie|cavidade|podre/)) {
-    return "cavity";
-  }
-  if (mention.match(/saudável|hígido|normal|sem alterações|sem lesões/)) {
-    return "healthy";
+  // Check classifications in priority order (more specific first)
+  const priorityOrder: ToothClassification[] = [
+    "missing",
+    "extraction",
+    "crown",
+    "root_canal",
+    "fractured",
+    "restored",
+    "cavity",
+    "healthy",
+  ];
+
+  for (const classification of priorityOrder) {
+    const keywords = CLASSIFICATION_KEYWORDS[classification];
+    for (const keyword of keywords) {
+      if (keyword.test(mentionText)) {
+        return classification;
+      }
+    }
   }
 
-  // Default: if tooth is mentioned but no specific condition, assume it needs evaluation
-  return "cavity"; // Most common condition when mentioned
+  // If tooth is mentioned but no specific condition found, mark as needing evaluation
+  // but if it's in the affected list, assume there's an issue (likely cavity as most common)
+  return "cavity";
 }
 
 function ToothIcon({ 
@@ -173,19 +275,38 @@ function ToothIcon({
   classification: ToothClassification;
   isMolar: boolean;
 }) {
-  const baseClasses = "transition-all duration-200";
   const colors = CLASSIFICATION_COLORS[classification];
-  const colorClasses = `${colors.fill} ${colors.stroke}`;
+  const isAffected = classification !== "not_evaluated";
 
   if (isMolar) {
     return (
-      <svg viewBox="0 0 40 50" className={`w-8 h-10 ${baseClasses}`}>
+      <svg viewBox="0 0 40 50" className="w-8 h-10 transition-all duration-200">
         <path
-          d={`M8 5 Q5 5 5 10 L5 40 Q5 45 10 45 L30 45 Q35 45 35 40 L35 10 Q35 5 30 5 Z`}
-          className={colorClasses}
+          d="M8 5 Q5 5 5 10 L5 40 Q5 45 10 45 L30 45 Q35 45 35 40 L35 10 Q35 5 30 5 Z"
+          fill={colors.fill}
+          stroke={colors.stroke}
           strokeWidth="2"
+          className={isAffected ? "drop-shadow-md" : ""}
         />
-        <text x="20" y="30" textAnchor="middle" className="fill-white text-[10px] font-bold pointer-events-none" style={{ paintOrder: "stroke", stroke: "black", strokeWidth: "2px" }}>
+        {classification === "missing" && (
+          <line x1="5" y1="5" x2="35" y2="45" stroke="#EF4444" strokeWidth="3" />
+        )}
+        {classification === "extraction" && (
+          <>
+            <line x1="10" y1="10" x2="30" y2="40" stroke="#FFF" strokeWidth="2" />
+            <line x1="30" y1="10" x2="10" y2="40" stroke="#FFF" strokeWidth="2" />
+          </>
+        )}
+        <text 
+          x="20" 
+          y="30" 
+          textAnchor="middle" 
+          className="text-[10px] font-bold pointer-events-none"
+          fill="white"
+          stroke="black"
+          strokeWidth="0.5"
+          paintOrder="stroke"
+        >
           {number}
         </text>
       </svg>
@@ -193,13 +314,33 @@ function ToothIcon({
   }
 
   return (
-    <svg viewBox="0 0 30 50" className={`w-6 h-10 ${baseClasses}`}>
+    <svg viewBox="0 0 30 50" className="w-6 h-10 transition-all duration-200">
       <path
-        d={`M5 8 Q5 3 15 3 Q25 3 25 8 L25 42 Q25 47 15 47 Q5 47 5 42 Z`}
-        className={colorClasses}
+        d="M5 8 Q5 3 15 3 Q25 3 25 8 L25 42 Q25 47 15 47 Q5 47 5 42 Z"
+        fill={colors.fill}
+        stroke={colors.stroke}
         strokeWidth="2"
+        className={isAffected ? "drop-shadow-md" : ""}
       />
-      <text x="15" y="30" textAnchor="middle" className="fill-white text-[10px] font-bold pointer-events-none" style={{ paintOrder: "stroke", stroke: "black", strokeWidth: "2px" }}>
+      {classification === "missing" && (
+        <line x1="5" y1="3" x2="25" y2="47" stroke="#EF4444" strokeWidth="3" />
+      )}
+      {classification === "extraction" && (
+        <>
+          <line x1="8" y1="10" x2="22" y2="40" stroke="#FFF" strokeWidth="2" />
+          <line x1="22" y1="10" x2="8" y2="40" stroke="#FFF" strokeWidth="2" />
+        </>
+      )}
+      <text 
+        x="15" 
+        y="30" 
+        textAnchor="middle" 
+        className="text-[10px] font-bold pointer-events-none"
+        fill="white"
+        stroke="black"
+        strokeWidth="0.5"
+        paintOrder="stroke"
+      >
         {number}
       </text>
     </svg>
@@ -209,29 +350,37 @@ function ToothIcon({
 function ToothWithTooltip({ 
   number, 
   classification,
+  notes,
 }: { 
   number: string; 
   classification: ToothClassification;
+  notes?: string;
 }) {
   const isMolar = ["16", "17", "18", "26", "27", "28", "36", "37", "38", "46", "47", "48"].includes(number);
   const toothName = TOOTH_NAMES[number] || `Dente ${number}`;
+  const isAffected = classification !== "not_evaluated";
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <div className="relative">
+        <div className={`relative cursor-pointer ${isAffected ? 'scale-105' : 'opacity-60 hover:opacity-100'}`}>
           <ToothIcon number={number} classification={classification} isMolar={isMolar} />
         </div>
       </TooltipTrigger>
-      <TooltipContent>
+      <TooltipContent className="max-w-xs">
         <p className="font-medium">{toothName}</p>
-        <p className="text-xs">{CLASSIFICATION_LABELS[classification]}</p>
+        <p className={`text-sm ${CLASSIFICATION_COLORS[classification].text}`}>
+          {CLASSIFICATION_LABELS[classification]}
+        </p>
+        {notes && (
+          <p className="text-xs text-muted-foreground mt-1">{notes}</p>
+        )}
       </TooltipContent>
     </Tooltip>
   );
 }
 
-export default function Odontogram({ affectedTeeth, diagnoses = [] }: OdontogramProps) {
+export default function Odontogram({ affectedTeeth, diagnoses = [], teethData = [] }: OdontogramProps) {
   // Normalize affected teeth numbers (remove spaces, handle ranges)
   const normalizedAffected = affectedTeeth.flatMap(tooth => {
     const cleaned = tooth.toString().trim();
@@ -247,30 +396,45 @@ export default function Odontogram({ affectedTeeth, diagnoses = [] }: Odontogram
     return [cleaned];
   });
 
-  // Automatic classification for each tooth
-  const teethClassifications: Record<string, ToothClassification> = {};
+  // Build teeth classifications map
+  const teethClassifications: Record<string, { classification: ToothClassification; notes?: string }> = {};
   
-  // Classify affected teeth based on diagnoses
+  // First, use provided teethData if available
+  teethData.forEach(tooth => {
+    teethClassifications[tooth.number] = {
+      classification: tooth.classification,
+      notes: tooth.notes,
+    };
+  });
+  
+  // Then, classify remaining affected teeth based on diagnoses
   normalizedAffected.forEach(toothNum => {
-    teethClassifications[toothNum] = classifyToothFromDiagnosis(toothNum, diagnoses);
+    if (!teethClassifications[toothNum]) {
+      teethClassifications[toothNum] = {
+        classification: classifyToothFromDiagnosis(toothNum, diagnoses),
+      };
+    }
   });
 
-  const getToothClassification = (toothNumber: string): ToothClassification => {
-    return teethClassifications[toothNumber] || "not_evaluated";
+  const getToothData = (toothNumber: string) => {
+    return teethClassifications[toothNumber] || { classification: "not_evaluated" as ToothClassification };
   };
 
-  // Count affected teeth by classification
+  // Count affected teeth by classification for legend
   const classificationCounts: Partial<Record<ToothClassification, number>> = {};
-  Object.values(teethClassifications).forEach(classification => {
-    classificationCounts[classification] = (classificationCounts[classification] || 0) + 1;
+  Object.values(teethClassifications).forEach(({ classification }) => {
+    if (classification !== "not_evaluated") {
+      classificationCounts[classification] = (classificationCounts[classification] || 0) + 1;
+    }
   });
 
-  // Get only classifications that are actually used
+  // Get only classifications that are actually used, sorted by count
   const usedClassifications = Object.entries(classificationCounts)
-    .filter(([key]) => key !== "not_evaluated")
-    .sort((a, b) => b[1] - a[1]); // Sort by count descending
+    .sort((a, b) => b[1] - a[1]);
 
-  const affectedCount = normalizedAffected.length;
+  const affectedCount = Object.keys(teethClassifications).filter(
+    k => teethClassifications[k].classification !== "not_evaluated"
+  ).length;
 
   return (
     <Card>
@@ -306,22 +470,30 @@ export default function Odontogram({ affectedTeeth, diagnoses = [] }: Odontogram
                 <span className="flex-1 border-t border-dashed mx-2" />
                 <span>Esquerdo</span>
               </div>
-              <div className="flex justify-center gap-0.5">
-                {UPPER_RIGHT.map(tooth => (
-                  <ToothWithTooltip 
-                    key={tooth} 
-                    number={tooth} 
-                    classification={getToothClassification(tooth)}
-                  />
-                ))}
-                <div className="w-4" /> {/* Center gap */}
-                {UPPER_LEFT.map(tooth => (
-                  <ToothWithTooltip 
-                    key={tooth} 
-                    number={tooth} 
-                    classification={getToothClassification(tooth)}
-                  />
-                ))}
+              <div className="flex justify-center gap-0.5 flex-wrap">
+                {UPPER_RIGHT.map(tooth => {
+                  const data = getToothData(tooth);
+                  return (
+                    <ToothWithTooltip 
+                      key={tooth} 
+                      number={tooth} 
+                      classification={data.classification}
+                      notes={data.notes}
+                    />
+                  );
+                })}
+                <div className="w-2" /> {/* Center gap */}
+                {UPPER_LEFT.map(tooth => {
+                  const data = getToothData(tooth);
+                  return (
+                    <ToothWithTooltip 
+                      key={tooth} 
+                      number={tooth} 
+                      classification={data.classification}
+                      notes={data.notes}
+                    />
+                  );
+                })}
               </div>
             </div>
 
@@ -334,22 +506,30 @@ export default function Odontogram({ affectedTeeth, diagnoses = [] }: Odontogram
 
             {/* Lower Jaw */}
             <div className="space-y-2">
-              <div className="flex justify-center gap-0.5">
-                {LOWER_RIGHT.map(tooth => (
-                  <ToothWithTooltip 
-                    key={tooth} 
-                    number={tooth} 
-                    classification={getToothClassification(tooth)}
-                  />
-                ))}
-                <div className="w-4" /> {/* Center gap */}
-                {LOWER_LEFT.map(tooth => (
-                  <ToothWithTooltip 
-                    key={tooth} 
-                    number={tooth} 
-                    classification={getToothClassification(tooth)}
-                  />
-                ))}
+              <div className="flex justify-center gap-0.5 flex-wrap">
+                {LOWER_RIGHT.map(tooth => {
+                  const data = getToothData(tooth);
+                  return (
+                    <ToothWithTooltip 
+                      key={tooth} 
+                      number={tooth} 
+                      classification={data.classification}
+                      notes={data.notes}
+                    />
+                  );
+                })}
+                <div className="w-2" /> {/* Center gap */}
+                {LOWER_LEFT.map(tooth => {
+                  const data = getToothData(tooth);
+                  return (
+                    <ToothWithTooltip 
+                      key={tooth} 
+                      number={tooth} 
+                      classification={data.classification}
+                      notes={data.notes}
+                    />
+                  );
+                })}
               </div>
               <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-2">
                 <span>Direito</span>
@@ -363,19 +543,25 @@ export default function Odontogram({ affectedTeeth, diagnoses = [] }: Odontogram
             {/* Automatic Legend - Only show classifications that are used */}
             {usedClassifications.length > 0 && (
               <div className="pt-4 border-t">
-                <p className="text-sm font-medium mb-3">Legenda Automática:</p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <p className="text-sm font-medium mb-3">Legenda (Gerada Automaticamente):</p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {usedClassifications.map(([classification, count]) => {
                     const colors = CLASSIFICATION_COLORS[classification as ToothClassification];
                     return (
                       <div key={classification} className="flex items-center gap-2">
-                        <div className={`w-5 h-5 rounded border-2 ${colors.bg} ${colors.stroke}`} />
-                        <div className="flex-1">
-                          <span className="text-xs text-foreground">
+                        <div 
+                          className="w-5 h-5 rounded border-2 shrink-0"
+                          style={{ 
+                            backgroundColor: colors.fill,
+                            borderColor: colors.stroke,
+                          }}
+                        />
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs text-foreground truncate block">
                             {CLASSIFICATION_LABELS[classification as ToothClassification]}
                           </span>
-                          <span className="text-xs text-muted-foreground ml-1">
-                            ({count})
+                          <span className="text-xs text-muted-foreground">
+                            ({count} dente{count > 1 ? "s" : ""})
                           </span>
                         </div>
                       </div>
@@ -390,7 +576,7 @@ export default function Odontogram({ affectedTeeth, diagnoses = [] }: Odontogram
               <Info className="h-4 w-4 text-blue-500 mt-0.5 shrink-0" />
               <p className="text-xs text-blue-500">
                 As classificações foram geradas automaticamente com base na transcrição da consulta. 
-                Apenas dentes mencionados no áudio são classificados e exibidos com cores distintas.
+                Apenas dentes mencionados no áudio são classificados. Nenhum dado é inventado.
               </p>
             </div>
           </div>
@@ -399,3 +585,6 @@ export default function Odontogram({ affectedTeeth, diagnoses = [] }: Odontogram
     </Card>
   );
 }
+
+// Export classification types for use in other components
+export { CLASSIFICATION_LABELS, CLASSIFICATION_COLORS };

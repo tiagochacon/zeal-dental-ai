@@ -126,6 +126,11 @@ export interface SOAPNote {
     exame_clinico_geral: string;
     exame_clinico_especifico: string[];
     dentes_afetados: string[];
+    classificacoes_dentes?: Array<{
+      numero: string;
+      classificacao: "not_evaluated" | "healthy" | "cavity" | "restored" | "missing" | "fractured" | "root_canal" | "crown" | "extraction";
+      notas?: string;
+    }>;
   };
   assessment: {
     diagnosticos: string[];

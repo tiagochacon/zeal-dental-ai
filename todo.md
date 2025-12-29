@@ -89,3 +89,12 @@
 - [x] Botão "Entrar" em roxo/purple
 - [x] Link "Não tem conta? Cadastre-se"
 - [x] Background com gradiente roxo/azul escuro
+
+## Correção de Bug e Automação do Odontograma (v5)
+- [x] Corrigir bug de perda de foco no input de texto (cadastro/edição de paciente)
+- [x] Simplificar Odontograma para classificação geral por dente (sem faces)
+- [x] Implementar preenchimento automático baseado na transcrição
+- [x] Sistema de cores únicas para cada classificação
+- [x] Legenda automática com todas as classificações
+- [x] Classificações: Não Avaliado, Saudável, Cárie, Restaurado, Ausente, Fraturado, Canal, Coroa, Indicação de extração
+- [x] Atualizar backend para extrair classificações da transcrição

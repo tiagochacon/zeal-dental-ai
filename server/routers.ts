@@ -64,6 +64,11 @@ const soapNoteSchema = z.object({
     exame_clinico_geral: z.string(),
     exame_clinico_especifico: z.array(z.string()),
     dentes_afetados: z.array(z.string()),
+    classificacoes_dentes: z.array(z.object({
+      numero: z.string(),
+      classificacao: z.enum(["not_evaluated", "healthy", "cavity", "restored", "missing", "fractured", "root_canal", "crown", "extraction"]),
+      notas: z.string().optional(),
+    })).optional(),
   }),
   assessment: z.object({
     diagnosticos: z.array(z.string()),
@@ -309,6 +314,20 @@ NOMENCLATURA OBRIGATÓRIA:
 - Faces: oclusal, mesial, distal, vestibular, lingual/palatina
 - Diagnósticos: cárie classe I/II, gengivite localizada, periodontite, etc.
 
+CLASSIFICAÇÕES DE DENTES (para o Odontograma):
+Para cada dente mencionado, classifique com base ESTRITAMENTE no que foi dito:
+- not_evaluated: dente não avaliado/não mencionado
+- healthy: dente saudável, hígido, sem alterações
+- cavity: cárie, lesão cariosa
+- restored: restaurado, obturado, com resina/amálgama
+- missing: ausente, extraído, perdido
+- fractured: fraturado, quebrado, trincado
+- root_canal: tratamento de canal, endodontia
+- crown: coroa, prótese fixa
+- extraction: indicação de extração
+
+IMPORTANTE: NÃO invente classificações. Se o dente foi mencionado mas a condição não está clara, use a classificação mais provável baseada no contexto.
+
 RED FLAGS (sinais de alerta) - identifique se presentes:
 - Dor intensa ou persistente
 - Sangramento excessivo
@@ -328,7 +347,8 @@ FORMATO DE SAÍDA (JSON):
   "objective": {
     "exame_clinico_geral": "string",
     "exame_clinico_especifico": ["string"],
-    "dentes_afetados": ["16", "21"]
+    "dentes_afetados": ["16", "21"],
+    "classificacoes_dentes": [{"numero": "16", "classificacao": "cavity|restored|missing|fractured|root_canal|crown|extraction|healthy|not_evaluated", "notas": "string opcional"}]
   },
   "assessment": {
     "diagnosticos": ["string"],
@@ -385,9 +405,22 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
                     properties: {
                       exame_clinico_geral: { type: "string" },
                       exame_clinico_especifico: { type: "array", items: { type: "string" } },
-                      dentes_afetados: { type: "array", items: { type: "string" } }
+                      dentes_afetados: { type: "array", items: { type: "string" } },
+                      classificacoes_dentes: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            numero: { type: "string" },
+                            classificacao: { type: "string", enum: ["not_evaluated", "healthy", "cavity", "restored", "missing", "fractured", "root_canal", "crown", "extraction"] },
+                            notas: { type: "string" }
+                          },
+                          required: ["numero", "classificacao", "notas"],
+                          additionalProperties: false
+                        }
+                      }
                     },
-                    required: ["exame_clinico_geral", "exame_clinico_especifico", "dentes_afetados"],
+                    required: ["exame_clinico_geral", "exame_clinico_especifico", "dentes_afetados", "classificacoes_dentes"],
                     additionalProperties: false
                   },
                   assessment: {
