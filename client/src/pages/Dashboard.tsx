@@ -3,13 +3,13 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Star, Menu, X } from "lucide-react";
+import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const { data: consultations, isLoading } = trpc.consultations.list.useQuery(
@@ -111,7 +111,7 @@ export default function Dashboard() {
 
         {/* User Profile */}
         <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
               {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
             </div>
@@ -120,6 +120,15 @@ export default function Dashboard() {
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
         </div>
       </aside>
 
@@ -150,7 +159,7 @@ export default function Dashboard() {
         </header>
 
         {/* Stats Cards */}
-        <div className="px-4 lg:px-6 grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <div className="px-4 lg:px-6 grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
           <Card className="bg-card border-border">
             <CardContent className="p-4 lg:p-6">
               <div className="flex items-center justify-between">
@@ -186,19 +195,6 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground mt-1 hidden sm:block">consultas pendentes</p>
                 </div>
                 <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border border-l-4 border-l-yellow-500">
-            <CardContent className="p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs lg:text-sm text-muted-foreground">Avaliação Média</p>
-                  <p className="text-2xl lg:text-3xl font-bold mt-1 lg:mt-2">N/A</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">0 avaliações</p>
-                </div>
-                <Star className="h-6 w-6 lg:h-8 lg:w-8 text-yellow-500" />
               </div>
             </CardContent>
           </Card>

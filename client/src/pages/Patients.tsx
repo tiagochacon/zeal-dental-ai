@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, Menu, X } from "lucide-react";
+import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, Menu, X, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -36,7 +36,7 @@ const initialFormData: PatientFormData = {
 
 export default function Patients() {
   const [, setLocation] = useLocation();
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -104,6 +104,7 @@ export default function Patients() {
   };
 
   const handleEdit = (patient: NonNullable<typeof patients>[number]) => {
+    setEditingPatient(patient.id);
     setFormData({
       name: patient.name,
       birthDate: patient.birthDate || "",
@@ -114,7 +115,6 @@ export default function Patients() {
       allergies: patient.allergies || "",
       medications: patient.medications || "",
     });
-    setEditingPatient(patient.id);
   };
 
   const handleDelete = (id: number) => {
@@ -306,7 +306,7 @@ export default function Patients() {
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
               {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
             </div>
@@ -315,6 +315,15 @@ export default function Patients() {
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
         </div>
       </aside>
 
@@ -336,21 +345,27 @@ export default function Patients() {
             </div>
           </div>
 
-          <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+          <Dialog 
+            open={isCreateOpen} 
+            onOpenChange={(open) => {
+              setIsCreateOpen(open);
+              if (!open) setFormData(initialFormData);
+            }}
+          >
             <DialogTrigger asChild>
               <Button size="sm">
                 <Plus className="h-4 w-4 mr-1 lg:mr-2" />
                 <span className="hidden sm:inline">Novo</span> Paciente
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4" key="create-dialog">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
                 <DialogDescription className="text-sm">
                   Preencha os dados do paciente. Apenas o nome é obrigatório.
                 </DialogDescription>
               </DialogHeader>
-              <PatientForm />
+              <PatientForm key="create-form" />
             </DialogContent>
           </Dialog>
         </header>
@@ -459,15 +474,23 @@ export default function Patients() {
       </main>
 
       {/* Edit Dialog */}
-      <Dialog open={editingPatient !== null} onOpenChange={(open) => !open && setEditingPatient(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4">
+      <Dialog 
+        open={editingPatient !== null} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingPatient(null);
+            setFormData(initialFormData);
+          }
+        }}
+      >
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4" key={`edit-dialog-${editingPatient}`}>
           <DialogHeader>
             <DialogTitle>Editar Paciente</DialogTitle>
             <DialogDescription className="text-sm">
               Atualize os dados do paciente.
             </DialogDescription>
           </DialogHeader>
-          <PatientForm isEdit />
+          <PatientForm isEdit key={`edit-form-${editingPatient}`} />
         </DialogContent>
       </Dialog>
     </div>

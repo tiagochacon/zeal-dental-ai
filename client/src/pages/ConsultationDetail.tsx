@@ -13,7 +13,7 @@ import Odontogram from "@/components/Odontogram";
 import { 
   Loader2, ArrowLeft, FileText, AudioLines, Download, CheckCircle, Edit, 
   AlertTriangle, Stethoscope, ClipboardList, CheckCircle2, Star,
-  LayoutDashboard, Users, Menu, X
+  LayoutDashboard, Users, Menu, X, LogOut
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -25,7 +25,7 @@ export default function ConsultationDetail() {
   const params = useParams();
   const consultationId = params.id ? parseInt(params.id) : null;
   
-  const { user, loading: authLoading } = useAuth();
+  const { user, loading: authLoading, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
@@ -210,7 +210,7 @@ export default function ConsultationDetail() {
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-3">
             <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
               {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
             </div>
@@ -219,6 +219,15 @@ export default function ConsultationDetail() {
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+            onClick={logout}
+          >
+            <LogOut className="h-4 w-4 mr-2" />
+            Sair
+          </Button>
         </div>
       </aside>
 

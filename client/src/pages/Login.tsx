@@ -33,74 +33,143 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0a0a12] relative overflow-hidden">
-      {/* Background gradient effects */}
+    <div className="min-h-screen flex bg-gradient-to-br from-[#0a0a12] via-[#1a1035] to-[#0a0a12] relative overflow-hidden">
+      {/* Animated Background Effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-[600px] h-[600px] bg-purple-900/30 rounded-full blur-[150px] -translate-x-1/2 -translate-y-1/2" />
-        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-blue-900/20 rounded-full blur-[150px] translate-x-1/2 translate-y-1/2" />
-        <div className="absolute top-1/2 left-1/4 w-[400px] h-[400px] bg-purple-800/10 rounded-full blur-[100px]" />
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-purple-600/20 rounded-full blur-[180px] -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-[700px] h-[700px] bg-blue-600/15 rounded-full blur-[160px] translate-x-1/2 translate-y-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/3 w-[500px] h-[500px] bg-purple-800/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
-      {/* Login Card */}
-      <div className="relative z-10 w-full max-w-lg mx-4">
-        <div className="bg-[#1a1a2e]/80 backdrop-blur-xl rounded-3xl p-8 sm:p-12 border border-white/5 shadow-2xl">
-          {/* Logo */}
-          <div className="flex items-center justify-center gap-3 mb-12">
+      {/* Left Side - Branding */}
+      <div className="hidden lg:flex lg:w-1/2 relative z-10 flex-col justify-center px-16">
+        <div className="max-w-lg">
+          <div className="flex items-center gap-4 mb-8">
+            <img src="/logo.png" alt="ZEAL" className="h-16 w-auto drop-shadow-2xl" />
+            <span className="text-5xl font-bold text-white tracking-tight">Zeal</span>
+          </div>
+          
+          <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
+            Assistente de IA<br />
+            <span className="text-purple-400">Odontológico</span>
+          </h1>
+          
+          <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+            Transforme suas consultas com inteligência artificial. 
+            Transcrições automáticas, notas SOAP precisas e odontogramas detalhados.
+          </p>
+          
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <span className="text-gray-300">Transcrição de áudio em tempo real</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <span className="text-gray-300">Geração automática de notas clínicas</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-purple-600/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <span className="text-gray-300">Odontograma interativo e detalhado</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right Side - Login Form */}
+      <div className="w-full lg:w-1/2 relative z-10 flex items-center justify-center px-4 sm:px-8">
+        <div className="w-full max-w-md">
+          {/* Mobile Logo */}
+          <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
             <img src="/logo.png" alt="ZEAL" className="h-12 w-auto" />
             <span className="text-3xl font-bold text-white tracking-tight">Zeal</span>
           </div>
 
-          {/* Form */}
-          <div className="space-y-6">
-            {/* Email Field */}
-            <div className="relative">
-              <Input
-                type="email"
-                placeholder="E-mail"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-14 bg-[#252538] border-0 rounded-xl text-white placeholder:text-gray-500 px-5 text-base focus:ring-2 focus:ring-purple-500/50"
-              />
-            </div>
+          <div className="bg-[#1a1a2e]/90 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl">
+            <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo de volta</h2>
+            <p className="text-gray-400 mb-8">Entre na sua conta para continuar</p>
 
-            {/* Password Field */}
-            <div className="relative">
-              <Input
-                type={showPassword ? "text" : "password"}
-                placeholder="senha"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-14 bg-[#252538] border-0 rounded-xl text-white placeholder:text-gray-500 px-5 pr-12 text-base focus:ring-2 focus:ring-purple-500/50"
-              />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-colors"
+            {/* Form */}
+            <div className="space-y-5">
+              {/* Email Field */}
+              <div className="relative">
+                <label className="text-sm font-medium text-gray-300 mb-2 block">E-mail</label>
+                <Input
+                  type="email"
+                  placeholder="seu@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 text-base focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                />
+              </div>
+
+              {/* Password Field */}
+              <div className="relative">
+                <label className="text-sm font-medium text-gray-300 mb-2 block">Senha</label>
+                <Input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 pr-12 text-base focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-4 top-[42px] text-gray-500 hover:text-gray-300 transition-colors"
+                >
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                </button>
+              </div>
+
+              {/* Login Button */}
+              <Button 
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold text-base rounded-xl mt-6 transition-all duration-200 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-[1.02]"
+                onClick={handleLogin}
               >
-                {showPassword ? (
-                  <EyeOff className="h-5 w-5" />
-                ) : (
-                  <Eye className="h-5 w-5" />
-                )}
-              </button>
-            </div>
+                Entrar
+              </Button>
 
-            {/* Login Button */}
-            <Button 
-              className="w-full h-14 bg-purple-600 hover:bg-purple-700 text-white font-semibold text-lg rounded-xl mt-8 transition-all duration-200 shadow-lg shadow-purple-500/25"
-              onClick={handleLogin}
-            >
-              Entrar
-            </Button>
+              {/* Divider */}
+              <div className="relative my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-white/10"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 text-gray-500 bg-[#1a1a2e]">ou</span>
+                </div>
+              </div>
 
-            {/* Register Link */}
-            <div className="text-center mt-6">
-              <span className="text-gray-400">Não tem conta? </span>
-              <Link href="/register" className="text-gray-300 hover:text-white underline underline-offset-2 transition-colors">
-                Cadastre-se
-              </Link>
+              {/* Register Link */}
+              <div className="text-center">
+                <span className="text-gray-400">Não tem conta? </span>
+                <Link href="/register" className="text-purple-400 hover:text-purple-300 font-medium transition-colors">
+                  Cadastre-se gratuitamente
+                </Link>
+              </div>
             </div>
           </div>
+
+          {/* Footer Info */}
+          <p className="text-center text-gray-500 text-sm mt-8">
+            Sistema seguro e em conformidade com LGPD
+          </p>
         </div>
       </div>
     </div>
