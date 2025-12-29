@@ -79,3 +79,13 @@
 - [x] Sidebar responsiva com menu hambúrguer no mobile
 - [x] Cards de estatísticas responsivos
 - [x] Formulários responsivos na página de nova consulta
+
+## Atualização da Página de Login (v4)
+- [x] Redesign da página de login conforme referência visual
+- [x] Logo ZEAL centralizada no topo
+- [x] Card de login com fundo escuro arredondado
+- [x] Campo de E-mail com placeholder
+- [x] Campo de Senha com ícone de visualização (mostrar/ocultar)
+- [x] Botão "Entrar" em roxo/purple
+- [x] Link "Não tem conta? Cadastre-se"
+- [x] Background com gradiente roxo/azul escuro
