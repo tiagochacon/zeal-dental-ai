@@ -222,14 +222,14 @@ export async function createFeedback(data: InsertFeedback): Promise<Feedback> {
   return feedback;
 }
 
-export async function getFeedbackByConsultation(consultationId: number): Promise<Feedback | undefined> {
+export async function getFeedbackByConsultation(consultationId: number): Promise<Feedback | null> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   const result = await db.select().from(feedbacks)
     .where(eq(feedbacks.consultationId, consultationId))
     .limit(1);
-  return result.length > 0 ? result[0] : undefined;
+  return result.length > 0 ? result[0] : null;
 }
 
 // ==================== TEMPLATE FUNCTIONS ====================

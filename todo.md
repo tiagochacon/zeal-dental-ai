@@ -57,3 +57,6 @@
 - [x] Testes unitários para autenticação
 - [x] Testes unitários para rotas protegidas
 - [x] Testes de validação da estrutura SOAP
+
+## Bugs Corrigidos
+- [x] Corrigir feedbacks.getByConsultation retornando undefined

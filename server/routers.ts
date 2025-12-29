@@ -516,7 +516,8 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
           throw new Error("Consulta não encontrada ou acesso negado");
         }
 
-        return await getFeedbackByConsultation(input.consultationId);
+        const feedback = await getFeedbackByConsultation(input.consultationId);
+        return feedback ?? null;
       }),
   }),
 });
