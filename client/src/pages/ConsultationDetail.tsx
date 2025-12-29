@@ -1,0 +1,551 @@
+import { useState } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { trpc } from "@/lib/trpc";
+import { 
+  Loader2, ArrowLeft, FileText, AudioLines, Download, CheckCircle, Edit, 
+  AlertTriangle, Stethoscope, ClipboardList, CheckCircle2, Star
+} from "lucide-react";
+import { useLocation, useParams } from "wouter";
+import { getLoginUrl } from "@/const";
+import { toast } from "sonner";
+import type { SOAPNote } from "../../../drizzle/schema";
+
+export default function ConsultationDetail() {
+  const [, setLocation] = useLocation();
+  const params = useParams();
+  const consultationId = params.id ? parseInt(params.id) : null;
+  
+  const { user, loading: authLoading } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(0);
+  const [feedbackComment, setFeedbackComment] = useState("");
+  const [hoveredStar, setHoveredStar] = useState(0);
+
+  const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
+    { id: consultationId! },
+    { enabled: !!user && !!consultationId }
+  );
+
+  const { data: existingFeedback } = trpc.feedbacks.getByConsultation.useQuery(
+    { consultationId: consultationId! },
+    { enabled: !!user && !!consultationId }
+  );
+
+  const utils = trpc.useUtils();
+
+  const updateSOAPMutation = trpc.consultations.updateSOAP.useMutation({
+    onSuccess: () => {
+      toast.success("Nota SOAP atualizada!");
+      setIsEditing(false);
+      refetch();
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar nota SOAP");
+    },
+  });
+
+  const createFeedbackMutation = trpc.feedbacks.create.useMutation({
+    onSuccess: () => {
+      toast.success("Feedback enviado!");
+      setShowFeedbackModal(false);
+      utils.feedbacks.getByConsultation.invalidate({ consultationId: consultationId! });
+    },
+    onError: () => {
+      toast.error("Erro ao enviar feedback");
+    },
+  });
+
+  const finalizeMutation = trpc.consultations.finalize.useMutation({
+    onSuccess: () => {
+      toast.success("Consulta finalizada!");
+      refetch();
+    },
+    onError: (error) => {
+      if (error.message.includes("Feedback obrigatório")) {
+        setShowFeedbackModal(true);
+      } else {
+        toast.error("Erro ao finalizar consulta");
+      }
+    },
+  });
+
+  const handleFinalize = () => {
+    if (!existingFeedback) {
+      setShowFeedbackModal(true);
+    } else if (consultationId) {
+      finalizeMutation.mutate({ consultationId });
+    }
+  };
+
+  const handleSubmitFeedback = () => {
+    if (feedbackRating === 0) {
+      toast.error("Por favor, selecione uma avaliação");
+      return;
+    }
+    if (consultationId) {
+      createFeedbackMutation.mutate({
+        consultationId,
+        rating: feedbackRating,
+        comment: feedbackComment || undefined,
+      }, {
+        onSuccess: () => {
+          // After feedback, finalize the consultation
+          finalizeMutation.mutate({ consultationId });
+        },
+      });
+    }
+  };
+
+  const handleExportPDF = () => {
+    toast.info("Exportação de PDF em desenvolvimento");
+  };
+
+  if (authLoading || isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    window.location.href = getLoginUrl();
+    return null;
+  }
+
+  if (!consultation) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Card className="max-w-md">
+          <CardContent className="pt-6 text-center">
+            <p className="text-muted-foreground mb-4">Consulta não encontrada</p>
+            <Button onClick={() => setLocation("/")}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar ao Dashboard
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  const soapNote = consultation.soapNote as SOAPNote | null;
+
+  return (
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="border-b border-border bg-card">
+        <div className="container py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar
+              </Button>
+              <div>
+                <h1 className="text-xl font-bold">{consultation.patientName}</h1>
+                <p className="text-sm text-muted-foreground">
+                  {new Date(consultation.createdAt).toLocaleDateString('pt-BR', {
+                    day: '2-digit',
+                    month: 'long',
+                    year: 'numeric',
+                  })}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button variant="outline" onClick={handleExportPDF}>
+                <Download className="mr-2 h-4 w-4" />
+                Exportar PDF
+              </Button>
+              
+              {consultation.status !== "finalized" && !isEditing && (
+                <Button variant="outline" onClick={() => setIsEditing(true)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  Editar Nota
+                </Button>
+              )}
+              
+              {consultation.status !== "finalized" && !isEditing && (
+                <Button onClick={handleFinalize} disabled={finalizeMutation.isPending}>
+                  {finalizeMutation.isPending ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Finalizando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle className="mr-2 h-4 w-4" />
+                      Finalizar Consulta
+                    </>
+                  )}
+                </Button>
+              )}
+
+              {consultation.status === "finalized" && (
+                <Badge variant="secondary" className="bg-green-500/20 text-green-500">
+                  <CheckCircle className="mr-1 h-3 w-3" />
+                  Finalizada
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container py-8 max-w-4xl">
+        <Tabs defaultValue="soap" className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="soap">
+              <FileText className="mr-2 h-4 w-4" />
+              Nota SOAP
+            </TabsTrigger>
+            <TabsTrigger value="transcript">
+              <AudioLines className="mr-2 h-4 w-4" />
+              Transcrição
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="soap" className="space-y-6">
+            {soapNote ? (
+              <SOAPNoteViewer soapNote={soapNote} />
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    Nota clínica ainda não foi gerada para esta consulta
+                  </p>
+                  <Button 
+                    variant="link" 
+                    className="mt-2"
+                    onClick={() => setLocation(`/consultation/${consultationId}/review`)}
+                  >
+                    Ir para revisão de transcrição
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="transcript" className="space-y-4">
+            {consultation.transcript ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AudioLines className="h-5 w-5 text-primary" />
+                    Transcrição da Consulta
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {consultation.audioUrl && (
+                    <div className="mb-4">
+                      <audio src={consultation.audioUrl} controls className="w-full" />
+                    </div>
+                  )}
+                  <div className="whitespace-pre-wrap text-sm leading-relaxed bg-muted/50 p-4 rounded-lg">
+                    {consultation.transcript}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardContent className="py-12 text-center">
+                  <AudioLines className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                  <p className="text-muted-foreground">
+                    Transcrição não disponível
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </TabsContent>
+        </Tabs>
+      </main>
+
+      {/* Feedback Modal */}
+      <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Avalie esta consulta</DialogTitle>
+            <DialogDescription>
+              Seu feedback é obrigatório para finalizar a consulta e nos ajuda a melhorar o sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Star Rating */}
+            <div className="flex flex-col items-center gap-2">
+              <p className="text-sm text-muted-foreground">Como você avalia a precisão do diagnóstico?</p>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => setFeedbackRating(star)}
+                    onMouseEnter={() => setHoveredStar(star)}
+                    onMouseLeave={() => setHoveredStar(0)}
+                    className="p-1 transition-transform hover:scale-110"
+                  >
+                    <Star
+                      className={`h-8 w-8 ${
+                        star <= (hoveredStar || feedbackRating)
+                          ? 'fill-yellow-400 text-yellow-400'
+                          : 'text-muted-foreground'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Comment */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Comentário (opcional)</label>
+              <Textarea
+                placeholder="Deixe um comentário sobre a consulta..."
+                value={feedbackComment}
+                onChange={(e) => setFeedbackComment(e.target.value)}
+                rows={3}
+              />
+            </div>
+
+            {/* Submit Button */}
+            <Button 
+              className="w-full" 
+              onClick={handleSubmitFeedback}
+              disabled={feedbackRating === 0 || createFeedbackMutation.isPending}
+            >
+              {createFeedbackMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                'Enviar Feedback e Finalizar'
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// SOAP Note Viewer Component
+function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
+  const urgencyColors = {
+    high: "destructive",
+    medium: "default",
+    low: "secondary",
+  } as const;
+
+  const urgencyLabels = {
+    high: "Alta Urgência",
+    medium: "Urgência Moderada",
+    low: "Baixa Urgência",
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Red Flags */}
+      {soapNote.assessment?.red_flags && soapNote.assessment.red_flags.length > 0 && (
+        <Card className="border-destructive/50 bg-destructive/10">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" />
+              Sinais de Alerta
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2">
+              {soapNote.assessment.red_flags.map((flag: string, index: number) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="text-destructive mt-0.5">•</span>
+                  <span className="text-sm">{flag}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Subjective */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <Stethoscope className="h-5 w-5 text-primary" />
+            Subjetivo (S)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {soapNote.subjective.queixa_principal && (
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Queixa Principal</h4>
+              <p className="text-sm leading-relaxed">{soapNote.subjective.queixa_principal}</p>
+            </div>
+          )}
+          
+          {soapNote.subjective.historia_doenca_atual && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">História da Doença Atual</h4>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {soapNote.subjective.historia_doenca_atual}
+                </p>
+              </div>
+            </>
+          )}
+          
+          {soapNote.subjective.historico_medico && soapNote.subjective.historico_medico.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Histórico Médico</h4>
+                <ul className="text-sm space-y-1">
+                  {soapNote.subjective.historico_medico.map((item, i) => (
+                    <li key={i}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Objective */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <CheckCircle2 className="h-5 w-5 text-primary" />
+            Objetivo (O)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {soapNote.objective.exame_clinico_geral && (
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Exame Clínico Geral</h4>
+              <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                {soapNote.objective.exame_clinico_geral}
+              </p>
+            </div>
+          )}
+          
+          {soapNote.objective.exame_clinico_especifico && soapNote.objective.exame_clinico_especifico.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Exame Clínico Específico</h4>
+                <ul className="text-sm space-y-1">
+                  {soapNote.objective.exame_clinico_especifico.map((item, i) => (
+                    <li key={i}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+          
+          {soapNote.objective.dentes_afetados && soapNote.objective.dentes_afetados.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Dentes Afetados</h4>
+                <p className="text-sm">{soapNote.objective.dentes_afetados.join(", ")}</p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Assessment */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            Avaliação (A)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div>
+            <h4 className="text-sm font-semibold text-muted-foreground mb-2">Diagnósticos</h4>
+            <ul className="text-sm space-y-1">
+              {soapNote.assessment.diagnosticos.map((diag, i) => (
+                <li key={i}>• {diag}</li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Plan */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-lg">
+            <ClipboardList className="h-5 w-5 text-primary" />
+            Plano (P)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {soapNote.plan.tratamentos && soapNote.plan.tratamentos.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-muted-foreground mb-2">Tratamentos Propostos</h4>
+              <div className="space-y-2">
+                {soapNote.plan.tratamentos.map((trat, i) => (
+                  <div key={i} className="flex items-start gap-2 text-sm">
+                    <Badge 
+                      variant={trat.urgencia === 'alta' ? 'destructive' : trat.urgencia === 'media' ? 'default' : 'secondary'} 
+                      className="mt-0.5"
+                    >
+                      {trat.urgencia}
+                    </Badge>
+                    <div>
+                      <p className="font-medium">{trat.procedimento}</p>
+                      <p className="text-muted-foreground text-xs">Dente: {trat.dente}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          
+          {soapNote.plan.orientacoes && soapNote.plan.orientacoes.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Orientações ao Paciente</h4>
+                <ul className="text-sm space-y-1">
+                  {soapNote.plan.orientacoes.map((or, i) => (
+                    <li key={i}>• {or}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+          
+          {soapNote.plan.lembretes_clinicos && soapNote.plan.lembretes_clinicos.length > 0 && (
+            <>
+              <Separator />
+              <div>
+                <h4 className="text-sm font-semibold text-muted-foreground mb-2">Lembretes Clínicos</h4>
+                <ul className="text-sm space-y-1">
+                  {soapNote.plan.lembretes_clinicos.map((lem, i) => (
+                    <li key={i}>• {lem}</li>
+                  ))}
+                </ul>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

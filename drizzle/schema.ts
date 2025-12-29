@@ -1,17 +1,10 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
- * Extend this file with additional tables as your product grows.
- * Columns use camelCase to match both database fields and generated types.
  */
 export const users = mysqlTable("users", {
-  /**
-   * Surrogate primary key. Auto-incremented numeric value managed by the database.
-   * Use this for relations between tables.
-   */
   id: int("id").autoincrement().primaryKey(),
-  /** Manus OAuth identifier (openId) returned from the OAuth callback. Unique per user. */
   openId: varchar("openId", { length: 64 }).notNull().unique(),
   name: text("name"),
   email: varchar("email", { length: 320 }),
@@ -20,9 +13,142 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  // Dental-specific fields
+  croNumber: varchar("croNumber", { length: 50 }),
 });
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here
+/**
+ * Patients table - stores patient information
+ */
+export const patients = mysqlTable("patients", {
+  id: int("id").autoincrement().primaryKey(),
+  dentistId: int("dentistId").notNull(),
+  name: varchar("name", { length: 255 }).notNull(),
+  birthDate: varchar("birthDate", { length: 10 }),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  cpf: varchar("cpf", { length: 14 }),
+  medicalHistory: text("medicalHistory"),
+  allergies: text("allergies"),
+  medications: text("medications"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Patient = typeof patients.$inferSelect;
+export type InsertPatient = typeof patients.$inferInsert;
+
+/**
+ * Consultations table - stores consultation records
+ */
+export const consultations = mysqlTable("consultations", {
+  id: int("id").autoincrement().primaryKey(),
+  dentistId: int("dentistId").notNull(),
+  patientId: int("patientId").notNull(),
+  patientName: varchar("patientName", { length: 255 }).notNull(),
+  
+  // Audio data
+  audioUrl: text("audioUrl"),
+  audioFileKey: text("audioFileKey"),
+  audioDurationSeconds: int("audioDurationSeconds"),
+  
+  // Transcription
+  transcript: text("transcript"),
+  transcriptSegments: json("transcriptSegments"),
+  
+  // AI Analysis and SOAP note
+  soapNote: json("soapNote").$type<SOAPNote>(),
+  
+  // Metadata
+  templateUsed: varchar("templateUsed", { length: 50 }),
+  status: mysqlEnum("status", ["draft", "transcribed", "reviewed", "finalized"]).default("draft").notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  finalizedAt: timestamp("finalizedAt"),
+});
+
+export type Consultation = typeof consultations.$inferSelect;
+export type InsertConsultation = typeof consultations.$inferInsert;
+
+/**
+ * Feedbacks table - stores consultation feedbacks (mandatory)
+ */
+export const feedbacks = mysqlTable("feedbacks", {
+  id: int("id").autoincrement().primaryKey(),
+  consultationId: int("consultationId").notNull(),
+  dentistId: int("dentistId").notNull(),
+  rating: int("rating").notNull(), // 1-5 stars
+  comment: text("comment"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type Feedback = typeof feedbacks.$inferSelect;
+export type InsertFeedback = typeof feedbacks.$inferInsert;
+
+/**
+ * Consultation templates - predefined templates for different consultation types
+ */
+export const consultationTemplates = mysqlTable("consultationTemplates", {
+  id: int("id").autoincrement().primaryKey(),
+  dentistId: int("dentistId"),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  icon: varchar("icon", { length: 50 }),
+  color: varchar("color", { length: 50 }),
+  promptCustomization: text("promptCustomization"),
+  isDefault: boolean("isDefault").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type ConsultationTemplate = typeof consultationTemplates.$inferSelect;
+export type InsertConsultationTemplate = typeof consultationTemplates.$inferInsert;
+
+/**
+ * SOAP Note structure for dental consultations
+ */
+export interface SOAPNote {
+  urgency?: "high" | "medium" | "low";
+  subjective: {
+    queixa_principal: string;
+    historia_doenca_atual: string;
+    historico_medico: string[];
+    medicacoes: Array<{
+      nome: string;
+      dose: string;
+      frequencia: string;
+    }>;
+  };
+  objective: {
+    exame_clinico_geral: string;
+    exame_clinico_especifico: string[];
+    dentes_afetados: string[];
+  };
+  assessment: {
+    diagnosticos: string[];
+    red_flags: string[];
+  };
+  plan: {
+    tratamentos: Array<{
+      procedimento: string;
+      dente: string;
+      urgencia: "alta" | "media" | "baixa";
+    }>;
+    orientacoes: string[];
+    lembretes_clinicos: string[];
+  };
+}
+
+/**
+ * Transcript segment structure from Whisper API
+ */
+export interface TranscriptSegment {
+  id: number;
+  start: number;
+  end: number;
+  text: string;
+  speaker?: "dentist" | "patient";
+}
