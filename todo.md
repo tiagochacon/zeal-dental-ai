@@ -98,3 +98,7 @@
 - [x] Legenda automática com todas as classificações
 - [x] Classificações: Não Avaliado, Saudável, Cárie, Restaurado, Ausente, Fraturado, Canal, Coroa, Indicação de extração
 - [x] Atualizar backend para extrair classificações da transcrição
+
+## Correção de Bug de Deploy (v6)
+- [x] Corrigir validação obrigatória de OWNER_OPEN_ID que causa falha no deploy
+- [x] Tornar OWNER_OPEN_ID opcional com valor padrão

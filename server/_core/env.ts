@@ -28,7 +28,7 @@ export const ENV = {
   cookieSecret: getEnvVar("JWT_SECRET"),
   databaseUrl: getEnvVar("DATABASE_URL"),
   oAuthServerUrl: getEnvVar("OAUTH_SERVER_URL"),
-  ownerOpenId: getEnvVar("OWNER_OPEN_ID"),
+  ownerOpenId: getEnvVar("OWNER_OPEN_ID", ""),
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: getEnvVar("BUILT_IN_FORGE_API_URL"),
   forgeApiKey: getEnvVar("BUILT_IN_FORGE_API_KEY"),
