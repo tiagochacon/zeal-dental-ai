@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText, LayoutDashboard, Users } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText, LayoutDashboard, Users, Menu, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -16,6 +16,7 @@ import { toast } from "sonner";
 export default function NewConsultation() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Form state
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
@@ -154,7 +155,6 @@ export default function NewConsultation() {
   };
 
   const handleSubmit = async () => {
-    // Validate input based on mode
     if (inputMode === "audio" && !audioBlob) {
       toast.error('Por favor, grave ou faça upload de um áudio.');
       return;
@@ -174,7 +174,6 @@ export default function NewConsultation() {
       let patientId: number;
       let patientName: string;
 
-      // Create new patient if needed
       if (isNewPatient && newPatientName) {
         const result = await createPatientMutation.mutateAsync({
           name: newPatientName,
@@ -186,14 +185,12 @@ export default function NewConsultation() {
         patientName = patients?.find(p => p.id === patientId)?.name || '';
       }
 
-      // Create consultation
       const consultationResult = await createConsultationMutation.mutateAsync({
         patientId,
         patientName,
       });
 
       if (inputMode === "audio" && audioBlob) {
-        // Convert blob to base64 and upload
         const reader = new FileReader();
         reader.onloadend = async () => {
           const base64 = (reader.result as string).split(',')[1];
@@ -210,7 +207,6 @@ export default function NewConsultation() {
         };
         reader.readAsDataURL(audioBlob);
       } else if (inputMode === "text") {
-        // Save text directly as transcript
         await updateTranscriptMutation.mutateAsync({
           consultationId: consultationResult.consultationId,
           transcript: consultationText,
@@ -245,20 +241,39 @@ export default function NewConsultation() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
-        <div className="p-6 border-b border-sidebar-border">
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-64 border-r border-border bg-sidebar flex flex-col
+        transform transition-transform duration-200 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
             <span className="text-xl font-bold text-foreground">Zeal</span>
           </div>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 hover:bg-sidebar-accent rounded-lg"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             <li>
               <button
-                onClick={() => setLocation("/")}
+                onClick={() => { setLocation("/"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >
                 <LayoutDashboard className="h-5 w-5" />
@@ -267,7 +282,7 @@ export default function NewConsultation() {
             </li>
             <li>
               <button
-                onClick={() => setLocation("/patients")}
+                onClick={() => { setLocation("/patients"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >
                 <Users className="h-5 w-5" />
@@ -292,41 +307,51 @@ export default function NewConsultation() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <header className="p-6 border-b border-border">
-          <div className="flex items-center gap-4">
+        <header className="p-4 lg:p-6 border-b border-border">
+          <div className="flex items-center gap-2 lg:gap-4">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 hover:bg-muted rounded-lg"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
             <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar
+              <ArrowLeft className="h-4 w-4 mr-1 lg:mr-2" />
+              <span className="hidden sm:inline">Voltar</span>
             </Button>
             <div>
-              <h1 className="text-xl font-bold">Nova Consulta</h1>
-              <p className="text-sm text-muted-foreground">
+              <h1 className="text-lg lg:text-xl font-bold">Nova Consulta</h1>
+              <p className="text-xs lg:text-sm text-muted-foreground hidden sm:block">
                 Grave áudio ou digite o texto da consulta
               </p>
             </div>
           </div>
         </header>
 
-        <div className="p-6 max-w-3xl mx-auto space-y-6">
+        <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-4 lg:space-y-6">
           {/* Patient Selection */}
           <Card>
-            <CardHeader>
-              <CardTitle>Paciente</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 lg:p-6">
+              <CardTitle className="text-base lg:text-lg">Paciente</CardTitle>
+              <CardDescription className="text-xs lg:text-sm">
                 Selecione um paciente existente ou cadastre um novo
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-4">
+            <CardContent className="p-4 lg:p-6 pt-0 lg:pt-0 space-y-4">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-4">
                 <Button
                   variant={!isNewPatient ? "default" : "outline"}
                   onClick={() => setIsNewPatient(false)}
+                  className="flex-1 sm:flex-none"
+                  size="sm"
                 >
                   Paciente Existente
                 </Button>
                 <Button
                   variant={isNewPatient ? "default" : "outline"}
                   onClick={() => setIsNewPatient(true)}
+                  className="flex-1 sm:flex-none"
+                  size="sm"
                 >
                   Novo Paciente
                 </Button>
@@ -334,7 +359,7 @@ export default function NewConsultation() {
 
               {isNewPatient ? (
                 <div className="space-y-2">
-                  <Label htmlFor="patientName">Nome do Paciente</Label>
+                  <Label htmlFor="patientName" className="text-sm">Nome do Paciente</Label>
                   <Input
                     id="patientName"
                     placeholder="Digite o nome completo"
@@ -344,7 +369,7 @@ export default function NewConsultation() {
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Label>Selecione o Paciente</Label>
+                  <Label className="text-sm">Selecione o Paciente</Label>
                   <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
                     <SelectTrigger>
                       <SelectValue placeholder="Selecione um paciente" />
@@ -355,7 +380,7 @@ export default function NewConsultation() {
                           <Loader2 className="h-4 w-4 animate-spin mx-auto" />
                         </div>
                       ) : patients?.length === 0 ? (
-                        <div className="p-2 text-center text-muted-foreground">
+                        <div className="p-2 text-center text-muted-foreground text-sm">
                           Nenhum paciente cadastrado
                         </div>
                       ) : (
@@ -374,48 +399,48 @@ export default function NewConsultation() {
 
           {/* Input Mode Selection */}
           <Card>
-            <CardHeader>
-              <CardTitle>Entrada da Consulta</CardTitle>
-              <CardDescription>
+            <CardHeader className="p-4 lg:p-6">
+              <CardTitle className="text-base lg:text-lg">Entrada da Consulta</CardTitle>
+              <CardDescription className="text-xs lg:text-sm">
                 Escolha como deseja registrar a consulta
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 lg:p-6 pt-0 lg:pt-0">
               <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "audio" | "text")}>
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="audio" className="flex items-center gap-2">
+                  <TabsTrigger value="audio" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
                     <Mic className="h-4 w-4" />
                     Áudio
                   </TabsTrigger>
-                  <TabsTrigger value="text" className="flex items-center gap-2">
+                  <TabsTrigger value="text" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
                     <FileText className="h-4 w-4" />
                     Texto
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="audio" className="mt-6">
+                <TabsContent value="audio" className="mt-4 lg:mt-6">
                   {!audioBlob ? (
                     <>
-                      <div className="flex flex-col items-center gap-6 py-8">
+                      <div className="flex flex-col items-center gap-4 lg:gap-6 py-6 lg:py-8">
                         {isRecording ? (
                           <>
                             <div className="relative">
-                              <div className="w-24 h-24 rounded-full bg-destructive/20 flex items-center justify-center">
-                                <div className="w-16 h-16 rounded-full bg-destructive animate-pulse flex items-center justify-center">
-                                  <Mic className="h-8 w-8 text-white" />
+                              <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-destructive/20 flex items-center justify-center">
+                                <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-destructive animate-pulse flex items-center justify-center">
+                                  <Mic className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
                                 </div>
                               </div>
                             </div>
-                            <div className="text-3xl font-mono font-bold">
+                            <div className="text-2xl lg:text-3xl font-mono font-bold">
                               {formatTime(recordingTime)}
                             </div>
-                            <div className="flex gap-4">
-                              <Button variant="outline" onClick={pauseRecording}>
-                                {isPaused ? <Play className="h-4 w-4 mr-2" /> : <Pause className="h-4 w-4 mr-2" />}
+                            <div className="flex gap-2 lg:gap-4">
+                              <Button variant="outline" size="sm" onClick={pauseRecording}>
+                                {isPaused ? <Play className="h-4 w-4 mr-1 lg:mr-2" /> : <Pause className="h-4 w-4 mr-1 lg:mr-2" />}
                                 {isPaused ? 'Continuar' : 'Pausar'}
                               </Button>
-                              <Button variant="destructive" onClick={stopRecording}>
-                                <Square className="h-4 w-4 mr-2" />
+                              <Button variant="destructive" size="sm" onClick={stopRecording}>
+                                <Square className="h-4 w-4 mr-1 lg:mr-2" />
                                 Parar
                               </Button>
                             </div>
@@ -424,12 +449,12 @@ export default function NewConsultation() {
                           <>
                             <Button
                               size="lg"
-                              className="h-24 w-24 rounded-full"
+                              className="h-20 w-20 lg:h-24 lg:w-24 rounded-full"
                               onClick={startRecording}
                             >
-                              <Mic className="h-10 w-10" />
+                              <Mic className="h-8 w-8 lg:h-10 lg:w-10" />
                             </Button>
-                            <p className="text-muted-foreground">
+                            <p className="text-sm text-muted-foreground text-center">
                               Clique para iniciar a gravação
                             </p>
                           </>
@@ -438,7 +463,7 @@ export default function NewConsultation() {
 
                       {!isRecording && (
                         <>
-                          <div className="relative my-6">
+                          <div className="relative my-4 lg:my-6">
                             <div className="absolute inset-0 flex items-center">
                               <span className="w-full border-t border-border" />
                             </div>
@@ -447,7 +472,7 @@ export default function NewConsultation() {
                             </div>
                           </div>
 
-                          <div className="flex flex-col items-center gap-4">
+                          <div className="flex flex-col items-center gap-3 lg:gap-4">
                             <input
                               ref={fileInputRef}
                               type="file"
@@ -457,12 +482,13 @@ export default function NewConsultation() {
                             />
                             <Button
                               variant="outline"
+                              size="sm"
                               onClick={() => fileInputRef.current?.click()}
                             >
                               <Upload className="h-4 w-4 mr-2" />
                               Fazer Upload de Áudio
                             </Button>
-                            <p className="text-xs text-muted-foreground">
+                            <p className="text-xs text-muted-foreground text-center">
                               Formatos aceitos: MP3, WAV, M4A, WebM (máx. 16MB)
                             </p>
                           </div>
@@ -471,14 +497,14 @@ export default function NewConsultation() {
                     </>
                   ) : (
                     <div className="space-y-4">
-                      <div className="p-4 rounded-lg bg-muted">
+                      <div className="p-3 lg:p-4 rounded-lg bg-muted">
                         <audio src={audioUrl || undefined} controls className="w-full" />
                       </div>
-                      <div className="flex justify-between items-center">
-                        <p className="text-sm text-muted-foreground">
+                      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <p className="text-xs lg:text-sm text-muted-foreground">
                           {recordingTime > 0 ? `Duração: ${formatTime(recordingTime)}` : 'Áudio carregado'}
                         </p>
-                        <Button variant="outline" onClick={resetAudio}>
+                        <Button variant="outline" size="sm" onClick={resetAudio}>
                           Gravar Novamente
                         </Button>
                       </div>
@@ -486,10 +512,10 @@ export default function NewConsultation() {
                   )}
                 </TabsContent>
 
-                <TabsContent value="text" className="mt-6">
+                <TabsContent value="text" className="mt-4 lg:mt-6">
                   <div className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="consultationText">Texto da Consulta</Label>
+                      <Label htmlFor="consultationText" className="text-sm">Texto da Consulta</Label>
                       <Textarea
                         id="consultationText"
                         placeholder="Digite ou cole o texto da consulta aqui...
@@ -499,7 +525,7 @@ Dentista: Bom dia, como posso ajudar?
 Paciente: Estou sentindo dor no dente 25.
 Dentista: Há quanto tempo sente essa dor?
 ..."
-                        className="min-h-[300px] resize-none"
+                        className="min-h-[200px] lg:min-h-[300px] resize-none text-sm"
                         value={consultationText}
                         onChange={(e) => setConsultationText(e.target.value)}
                       />
@@ -515,10 +541,10 @@ Dentista: Há quanto tempo sente essa dor?
 
           {/* Info Card */}
           <Card className="border-primary/50 bg-primary/5">
-            <CardContent className="pt-6">
+            <CardContent className="p-4 lg:pt-6">
               <div className="flex gap-3">
                 <AlertCircle className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
+                <div className="text-xs lg:text-sm">
                   <p className="font-medium text-primary mb-1">
                     {inputMode === "audio" ? "Dicas para melhor transcrição" : "Dicas para melhor análise"}
                   </p>

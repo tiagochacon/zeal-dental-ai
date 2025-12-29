@@ -68,3 +68,14 @@
 - [x] Adicionar opção de entrada de texto além de áudio
 - [x] Criar página de login
 - [x] Manter perfil do usuário no rodapé da sidebar
+
+## Melhorias Funcionais (v3)
+- [x] Implementar exportação de PDF funcional para Nota SOAP
+- [x] Criar componente de Odontograma visual junto às abas
+- [x] Odontograma baseado apenas nos dados do áudio (não inventar)
+- [x] Adicionar prazo/perspectiva de tempo ao plano de tratamento
+- [x] Atualizar schema para incluir prazo nos tratamentos
+- [x] Garantir responsividade total (Desktop e Mobile)
+- [x] Sidebar responsiva com menu hambúrguer no mobile
+- [x] Cards de estatísticas responsivos
+- [x] Formulários responsivos na página de nova consulta

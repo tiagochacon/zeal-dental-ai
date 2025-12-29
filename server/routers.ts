@@ -74,6 +74,7 @@ const soapNoteSchema = z.object({
       procedimento: z.string(),
       dente: z.string(),
       urgencia: z.enum(["alta", "media", "baixa"]),
+      prazo: z.string().optional(),
     })),
     orientacoes: z.array(z.string()),
     lembretes_clinicos: z.array(z.string()),
@@ -301,7 +302,7 @@ EXTRAIA E ESTRUTURE:
 4. Medicações em uso - apenas as citadas
 5. Exame clínico - apenas achados objetivos mencionados
 6. Diagnóstico odontológico - como HIPÓTESE quando não confirmado
-7. Plano de tratamento proposto
+7. Plano de tratamento proposto COM PRAZO ESTIMADO para cada procedimento
 
 NOMENCLATURA OBRIGATÓRIA:
 - Sistema de numeração FDI (dente 16, 21, etc.)
@@ -334,7 +335,7 @@ FORMATO DE SAÍDA (JSON):
     "red_flags": ["string"]
   },
   "plan": {
-    "tratamentos": [{"procedimento": "string", "dente": "string", "urgencia": "baixa|media|alta"}],
+    "tratamentos": [{"procedimento": "string", "dente": "string", "urgencia": "baixa|media|alta", "prazo": "string (ex: imediato, 1 semana, 1 mês, 3 meses)"}],
     "orientacoes": ["string"],
     "lembretes_clinicos": ["string"]
   }
@@ -408,9 +409,10 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
                           properties: {
                             procedimento: { type: "string" },
                             dente: { type: "string" },
-                            urgencia: { type: "string", enum: ["baixa", "media", "alta"] }
+                            urgencia: { type: "string", enum: ["baixa", "media", "alta"] },
+                            prazo: { type: "string" }
                           },
-                          required: ["procedimento", "dente", "urgencia"],
+                          required: ["procedimento", "dente", "urgencia", "prazo"],
                           additionalProperties: false
                         }
                       },

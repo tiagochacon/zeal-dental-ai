@@ -8,10 +8,12 @@ import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
+import { exportSOAPToPDF } from "@/lib/pdfExport";
+import Odontogram from "@/components/Odontogram";
 import { 
   Loader2, ArrowLeft, FileText, AudioLines, Download, CheckCircle, Edit, 
   AlertTriangle, Stethoscope, ClipboardList, CheckCircle2, Star,
-  LayoutDashboard, Users
+  LayoutDashboard, Users, Menu, X
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -29,6 +31,7 @@ export default function ConsultationDetail() {
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [hoveredStar, setHoveredStar] = useState(0);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
     { id: consultationId! },
@@ -105,7 +108,21 @@ export default function ConsultationDetail() {
   };
 
   const handleExportPDF = () => {
-    toast.info("Exportação de PDF em desenvolvimento");
+    if (!consultation || !consultation.soapNote) {
+      toast.error("Nota SOAP não disponível para exportação");
+      return;
+    }
+    try {
+      exportSOAPToPDF({
+        patientName: consultation.patientName,
+        createdAt: consultation.createdAt,
+        soapNote: consultation.soapNote as SOAPNote,
+      });
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar PDF");
+      console.error(error);
+    }
   };
 
   if (authLoading || isLoading) {
@@ -141,20 +158,39 @@ export default function ConsultationDetail() {
 
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
-        <div className="p-6 border-b border-sidebar-border">
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-64 border-r border-border bg-sidebar flex flex-col
+        transform transition-transform duration-200 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
             <span className="text-xl font-bold text-foreground">Zeal</span>
           </div>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 hover:bg-sidebar-accent rounded-lg"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             <li>
               <button
-                onClick={() => setLocation("/")}
+                onClick={() => { setLocation("/"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >
                 <LayoutDashboard className="h-5 w-5" />
@@ -163,7 +199,7 @@ export default function ConsultationDetail() {
             </li>
             <li>
               <button
-                onClick={() => setLocation("/patients")}
+                onClick={() => { setLocation("/patients"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >
                 <Users className="h-5 w-5" />
@@ -188,16 +224,22 @@ export default function ConsultationDetail() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <header className="p-6 border-b border-border">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <header className="p-4 lg:p-6 border-b border-border">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2 lg:gap-4">
+              <button 
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden p-2 hover:bg-muted rounded-lg"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
               <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
                 <ArrowLeft className="h-4 w-4 mr-2" />
-                Voltar
+                <span className="hidden sm:inline">Voltar</span>
               </Button>
               <div>
-                <h1 className="text-xl font-bold">{consultation.patientName}</h1>
-                <p className="text-sm text-muted-foreground">
+                <h1 className="text-lg lg:text-xl font-bold">{consultation.patientName}</h1>
+                <p className="text-xs lg:text-sm text-muted-foreground">
                   {new Date(consultation.createdAt).toLocaleDateString('pt-BR', {
                     day: '2-digit',
                     month: 'long',
@@ -207,30 +249,32 @@ export default function ConsultationDetail() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="outline" onClick={handleExportPDF}>
-                <Download className="mr-2 h-4 w-4" />
-                Exportar PDF
-              </Button>
-              
-              {consultation.status !== "finalized" && !isEditing && (
-                <Button variant="outline" onClick={() => setIsEditing(true)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  Editar Nota
+            <div className="flex items-center gap-2 flex-wrap">
+              {soapNote && (
+                <Button variant="outline" size="sm" onClick={handleExportPDF}>
+                  <Download className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Exportar</span> PDF
                 </Button>
               )}
               
               {consultation.status !== "finalized" && !isEditing && (
-                <Button onClick={handleFinalize} disabled={finalizeMutation.isPending}>
+                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+                  <Edit className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Editar</span>
+                </Button>
+              )}
+              
+              {consultation.status !== "finalized" && !isEditing && (
+                <Button size="sm" onClick={handleFinalize} disabled={finalizeMutation.isPending}>
                   {finalizeMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Finalizando...
+                      <span className="hidden sm:inline">Finalizando...</span>
                     </>
                   ) : (
                     <>
                       <CheckCircle className="mr-2 h-4 w-4" />
-                      Finalizar Consulta
+                      Finalizar
                     </>
                   )}
                 </Button>
@@ -246,15 +290,21 @@ export default function ConsultationDetail() {
           </div>
         </header>
 
-        <div className="p-6 max-w-4xl mx-auto">
+        <div className="p-4 lg:p-6 max-w-4xl mx-auto">
           <Tabs defaultValue="soap" className="space-y-6">
-            <TabsList className="grid w-full max-w-md grid-cols-2">
-              <TabsTrigger value="soap">
-                <FileText className="mr-2 h-4 w-4" />
-                Nota SOAP
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="soap" className="text-xs sm:text-sm">
+                <FileText className="mr-1 sm:mr-2 h-4 w-4" />
+                <span className="hidden sm:inline">Nota</span> SOAP
               </TabsTrigger>
-              <TabsTrigger value="transcript">
-                <AudioLines className="mr-2 h-4 w-4" />
+              <TabsTrigger value="odontogram" className="text-xs sm:text-sm">
+                <svg viewBox="0 0 24 24" className="mr-1 sm:mr-2 h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 2C8 2 5 5 5 9c0 2 1 4 2 5l1 8h8l1-8c1-1 2-3 2-5 0-4-3-7-7-7z" />
+                </svg>
+                Odontograma
+              </TabsTrigger>
+              <TabsTrigger value="transcript" className="text-xs sm:text-sm">
+                <AudioLines className="mr-1 sm:mr-2 h-4 w-4" />
                 Transcrição
               </TabsTrigger>
             </TabsList>
@@ -279,6 +329,13 @@ export default function ConsultationDetail() {
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="odontogram" className="space-y-6">
+              <Odontogram 
+                affectedTeeth={soapNote?.objective?.dentes_afetados || []}
+                diagnoses={soapNote?.assessment?.diagnosticos}
+              />
             </TabsContent>
 
             <TabsContent value="transcript" className="space-y-4">
@@ -530,18 +587,21 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
           {soapNote.plan.tratamentos && soapNote.plan.tratamentos.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-2">Tratamentos Propostos</h4>
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {soapNote.plan.tratamentos.map((trat, i) => (
-                  <div key={i} className="flex items-start gap-2 text-sm">
+                  <div key={i} className="flex items-start gap-2 text-sm bg-muted/50 p-3 rounded-lg">
                     <Badge 
                       variant={trat.urgencia === 'alta' ? 'destructive' : trat.urgencia === 'media' ? 'default' : 'secondary'} 
-                      className="mt-0.5"
+                      className="mt-0.5 shrink-0"
                     >
                       {trat.urgencia}
                     </Badge>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium">{trat.procedimento}</p>
-                      <p className="text-muted-foreground text-xs">Dente: {trat.dente}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-muted-foreground">
+                        <span>Dente: {trat.dente}</span>
+                        {trat.prazo && <span>Prazo: {trat.prazo}</span>}
+                      </div>
                     </div>
                   </div>
                 ))}

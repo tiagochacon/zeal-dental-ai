@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users } from "lucide-react";
+import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, Menu, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -37,6 +37,7 @@ const initialFormData: PatientFormData = {
 export default function Patients() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -141,22 +142,151 @@ export default function Patients() {
     return null;
   }
 
+  const PatientForm = ({ isEdit = false }: { isEdit?: boolean }) => (
+    <form onSubmit={handleSubmit} className="space-y-4 mt-4">
+      <div className="space-y-2">
+        <Label htmlFor={`${isEdit ? 'edit-' : ''}name`} className="text-sm">Nome Completo *</Label>
+        <Input
+          id={`${isEdit ? 'edit-' : ''}name`}
+          value={formData.name}
+          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          placeholder="Nome do paciente"
+          required
+        />
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${isEdit ? 'edit-' : ''}birthDate`} className="text-sm">Data de Nascimento</Label>
+          <Input
+            id={`${isEdit ? 'edit-' : ''}birthDate`}
+            type="date"
+            value={formData.birthDate}
+            onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${isEdit ? 'edit-' : ''}cpf`} className="text-sm">CPF</Label>
+          <Input
+            id={`${isEdit ? 'edit-' : ''}cpf`}
+            value={formData.cpf}
+            onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
+            placeholder="000.000.000-00"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor={`${isEdit ? 'edit-' : ''}phone`} className="text-sm">Telefone</Label>
+          <Input
+            id={`${isEdit ? 'edit-' : ''}phone`}
+            value={formData.phone}
+            onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+            placeholder="(00) 00000-0000"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor={`${isEdit ? 'edit-' : ''}email`} className="text-sm">E-mail</Label>
+          <Input
+            id={`${isEdit ? 'edit-' : ''}email`}
+            type="email"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="email@exemplo.com"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${isEdit ? 'edit-' : ''}medicalHistory`} className="text-sm">Histórico Médico</Label>
+        <Textarea
+          id={`${isEdit ? 'edit-' : ''}medicalHistory`}
+          value={formData.medicalHistory}
+          onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
+          placeholder="Condições médicas relevantes..."
+          rows={3}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${isEdit ? 'edit-' : ''}allergies`} className="text-sm">Alergias</Label>
+        <Input
+          id={`${isEdit ? 'edit-' : ''}allergies`}
+          value={formData.allergies}
+          onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
+          placeholder="Alergias conhecidas"
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor={`${isEdit ? 'edit-' : ''}medications`} className="text-sm">Medicamentos em Uso</Label>
+        <Textarea
+          id={`${isEdit ? 'edit-' : ''}medications`}
+          value={formData.medications}
+          onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
+          placeholder="Medicamentos que o paciente utiliza..."
+          rows={2}
+        />
+      </div>
+
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+        <Button 
+          type="button" 
+          variant="outline" 
+          onClick={() => isEdit ? setEditingPatient(null) : setIsCreateOpen(false)}
+        >
+          Cancelar
+        </Button>
+        <Button type="submit" disabled={isEdit ? updateMutation.isPending : createMutation.isPending}>
+          {(isEdit ? updateMutation.isPending : createMutation.isPending) ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Salvando...
+            </>
+          ) : (
+            isEdit ? 'Salvar Alterações' : 'Cadastrar'
+          )}
+        </Button>
+      </div>
+    </form>
+  );
+
   return (
     <div className="min-h-screen bg-background flex">
+      {/* Mobile Sidebar Overlay */}
+      {sidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className="w-64 border-r border-border bg-sidebar flex flex-col">
-        <div className="p-6 border-b border-sidebar-border">
+      <aside className={`
+        fixed lg:static inset-y-0 left-0 z-50
+        w-64 border-r border-border bg-sidebar flex flex-col
+        transform transition-transform duration-200 ease-in-out
+        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
+      `}>
+        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
             <span className="text-xl font-bold text-foreground">Zeal</span>
           </div>
+          <button 
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden p-2 hover:bg-sidebar-accent rounded-lg"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <nav className="flex-1 p-4">
           <ul className="space-y-2">
             <li>
               <button
-                onClick={() => setLocation("/")}
+                onClick={() => { setLocation("/"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >
                 <LayoutDashboard className="h-5 w-5" />
@@ -165,7 +295,7 @@ export default function Patients() {
             </li>
             <li>
               <button
-                onClick={() => setLocation("/patients")}
+                onClick={() => { setLocation("/patients"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium"
               >
                 <Users className="h-5 w-5" />
@@ -190,138 +320,44 @@ export default function Patients() {
 
       {/* Main Content */}
       <main className="flex-1 overflow-auto">
-        <header className="p-6 flex items-center justify-between border-b border-border">
-          <div>
-            <h1 className="text-2xl font-bold">Pacientes</h1>
-            <p className="text-sm text-muted-foreground">
-              Gerencie o cadastro de pacientes
-            </p>
+        <header className="p-4 lg:p-6 flex items-center justify-between gap-4 border-b border-border">
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => setSidebarOpen(true)}
+              className="lg:hidden p-2 hover:bg-muted rounded-lg"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <div>
+              <h1 className="text-xl lg:text-2xl font-bold">Pacientes</h1>
+              <p className="text-xs lg:text-sm text-muted-foreground hidden sm:block">
+                Gerencie o cadastro de pacientes
+              </p>
+            </div>
           </div>
 
           <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
             <DialogTrigger asChild>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Novo Paciente
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-1 lg:mr-2" />
+                <span className="hidden sm:inline">Novo</span> Paciente
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4">
               <DialogHeader>
                 <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
-                <DialogDescription>
+                <DialogDescription className="text-sm">
                   Preencha os dados do paciente. Apenas o nome é obrigatório.
                 </DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nome Completo *</Label>
-                  <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    placeholder="Nome do paciente"
-                    required
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="birthDate">Data de Nascimento</Label>
-                    <Input
-                      id="birthDate"
-                      type="date"
-                      value={formData.birthDate}
-                      onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="cpf">CPF</Label>
-                    <Input
-                      id="cpf"
-                      value={formData.cpf}
-                      onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                      placeholder="000.000.000-00"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="phone">Telefone</Label>
-                    <Input
-                      id="phone"
-                      value={formData.phone}
-                      onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                      placeholder="(00) 00000-0000"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">E-mail</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      placeholder="email@exemplo.com"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="medicalHistory">Histórico Médico</Label>
-                  <Textarea
-                    id="medicalHistory"
-                    value={formData.medicalHistory}
-                    onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
-                    placeholder="Condições médicas relevantes..."
-                    rows={3}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="allergies">Alergias</Label>
-                  <Input
-                    id="allergies"
-                    value={formData.allergies}
-                    onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                    placeholder="Alergias conhecidas"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="medications">Medicamentos em Uso</Label>
-                  <Textarea
-                    id="medications"
-                    value={formData.medications}
-                    onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
-                    placeholder="Medicamentos que o paciente utiliza..."
-                    rows={2}
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button type="submit" disabled={createMutation.isPending}>
-                    {createMutation.isPending ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      'Cadastrar'
-                    )}
-                  </Button>
-                </div>
-              </form>
+              <PatientForm />
             </DialogContent>
           </Dialog>
         </header>
 
-        <div className="p-6">
+        <div className="p-4 lg:p-6">
           {/* Search */}
-          <div className="mb-6">
+          <div className="mb-4 lg:mb-6">
             <div className="relative max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -340,9 +376,9 @@ export default function Patients() {
             </div>
           ) : filteredPatients?.length === 0 ? (
             <Card>
-              <CardContent className="py-12 text-center">
-                <User className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground">
+              <CardContent className="py-8 lg:py-12 text-center">
+                <User className="h-10 w-10 lg:h-12 lg:w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-sm lg:text-base text-muted-foreground">
                   {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado"}
                 </p>
                 {!searchQuery && (
@@ -357,56 +393,56 @@ export default function Patients() {
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-3 lg:gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {filteredPatients?.map((patient) => (
                 <Card key={patient.id} className="hover:border-primary/50 transition-colors">
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-full bg-primary/10">
-                          <User className="h-5 w-5 text-primary" />
+                  <CardHeader className="pb-2 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+                        <div className="p-1.5 lg:p-2 rounded-full bg-primary/10 shrink-0">
+                          <User className="h-4 w-4 lg:h-5 lg:w-5 text-primary" />
                         </div>
-                        <div>
-                          <CardTitle className="text-base">{patient.name}</CardTitle>
+                        <div className="min-w-0">
+                          <CardTitle className="text-sm lg:text-base truncate">{patient.name}</CardTitle>
                           {patient.birthDate && (
-                            <CardDescription className="flex items-center gap-1 mt-1">
+                            <CardDescription className="flex items-center gap-1 mt-1 text-xs">
                               <Calendar className="h-3 w-3" />
                               {new Date(patient.birthDate).toLocaleDateString('pt-BR')}
                             </CardDescription>
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-1">
+                      <div className="flex gap-1 shrink-0">
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8"
+                          className="h-7 w-7 lg:h-8 lg:w-8"
                           onClick={() => handleEdit(patient)}
                         >
-                          <Edit className="h-4 w-4" />
+                          <Edit className="h-3 w-3 lg:h-4 lg:w-4" />
                         </Button>
                         <Button 
                           variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 text-destructive hover:text-destructive"
+                          className="h-7 w-7 lg:h-8 lg:w-8 text-destructive hover:text-destructive"
                           onClick={() => handleDelete(patient.id)}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3 w-3 lg:h-4 lg:w-4" />
                         </Button>
                       </div>
                     </div>
                   </CardHeader>
-                  <CardContent className="space-y-2 text-sm">
+                  <CardContent className="space-y-2 text-xs lg:text-sm p-4 pt-0">
                     {patient.phone && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Phone className="h-3 w-3" />
-                        {patient.phone}
+                        <span className="truncate">{patient.phone}</span>
                       </div>
                     )}
                     {patient.email && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Mail className="h-3 w-3" />
-                        {patient.email}
+                        <span className="truncate">{patient.email}</span>
                       </div>
                     )}
                     {patient.allergies && (
@@ -424,116 +460,14 @@ export default function Patients() {
 
       {/* Edit Dialog */}
       <Dialog open={editingPatient !== null} onOpenChange={(open) => !open && setEditingPatient(null)}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto mx-4">
           <DialogHeader>
             <DialogTitle>Editar Paciente</DialogTitle>
-            <DialogDescription>
+            <DialogDescription className="text-sm">
               Atualize os dados do paciente.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-4">
-            <div className="space-y-2">
-              <Label htmlFor="edit-name">Nome Completo *</Label>
-              <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder="Nome do paciente"
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-birthDate">Data de Nascimento</Label>
-                <Input
-                  id="edit-birthDate"
-                  type="date"
-                  value={formData.birthDate}
-                  onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-cpf">CPF</Label>
-                <Input
-                  id="edit-cpf"
-                  value={formData.cpf}
-                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
-                  placeholder="000.000.000-00"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-phone">Telefone</Label>
-                <Input
-                  id="edit-phone"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  placeholder="(00) 00000-0000"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-email">E-mail</Label>
-                <Input
-                  id="edit-email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="email@exemplo.com"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-medicalHistory">Histórico Médico</Label>
-              <Textarea
-                id="edit-medicalHistory"
-                value={formData.medicalHistory}
-                onChange={(e) => setFormData({ ...formData, medicalHistory: e.target.value })}
-                placeholder="Condições médicas relevantes..."
-                rows={3}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-allergies">Alergias</Label>
-              <Input
-                id="edit-allergies"
-                value={formData.allergies}
-                onChange={(e) => setFormData({ ...formData, allergies: e.target.value })}
-                placeholder="Alergias conhecidas"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="edit-medications">Medicamentos em Uso</Label>
-              <Textarea
-                id="edit-medications"
-                value={formData.medications}
-                onChange={(e) => setFormData({ ...formData, medications: e.target.value })}
-                placeholder="Medicamentos que o paciente utiliza..."
-                rows={2}
-              />
-            </div>
-
-            <div className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="outline" onClick={() => setEditingPatient(null)}>
-                Cancelar
-              </Button>
-              <Button type="submit" disabled={updateMutation.isPending}>
-                {updateMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  'Salvar Alterações'
-                )}
-              </Button>
-            </div>
-          </form>
+          <PatientForm isEdit />
         </DialogContent>
       </Dialog>
     </div>

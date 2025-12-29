@@ -136,6 +136,7 @@ export interface SOAPNote {
       procedimento: string;
       dente: string;
       urgencia: "alta" | "media" | "baixa";
+      prazo?: string;
     }>;
     orientacoes: string[];
     lembretes_clinicos: string[];
