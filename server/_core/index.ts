@@ -7,6 +7,7 @@ import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { SERVER_CONFIG, HTTP_STATUS } from "../constants";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -18,8 +19,8 @@ function isPortAvailable(port: number): Promise<boolean> {
   });
 }
 
-async function findAvailablePort(startPort: number = 3000): Promise<number> {
-  for (let port = startPort; port < startPort + 20; port++) {
+async function findAvailablePort(startPort: number = SERVER_CONFIG.DEFAULT_PORT): Promise<number> {
+  for (let port = startPort; port < startPort + SERVER_CONFIG.PORT_SCAN_RANGE; port++) {
     if (await isPortAvailable(port)) {
       return port;
     }
@@ -30,9 +31,11 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
-  // Configure body parser with larger size limit for file uploads
-  app.use(express.json({ limit: "50mb" }));
-  app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  
+  // Configure body parser with reasonable limits for security
+  // 10MB is sufficient for audio files while preventing DoS attacks
+  app.use(express.json({ limit: SERVER_CONFIG.MAX_UPLOAD_SIZE }));
+  app.use(express.urlencoded({ limit: SERVER_CONFIG.MAX_UPLOAD_SIZE, extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // tRPC API
@@ -50,16 +53,37 @@ async function startServer() {
     serveStatic(app);
   }
 
-  const preferredPort = parseInt(process.env.PORT || "3000");
+  const preferredPort = parseInt(
+    process.env[SERVER_CONFIG.PORT_ENV_KEY] || 
+    String(SERVER_CONFIG.DEFAULT_PORT)
+  );
   const port = await findAvailablePort(preferredPort);
 
   if (port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
+  // Global error handler
+  app.use((err: Error, req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const isDev = process.env.NODE_ENV === "development";
+    
+    // Log error securely (don't expose in production)
+    console.error("[Server Error]", isDev ? err : err.message);
+    
+    // Send appropriate error response
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      error: isDev ? err.message : "Erro interno do servidor",
+      ...(isDev && { stack: err.stack }),
+    });
+  });
+
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    console.log(`✅ Server running on http://localhost:${port}/`);
+    console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
   });
 }
 
-startServer().catch(console.error);
+startServer().catch((error) => {
+  console.error("❌ Failed to start server:", error.message);
+  process.exit(1);
+});

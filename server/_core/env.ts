@@ -1,10 +1,35 @@
+/**
+ * Validates and retrieves a required environment variable
+ * @param key - The environment variable key
+ * @param defaultValue - Optional default value (makes the var optional)
+ * @throws {Error} If required variable is missing or empty
+ * @returns The environment variable value
+ */
+function getEnvVar(key: string, defaultValue?: string): string {
+  const value = process.env[key];
+  
+  if (defaultValue !== undefined) {
+    return value || defaultValue;
+  }
+  
+  if (!value || value.trim() === "") {
+    throw new Error(
+      `❌ Missing required environment variable: ${key}\n` +
+      `Please set ${key} in your .env file or environment`
+    );
+  }
+  
+  return value.trim();
+}
+
+// Validate all environment variables on startup
 export const ENV = {
-  appId: process.env.VITE_APP_ID ?? "",
-  cookieSecret: process.env.JWT_SECRET ?? "",
-  databaseUrl: process.env.DATABASE_URL ?? "",
-  oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
-  ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+  appId: getEnvVar("VITE_APP_ID"),
+  cookieSecret: getEnvVar("JWT_SECRET"),
+  databaseUrl: getEnvVar("DATABASE_URL"),
+  oAuthServerUrl: getEnvVar("OAUTH_SERVER_URL"),
+  ownerOpenId: getEnvVar("OWNER_OPEN_ID"),
   isProduction: process.env.NODE_ENV === "production",
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
-};
+  forgeApiUrl: getEnvVar("BUILT_IN_FORGE_API_URL"),
+  forgeApiKey: getEnvVar("BUILT_IN_FORGE_API_KEY"),
+} as const;
