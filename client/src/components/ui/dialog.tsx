@@ -26,6 +26,16 @@ function Dialog({
   const justEndedRef = React.useRef(false);
   const endTimerRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Cleanup timer on unmount to prevent memory leaks and stale callbacks
+  React.useEffect(() => {
+    return () => {
+      if (endTimerRef.current) {
+        clearTimeout(endTimerRef.current);
+        endTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const contextValue = React.useMemo(
     () => ({
       isComposing: () => composingRef.current,

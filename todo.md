@@ -102,3 +102,14 @@
 ## Correção de Bug de Deploy (v6)
 - [x] Corrigir validação obrigatória de OWNER_OPEN_ID que causa falha no deploy
 - [x] Tornar OWNER_OPEN_ID opcional com valor padrão
+
+## Correção de Bug removeChild (v7)
+- [x] Analisar manipulações diretas do DOM (document.*, removeChild, appendChild, innerHTML)
+- [x] Identificar useEffect com cleanup inseguro
+- [x] Verificar race conditions em efeitos assíncronos
+- [x] Auditar modais, dialogs e componentes dinâmicos
+- [x] Verificar keys estáveis em listas renderizadas com map()
+- [x] Auditar uso de portals (ReactDOM.createPortal)
+- [x] Implementar Error Boundary global melhorado
+- [x] Adicionar guards contra atualizações em componentes desmontados (useIsMounted hook)
+- [x] Corrigir cleanup functions inseguros (Map.tsx, dialog.tsx)

@@ -69,20 +69,20 @@
  *
  * -------------------------------
  * ✅ SUMMARY
- * - “map-attached” → AdvancedMarkerElement, DirectionsRenderer, Layers.
- * - “standalone” → Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
- * - “data-only” → Place, Geometry utilities.
+ * - "map-attached" → AdvancedMarkerElement, DirectionsRenderer, Layers.
+ * - "standalone" → Geocoder, DirectionsService, DistanceMatrixService, ElevationService.
+ * - "data-only" → Place, Geometry utilities.
  */
 
 /// <reference types="@types/google.maps" />
 
-import { useEffect, useRef } from "react";
-import { usePersistFn } from "@/hooks/usePersistFn";
+import { useEffect, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 
 declare global {
   interface Window {
     google?: typeof google;
+    __mapsScriptLoading?: Promise<void>;
   }
 }
 
@@ -92,21 +92,42 @@ const FORGE_BASE_URL =
   "https://forge.butterfly-effect.dev";
 const MAPS_PROXY_URL = `${FORGE_BASE_URL}/v1/maps/proxy`;
 
-function loadMapScript() {
-  return new Promise(resolve => {
+/**
+ * Load Google Maps script with singleton pattern to prevent duplicate loads.
+ * Uses a global promise to ensure only one script is loaded even with concurrent calls.
+ */
+function loadMapScript(): Promise<void> {
+  // If script is already loaded, return immediately
+  if (window.google?.maps) {
+    return Promise.resolve();
+  }
+
+  // If script is currently loading, return the existing promise
+  if (window.__mapsScriptLoading) {
+    return window.__mapsScriptLoading;
+  }
+
+  // Create a new loading promise
+  window.__mapsScriptLoading = new Promise((resolve, reject) => {
     const script = document.createElement("script");
     script.src = `${MAPS_PROXY_URL}/maps/api/js?key=${API_KEY}&v=weekly&libraries=marker,places,geocoding,geometry`;
     script.async = true;
     script.crossOrigin = "anonymous";
+    
     script.onload = () => {
-      resolve(null);
-      script.remove(); // Clean up immediately
+      resolve();
     };
+    
     script.onerror = () => {
-      console.error("Failed to load Google Maps script");
+      // Clear the loading promise so it can be retried
+      window.__mapsScriptLoading = undefined;
+      reject(new Error("Failed to load Google Maps script"));
     };
+    
     document.head.appendChild(script);
   });
+
+  return window.__mapsScriptLoading;
 }
 
 interface MapViewProps {
@@ -123,31 +144,58 @@ export function MapView({
   onMapReady,
 }: MapViewProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
-  const map = useRef<google.maps.Map | null>(null);
+  const mapInstance = useRef<google.maps.Map | null>(null);
+  const isMountedRef = useRef(true);
 
-  const init = usePersistFn(async () => {
-    await loadMapScript();
-    if (!mapContainer.current) {
-      console.error("Map container not found");
-      return;
+  const initMap = useCallback(async () => {
+    try {
+      await loadMapScript();
+      
+      // Check if component is still mounted after async operation
+      if (!isMountedRef.current) {
+        return;
+      }
+      
+      if (!mapContainer.current) {
+        console.error("Map container not found");
+        return;
+      }
+      
+      // Only create map if not already created
+      if (!mapInstance.current) {
+        mapInstance.current = new window.google!.maps.Map(mapContainer.current, {
+          zoom: initialZoom,
+          center: initialCenter,
+          mapTypeControl: true,
+          fullscreenControl: true,
+          zoomControl: true,
+          streetViewControl: true,
+          mapId: "DEMO_MAP_ID",
+        });
+        
+        // Only call onMapReady if still mounted
+        if (isMountedRef.current && onMapReady) {
+          onMapReady(mapInstance.current);
+        }
+      }
+    } catch (error) {
+      console.error("Error initializing map:", error);
     }
-    map.current = new window.google.maps.Map(mapContainer.current, {
-      zoom: initialZoom,
-      center: initialCenter,
-      mapTypeControl: true,
-      fullscreenControl: true,
-      zoomControl: true,
-      streetViewControl: true,
-      mapId: "DEMO_MAP_ID",
-    });
-    if (onMapReady) {
-      onMapReady(map.current);
-    }
-  });
+  }, [initialCenter, initialZoom, onMapReady]);
 
   useEffect(() => {
-    init();
-  }, [init]);
+    isMountedRef.current = true;
+    initMap();
+    
+    return () => {
+      isMountedRef.current = false;
+      // Clean up map instance on unmount
+      if (mapInstance.current) {
+        // Google Maps doesn't have a destroy method, but we can clear the reference
+        mapInstance.current = null;
+      }
+    };
+  }, [initMap]);
 
   return (
     <div ref={mapContainer} className={cn("w-full h-[500px]", className)} />
