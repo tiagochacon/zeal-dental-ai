@@ -372,3 +372,5 @@ Para questões sobre as implementações:
 
 **Próximo Review:** Recomendado em 2 semanas após implementar Fase 2
 
+
+
