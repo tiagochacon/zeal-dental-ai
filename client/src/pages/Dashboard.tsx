@@ -3,7 +3,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut } from "lucide-react";
+import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut, UserCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 
@@ -104,6 +104,15 @@ export default function Dashboard() {
               >
                 <Users className="h-5 w-5" />
                 Pacientes
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <UserCircle className="h-5 w-5" />
+                Meu Perfil
               </button>
             </li>
           </ul>

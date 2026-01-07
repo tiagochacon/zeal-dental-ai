@@ -8,6 +8,7 @@ interface ConsultationData {
   soapNote: SOAPNote;
   dentistName?: string;
   dentistCRO?: string;
+  clinicName?: string;
 }
 
 export function exportSOAPToPDF(consultation: ConsultationData): void {
@@ -328,17 +329,37 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
   
   yPos += 6;
   
-  // Dentist name and CRO
+  // Conditional logic for dentist information
+  const hasDentistInfo = consultation.dentistName && consultation.dentistName.trim() !== '' && 
+                          consultation.dentistCRO && consultation.dentistCRO.trim() !== '';
+  
   doc.setFontSize(9);
   doc.setFont('helvetica', 'normal');
-  doc.setTextColor(71, 85, 105);
   
-  const dentistName = consultation.dentistName || '[Nome do Dentista]';
-  const dentistCRO = consultation.dentistCRO || '[CRO/Número de Registro]';
-  
-  doc.text(dentistName, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
-  yPos += 5;
-  doc.text(dentistCRO, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+  if (hasDentistInfo) {
+    // Show real dentist information
+    doc.setTextColor(30, 41, 59); // Darker color for real data
+    
+    doc.text(consultation.dentistName, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+    doc.text(consultation.dentistCRO, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    
+    // Add clinic name if available
+    if (consultation.clinicName && consultation.clinicName.trim() !== '') {
+      yPos += 5;
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105); // Lighter color for clinic
+      doc.text(consultation.clinicName, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    }
+  } else {
+    // Show placeholders
+    doc.setTextColor(156, 163, 175); // Gray color for placeholders
+    doc.setFont('helvetica', 'italic');
+    
+    doc.text('[Nome Completo do Dentista]', signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+    doc.text('[CRO/Número de Registro]', signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+  }
 
   // Professional Footer on all pages
   const pageCount = doc.getNumberOfPages();

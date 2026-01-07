@@ -13,7 +13,7 @@ import Odontogram from "@/components/Odontogram";
 import { 
   Loader2, ArrowLeft, FileText, AudioLines, Download, CheckCircle, Edit, 
   AlertTriangle, Stethoscope, ClipboardList, CheckCircle2, Star,
-  LayoutDashboard, Users, Menu, X, LogOut
+  LayoutDashboard, Users, Menu, X, LogOut, UserCircle
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
@@ -41,6 +41,11 @@ export default function ConsultationDetail() {
   const { data: existingFeedback } = trpc.feedbacks.getByConsultation.useQuery(
     { consultationId: consultationId! },
     { enabled: !!user && !!consultationId }
+  );
+
+  const { data: dentistProfile } = trpc.auth.getProfile.useQuery(
+    undefined,
+    { enabled: !!user }
   );
 
   const utils = trpc.useUtils();
@@ -117,6 +122,9 @@ export default function ConsultationDetail() {
         patientName: consultation.patientName,
         createdAt: consultation.createdAt,
         soapNote: consultation.soapNote as SOAPNote,
+        dentistName: dentistProfile?.name,
+        dentistCRO: dentistProfile?.croNumber,
+        clinicName: dentistProfile?.clinicName,
       });
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
@@ -204,6 +212,15 @@ export default function ConsultationDetail() {
               >
                 <Users className="h-5 w-5" />
                 Pacientes
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <UserCircle className="h-5 w-5" />
+                Meu Perfil
               </button>
             </li>
           </ul>

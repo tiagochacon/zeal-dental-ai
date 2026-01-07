@@ -103,6 +103,26 @@ export async function updateUserCRO(userId: number, croNumber: string) {
   await db.update(users).set({ croNumber }).where(eq(users.id, userId));
 }
 
+export async function updateDentistProfile(userId: number, data: {
+  name?: string;
+  croNumber?: string;
+  birthDate?: string;
+  clinicName?: string;
+}) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+export async function getUserById(userId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 // ==================== PATIENT FUNCTIONS ====================
 
 export async function createPatient(data: InsertPatient): Promise<Patient> {

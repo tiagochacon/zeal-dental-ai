@@ -17,6 +17,8 @@ import {
   createFeedback,
   getFeedbackByConsultation,
   updateUserCRO,
+  updateDentistProfile,
+  getUserById,
 } from "./db";
 import { storagePut } from "./storage";
 import { transcribeAudio } from "./_core/voiceTranscription";
@@ -100,6 +102,28 @@ export const appRouter = router({
       .input(z.object({ croNumber: z.string() }))
       .mutation(async ({ ctx, input }) => {
         await updateUserCRO(ctx.user.id, input.croNumber);
+        return { success: true };
+      }),
+    getProfile: protectedProcedure
+      .query(async ({ ctx }) => {
+        const user = await getUserById(ctx.user.id);
+        if (!user) throw new Error("User not found");
+        return {
+          name: user.name || '',
+          croNumber: user.croNumber || '',
+          birthDate: user.birthDate || '',
+          clinicName: user.clinicName || '',
+        };
+      }),
+    updateProfile: protectedProcedure
+      .input(z.object({
+        name: z.string().min(1, "Nome é obrigatório"),
+        croNumber: z.string().min(1, "CRO é obrigatório"),
+        birthDate: z.string().optional(),
+        clinicName: z.string().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await updateDentistProfile(ctx.user.id, input);
         return { success: true };
       }),
   }),

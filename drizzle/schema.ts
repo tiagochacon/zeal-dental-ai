@@ -13,8 +13,10 @@ export const users = mysqlTable("users", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-  // Dental-specific fields
+  // Dentist profile fields
   croNumber: varchar("croNumber", { length: 50 }),
+  birthDate: varchar("birthDate", { length: 10 }), // Format: YYYY-MM-DD
+  clinicName: varchar("clinicName", { length: 255 }),
 });
 
 export type User = typeof users.$inferSelect;
