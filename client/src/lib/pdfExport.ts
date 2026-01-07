@@ -340,9 +340,9 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
     // Show real dentist information
     doc.setTextColor(30, 41, 59); // Darker color for real data
     
-    doc.text(consultation.dentistName, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    doc.text(consultation.dentistName || 'Dentista', signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
     yPos += 5;
-    doc.text(consultation.dentistCRO, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    doc.text(consultation.dentistCRO || 'CRO', signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
     
     // Add clinic name if available
     if (consultation.clinicName && consultation.clinicName.trim() !== '') {

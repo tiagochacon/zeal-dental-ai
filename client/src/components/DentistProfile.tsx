@@ -12,8 +12,6 @@ export default function DentistProfile() {
   const [formData, setFormData] = useState({
     name: "",
     croNumber: "",
-    birthDate: "",
-    clinicName: "",
   });
 
   const { data: profile, isLoading, refetch } = trpc.auth.getProfile.useQuery();
@@ -34,8 +32,6 @@ export default function DentistProfile() {
       setFormData({
         name: profile.name || "",
         croNumber: profile.croNumber || "",
-        birthDate: profile.birthDate || "",
-        clinicName: profile.clinicName || "",
       });
     }
   }, [profile]);
@@ -61,8 +57,6 @@ export default function DentistProfile() {
       setFormData({
         name: profile.name || "",
         croNumber: profile.croNumber || "",
-        birthDate: profile.birthDate || "",
-        clinicName: profile.clinicName || "",
       });
     }
     setIsEditing(false);
@@ -125,36 +119,7 @@ export default function DentistProfile() {
             />
           </div>
 
-          {/* Data de Nascimento */}
-          <div className="space-y-2">
-            <Label htmlFor="birthDate" className="text-sm font-medium">
-              Data de Nascimento
-            </Label>
-            <Input
-              id="birthDate"
-              type="date"
-              value={formData.birthDate}
-              onChange={(e) => setFormData({ ...formData, birthDate: e.target.value })}
-              disabled={!isEditing}
-              className={!isEditing ? "bg-muted/50" : ""}
-            />
-          </div>
 
-          {/* Nome da Clínica */}
-          <div className="space-y-2">
-            <Label htmlFor="clinicName" className="text-sm font-medium">
-              Nome da Clínica
-            </Label>
-            <Input
-              id="clinicName"
-              type="text"
-              placeholder="Clínica Odontológica Exemplo"
-              value={formData.clinicName}
-              onChange={(e) => setFormData({ ...formData, clinicName: e.target.value })}
-              disabled={!isEditing}
-              className={!isEditing ? "bg-muted/50" : ""}
-            />
-          </div>
 
           {/* Botões de Ação */}
           <div className="flex gap-3 pt-4">

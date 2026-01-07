@@ -124,7 +124,6 @@ export default function ConsultationDetail() {
         soapNote: consultation.soapNote as SOAPNote,
         dentistName: dentistProfile?.name,
         dentistCRO: dentistProfile?.croNumber,
-        clinicName: dentistProfile?.clinicName,
       });
       toast.success("PDF exportado com sucesso!");
     } catch (error) {

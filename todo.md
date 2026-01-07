@@ -113,3 +113,7 @@
 - [x] Implementar Error Boundary global melhorado
 - [x] Adicionar guards contra atualizações em componentes desmontados (useIsMounted hook)
 - [x] Corrigir cleanup functions inseguros (Map.tsx, dialog.tsx)
+
+## Correção de Bugs (v8)
+- [x] Corrigir erro TypeScript no pdfExport.ts (linhas 343, 345 - undefined não atribuífável a string)
+- [x] Corrigir erro de coluna 'birthDate' não encontrada no banco de dados

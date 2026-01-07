@@ -111,8 +111,6 @@ export const appRouter = router({
         return {
           name: user.name || '',
           croNumber: user.croNumber || '',
-          birthDate: user.birthDate || '',
-          clinicName: user.clinicName || '',
         };
       }),
     updateProfile: protectedProcedure

@@ -15,8 +15,6 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   // Dentist profile fields
   croNumber: varchar("croNumber", { length: 50 }),
-  birthDate: varchar("birthDate", { length: 10 }), // Format: YYYY-MM-DD
-  clinicName: varchar("clinicName", { length: 255 }),
 });
 
 export type User = typeof users.$inferSelect;
