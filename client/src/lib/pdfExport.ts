@@ -6,36 +6,44 @@ interface ConsultationData {
   patientName: string;
   createdAt: Date | string;
   soapNote: SOAPNote;
+  dentistName?: string;
+  dentistCRO?: string;
 }
 
 export function exportSOAPToPDF(consultation: ConsultationData): void {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
   const margin = 20;
   let yPos = 20;
 
-  // Header with logo area
-  doc.setFillColor(30, 41, 59); // slate-800
-  doc.rect(0, 0, pageWidth, 40, 'F');
+  // Modern Header with gradient effect simulation
+  doc.setFillColor(30, 27, 75); // Dark purple/navy
+  doc.rect(0, 0, pageWidth, 45, 'F');
   
-  // Title
+  // Add a subtle lighter bar at the bottom of header
+  doc.setFillColor(59, 130, 246); // Blue accent
+  doc.rect(0, 43, pageWidth, 2, 'F');
+  
+  // Logo and Title
   doc.setTextColor(255, 255, 255);
-  doc.setFontSize(24);
+  doc.setFontSize(28);
   doc.setFont('helvetica', 'bold');
-  doc.text('ZEAL', margin, 28);
+  doc.text('ZEAL', margin, 30);
   
-  doc.setFontSize(10);
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
-  doc.text('Assistente de IA Odontológico', margin + 45, 28);
+  doc.setTextColor(200, 200, 255);
+  doc.text('Assistente de IA Odontológico', margin + 50, 30);
 
-  // Patient info
-  yPos = 55;
+  // Patient information section
+  yPos = 60;
   doc.setTextColor(30, 41, 59);
-  doc.setFontSize(18);
+  doc.setFontSize(20);
   doc.setFont('helvetica', 'bold');
   doc.text(consultation.patientName, margin, yPos);
   
-  yPos += 8;
+  yPos += 10;
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(100, 116, 139);
@@ -50,60 +58,78 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
 
   const soapNote = consultation.soapNote;
 
-  // Red Flags Section
+  // Red Flags Section - Enhanced visibility
   if (soapNote.assessment?.red_flags && soapNote.assessment.red_flags.length > 0) {
-    doc.setFillColor(254, 226, 226); // red-100
-    doc.setDrawColor(239, 68, 68); // red-500
-    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 10 + soapNote.assessment.red_flags.length * 6, 3, 3, 'FD');
+    // Calculate box height dynamically
+    const flagHeight = soapNote.assessment.red_flags.length * 6;
+    const boxHeight = 18 + flagHeight;
+    
+    // Draw colored background with border
+    doc.setFillColor(254, 242, 242); // Very light red/pink
+    doc.setDrawColor(220, 38, 38); // Red border
+    doc.setLineWidth(0.8);
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, boxHeight, 3, 3, 'FD');
+    
+    // Add icon/symbol bar on the left
+    doc.setFillColor(239, 68, 68); // Red accent bar
+    doc.roundedRect(margin, yPos, 5, boxHeight, 3, 3, 'F');
+    
+    yPos += 10;
+    doc.setTextColor(153, 27, 27); // Dark red
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text('⚠  Sinais de Alerta', margin + 10, yPos);
     
     yPos += 8;
-    doc.setTextColor(185, 28, 28); // red-700
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('⚠ Sinais de Alerta', margin + 5, yPos);
-    
-    yPos += 6;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
+    doc.setTextColor(127, 29, 29);
     soapNote.assessment.red_flags.forEach((flag: string) => {
-      doc.text(`• ${flag}`, margin + 8, yPos);
-      yPos += 5;
+      const lines = doc.splitTextToSize(`• ${flag}`, pageWidth - 2 * margin - 20);
+      doc.text(lines, margin + 10, yPos);
+      yPos += lines.length * 5;
     });
-    yPos += 8;
+    yPos += 10;
   }
 
-  // Helper function to add section
-  const addSection = (title: string, icon: string, content: { label: string; value: string | string[] }[]) => {
+  // Helper function to add section with professional styling
+  const addSection = (title: string, sectionColor: number[], content: { label: string; value: string | string[] }[]) => {
     // Check if we need a new page
     if (yPos > 250) {
       doc.addPage();
       yPos = 20;
     }
 
-    // Section header
-    doc.setFillColor(241, 245, 249); // slate-100
-    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 10, 2, 2, 'F');
+    // Section header with accent bar
+    doc.setFillColor(248, 250, 252); // Very light gray
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 12, 2, 2, 'F');
     
-    doc.setTextColor(59, 130, 246); // blue-500
-    doc.setFontSize(12);
+    // Add colored accent bar on the left
+    doc.setFillColor(sectionColor[0], sectionColor[1], sectionColor[2]);
+    doc.roundedRect(margin, yPos, 4, 12, 2, 2, 'F');
+    
+    // Section title
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text(`${icon} ${title}`, margin + 5, yPos + 7);
-    yPos += 15;
+    doc.text(title, margin + 10, yPos + 8);
+    yPos += 18;
 
     // Section content
-    doc.setTextColor(30, 41, 59);
     content.forEach(item => {
       if (yPos > 270) {
         doc.addPage();
         yPos = 20;
       }
 
+      // Subsection label
       doc.setFontSize(10);
       doc.setFont('helvetica', 'bold');
-      doc.setTextColor(100, 116, 139);
+      doc.setTextColor(71, 85, 105); // Slate gray
       doc.text(item.label, margin + 5, yPos);
-      yPos += 5;
+      yPos += 6;
 
+      // Subsection content
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(30, 41, 59);
       
@@ -113,21 +139,21 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
             doc.addPage();
             yPos = 20;
           }
-          const lines = doc.splitTextToSize(`• ${v}`, pageWidth - 2 * margin - 10);
-          doc.text(lines, margin + 8, yPos);
-          yPos += lines.length * 5;
+          const lines = doc.splitTextToSize(`• ${v}`, pageWidth - 2 * margin - 15);
+          doc.text(lines, margin + 10, yPos);
+          yPos += lines.length * 5 + 1;
         });
       } else {
-        const lines = doc.splitTextToSize(item.value, pageWidth - 2 * margin - 10);
-        doc.text(lines, margin + 5, yPos);
+        const lines = doc.splitTextToSize(item.value || 'Não informado', pageWidth - 2 * margin - 15);
+        doc.text(lines, margin + 10, yPos);
         yPos += lines.length * 5;
       }
-      yPos += 3;
+      yPos += 5;
     });
-    yPos += 5;
+    yPos += 3;
   };
 
-  // Subjective Section
+  // Subjective Section (Purple/Blue color)
   const subjectiveContent: { label: string; value: string | string[] }[] = [];
   if (soapNote.subjective.queixa_principal) {
     subjectiveContent.push({ label: 'Queixa Principal', value: soapNote.subjective.queixa_principal });
@@ -139,10 +165,10 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
     subjectiveContent.push({ label: 'Histórico Médico', value: soapNote.subjective.historico_medico });
   }
   if (subjectiveContent.length > 0) {
-    addSection('Subjetivo (S)', '🩺', subjectiveContent);
+    addSection('Subjetivo (S)', [99, 102, 241], subjectiveContent); // Indigo
   }
 
-  // Objective Section
+  // Objective Section (Green color)
   const objectiveContent: { label: string; value: string | string[] }[] = [];
   if (soapNote.objective.exame_clinico_geral) {
     objectiveContent.push({ label: 'Exame Clínico Geral', value: soapNote.objective.exame_clinico_geral });
@@ -154,39 +180,44 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
     objectiveContent.push({ label: 'Dentes Afetados', value: soapNote.objective.dentes_afetados.join(', ') });
   }
   if (objectiveContent.length > 0) {
-    addSection('Objetivo (O)', '✓', objectiveContent);
+    addSection('Objetivo (O)', [16, 185, 129], objectiveContent); // Emerald
   }
 
-  // Assessment Section
+  // Assessment Section (Orange color)
   const assessmentContent: { label: string; value: string | string[] }[] = [];
   if (soapNote.assessment.diagnosticos && soapNote.assessment.diagnosticos.length > 0) {
     assessmentContent.push({ label: 'Diagnósticos', value: soapNote.assessment.diagnosticos });
   }
   if (assessmentContent.length > 0) {
-    addSection('Avaliação (A)', '📋', assessmentContent);
+    addSection('Avaliação (A)', [249, 115, 22], assessmentContent); // Orange
   }
 
-  // Plan Section
+  // Plan Section (Blue color)
   if (soapNote.plan.tratamentos && soapNote.plan.tratamentos.length > 0) {
     if (yPos > 200) {
       doc.addPage();
       yPos = 20;
     }
 
-    // Section header
-    doc.setFillColor(241, 245, 249);
-    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 10, 2, 2, 'F');
+    // Section header with accent bar
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 12, 2, 2, 'F');
     
-    doc.setTextColor(59, 130, 246);
-    doc.setFontSize(12);
+    // Add colored accent bar
+    doc.setFillColor(59, 130, 246); // Blue
+    doc.roundedRect(margin, yPos, 4, 12, 2, 2, 'F');
+    
+    // Section title
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('📋 Plano (P)', margin + 5, yPos + 7);
-    yPos += 15;
+    doc.text('Plano (P)', margin + 10, yPos + 8);
+    yPos += 18;
 
-    // Treatments table
+    // Treatments table subtitle
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(71, 85, 105);
     doc.text('Tratamentos Propostos', margin + 5, yPos);
     yPos += 5;
 
@@ -203,18 +234,20 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
       body: tableData,
       margin: { left: margin, right: margin },
       headStyles: {
-        fillColor: [59, 130, 246],
+        fillColor: [59, 130, 246], // Blue
         textColor: [255, 255, 255],
         fontStyle: 'bold',
+        fontSize: 10,
       },
       bodyStyles: {
         textColor: [30, 41, 59],
+        fontSize: 9,
       },
       alternateRowStyles: {
-        fillColor: [241, 245, 249],
+        fillColor: [248, 250, 252],
       },
       columnStyles: {
-        0: { cellWidth: 25, halign: 'center' },
+        0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' },
         1: { cellWidth: 'auto' },
         2: { cellWidth: 30, halign: 'center' },
         3: { cellWidth: 35, halign: 'center' },
@@ -232,9 +265,9 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
     }
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(71, 85, 105);
     doc.text('Orientações ao Paciente', margin + 5, yPos);
-    yPos += 5;
+    yPos += 6;
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 41, 59);
@@ -243,11 +276,11 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
         doc.addPage();
         yPos = 20;
       }
-      const lines = doc.splitTextToSize(`• ${or}`, pageWidth - 2 * margin - 10);
-      doc.text(lines, margin + 8, yPos);
-      yPos += lines.length * 5;
+      const lines = doc.splitTextToSize(`• ${or}`, pageWidth - 2 * margin - 15);
+      doc.text(lines, margin + 10, yPos);
+      yPos += lines.length * 5 + 1;
     });
-    yPos += 5;
+    yPos += 8;
   }
 
   // Clinical reminders
@@ -258,9 +291,9 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
     }
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
-    doc.setTextColor(100, 116, 139);
+    doc.setTextColor(71, 85, 105);
     doc.text('Lembretes Clínicos', margin + 5, yPos);
-    yPos += 5;
+    yPos += 6;
 
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(30, 41, 59);
@@ -269,27 +302,76 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
         doc.addPage();
         yPos = 20;
       }
-      const lines = doc.splitTextToSize(`• ${lem}`, pageWidth - 2 * margin - 10);
-      doc.text(lines, margin + 8, yPos);
-      yPos += lines.length * 5;
+      const lines = doc.splitTextToSize(`• ${lem}`, pageWidth - 2 * margin - 15);
+      doc.text(lines, margin + 10, yPos);
+      yPos += lines.length * 5 + 1;
     });
+    yPos += 8;
   }
 
-  // Footer
+  // Dentist Signature Section
+  // Check if we need a new page for signature
+  if (yPos > pageHeight - 70) {
+    doc.addPage();
+    yPos = 20;
+  }
+
+  yPos += 15; // Extra spacing before signature
+
+  // Signature line
+  const signatureLineWidth = 80;
+  const signatureStartX = pageWidth - margin - signatureLineWidth;
+  
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineWidth(0.5);
+  doc.line(signatureStartX, yPos, signatureStartX + signatureLineWidth, yPos);
+  
+  yPos += 6;
+  
+  // Dentist name and CRO
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(71, 85, 105);
+  
+  const dentistName = consultation.dentistName || '[Nome do Dentista]';
+  const dentistCRO = consultation.dentistCRO || '[CRO/Número de Registro]';
+  
+  doc.text(dentistName, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+  yPos += 5;
+  doc.text(dentistCRO, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+
+  // Professional Footer on all pages
   const pageCount = doc.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
+    
+    // Footer separator line
+    doc.setDrawColor(229, 231, 235);
+    doc.setLineWidth(0.5);
+    doc.line(margin, pageHeight - 15, pageWidth - margin, pageHeight - 15);
+    
+    // Footer text
     doc.setFontSize(8);
-    doc.setTextColor(150, 150, 150);
+    doc.setTextColor(156, 163, 175);
+    doc.setFont('helvetica', 'normal');
     doc.text(
-      `Gerado por ZEAL - Assistente de IA Odontológico | Página ${i} de ${pageCount}`,
+      `Gerado por ZEAL - Assistente de IA Odontológico`,
       pageWidth / 2,
-      doc.internal.pageSize.getHeight() - 10,
+      pageHeight - 9,
       { align: 'center' }
+    );
+    
+    // Page number
+    doc.setFontSize(8);
+    doc.text(
+      `Página ${i} de ${pageCount}`,
+      pageWidth - margin,
+      pageHeight - 9,
+      { align: 'right' }
     );
   }
 
-  // Save the PDF
+  // Save the PDF with formatted filename
   const fileName = `nota-soap-${consultation.patientName.replace(/\s+/g, '-').toLowerCase()}-${new Date(consultation.createdAt).toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }
