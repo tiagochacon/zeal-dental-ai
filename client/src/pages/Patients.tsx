@@ -14,7 +14,6 @@ import { toast } from "sonner";
 
 interface PatientFormData {
   name: string;
-  birthDate: string;
   phone: string;
   email: string;
   cpf: string;
@@ -25,7 +24,6 @@ interface PatientFormData {
 
 const initialFormData: PatientFormData = {
   name: "",
-  birthDate: "",
   phone: "",
   email: "",
   cpf: "",
@@ -69,15 +67,6 @@ const PatientForm = memo(function PatientForm({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${prefix}birthDate`} className="text-sm">Data de Nascimento</Label>
-          <Input
-            id={`${prefix}birthDate`}
-            type="date"
-            value={formData.birthDate}
-            onChange={(e) => onFieldChange('birthDate', e.target.value)}
-          />
-        </div>
         <div className="space-y-2">
           <Label htmlFor={`${prefix}cpf`} className="text-sm">CPF</Label>
           <Input
@@ -248,7 +237,6 @@ export default function Patients() {
     setEditingPatient(patient.id);
     setFormData({
       name: patient.name,
-      birthDate: patient.birthDate || "",
       phone: patient.phone || "",
       email: patient.email || "",
       cpf: patient.cpf || "",
@@ -453,12 +441,6 @@ export default function Patients() {
                         </div>
                         <div className="min-w-0">
                           <CardTitle className="text-base truncate">{patient.name}</CardTitle>
-                          {patient.birthDate && (
-                            <CardDescription className="text-xs flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              {new Date(patient.birthDate).toLocaleDateString('pt-BR')}
-                            </CardDescription>
-                          )}
                         </div>
                       </div>
                       <div className="flex gap-1 shrink-0">

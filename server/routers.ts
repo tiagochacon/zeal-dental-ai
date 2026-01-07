@@ -29,7 +29,6 @@ import { nanoid } from "nanoid";
 // Zod schemas for validation
 const createPatientSchema = z.object({
   name: z.string().min(1, "Nome é obrigatório"),
-  birthDate: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   cpf: z.string().optional(),
@@ -41,7 +40,6 @@ const createPatientSchema = z.object({
 const updatePatientSchema = z.object({
   id: z.number(),
   name: z.string().min(1).optional(),
-  birthDate: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email().optional().or(z.literal("")),
   cpf: z.string().optional(),

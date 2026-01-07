@@ -27,7 +27,6 @@ export const patients = mysqlTable("patients", {
   id: int("id").autoincrement().primaryKey(),
   dentistId: int("dentistId").notNull(),
   name: varchar("name", { length: 255 }).notNull(),
-  birthDate: varchar("birthDate", { length: 10 }),
   phone: varchar("phone", { length: 20 }),
   email: varchar("email", { length: 320 }),
   cpf: varchar("cpf", { length: 14 }),

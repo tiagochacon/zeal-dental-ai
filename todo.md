@@ -116,4 +116,6 @@
 
 ## Correção de Bugs (v8)
 - [x] Corrigir erro TypeScript no pdfExport.ts (linhas 343, 345 - undefined não atribuífável a string)
-- [x] Corrigir erro de coluna 'birthDate' não encontrada no banco de dados
+- [x] Remover colunas birthDate e clinicName do schema (não existem no banco remoto)
+- [x] Remover todas as referências a birthDate do código (Patients.tsx, db.ts, routers.ts)
+- [x] Corrigir erro de OAuth callback - servidor agora rodando corretamente
