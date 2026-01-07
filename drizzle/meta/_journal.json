@@ -15,6 +15,13 @@
       "when": 1767022185676,
       "tag": "0001_fantastic_valeria_richards",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1767758756118,
+      "tag": "0002_flippant_saracen",
+      "breakpoints": true
     }
   ]
 }
