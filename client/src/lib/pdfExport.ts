@@ -79,7 +79,7 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
     doc.setTextColor(153, 27, 27); // Dark red
     doc.setFontSize(13);
     doc.setFont('helvetica', 'bold');
-    doc.text('⚠  Sinais de Alerta', margin + 10, yPos);
+    doc.text('Sinais de Alerta', margin + 10, yPos);
     
     yPos += 8;
     doc.setFontSize(10);
