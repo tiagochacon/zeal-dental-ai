@@ -36,6 +36,13 @@
       "when": 1767759242262,
       "tag": "0004_clear_kat_farrell",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1767886806504,
+      "tag": "0005_lethal_bloodstrike",
+      "breakpoints": true
     }
   ]
 }
