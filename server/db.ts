@@ -6,6 +6,7 @@ import {
   consultations, InsertConsultation, Consultation,
   feedbacks, InsertFeedback, Feedback,
   consultationTemplates, InsertConsultationTemplate, ConsultationTemplate,
+  audioChunks, InsertAudioChunk, AudioChunk,
   SOAPNote
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -273,4 +274,49 @@ export async function createTemplate(data: InsertConsultationTemplate): Promise<
   if (!db) throw new Error("Database not available");
   
   await db.insert(consultationTemplates).values(data);
+}
+
+// ==================== AUDIO CHUNK FUNCTIONS ====================
+
+export async function createAudioChunk(data: InsertAudioChunk): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.insert(audioChunks).values(data);
+}
+
+export async function getAudioChunksBySession(
+  consultationId: number, 
+  recordingSessionId: string
+): Promise<AudioChunk[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db
+    .select()
+    .from(audioChunks)
+    .where(
+      and(
+        eq(audioChunks.consultationId, consultationId),
+        eq(audioChunks.recordingSessionId, recordingSessionId)
+      )
+    )
+    .orderBy(audioChunks.chunkIndex);
+}
+
+export async function deleteAudioChunks(
+  consultationId: number, 
+  recordingSessionId: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db
+    .delete(audioChunks)
+    .where(
+      and(
+        eq(audioChunks.consultationId, consultationId),
+        eq(audioChunks.recordingSessionId, recordingSessionId)
+      )
+    );
 }

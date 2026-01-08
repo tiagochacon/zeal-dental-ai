@@ -31,12 +31,18 @@ export default function NewConsultation() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [uploadingChunk, setUploadingChunk] = useState(false);
+  const [chunksUploaded, setChunksUploaded] = useState(0);
   
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const recordingSessionIdRef = useRef<string | null>(null);
+  const chunkIndexRef = useRef<number>(0);
+  const wakeLockRef = useRef<any>(null);
+  const currentConsultationIdRef = useRef<number | null>(null);
 
   // Queries
   const { data: patients, isLoading: patientsLoading } = trpc.patients.list.useQuery(
@@ -48,6 +54,8 @@ export default function NewConsultation() {
   const createPatientMutation = trpc.patients.create.useMutation();
   const createConsultationMutation = trpc.consultations.create.useMutation();
   const uploadAudioMutation = trpc.consultations.uploadAudio.useMutation();
+  const uploadAudioChunkMutation = trpc.consultations.uploadAudioChunk.useMutation();
+  const finalizeAudioRecordingMutation = trpc.consultations.finalizeAudioRecording.useMutation();
   const updateTranscriptMutation = trpc.consultations.updateTranscript.useMutation();
 
   // Cleanup on unmount
@@ -55,8 +63,36 @@ export default function NewConsultation() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
+      if (wakeLockRef.current) {
+        wakeLockRef.current.release().catch(() => {});
+      }
     };
   }, [audioUrl]);
+
+  // Helper function to convert Blob to base64
+  const blobToBase64 = (blob: Blob): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64 = (reader.result as string).split(',')[1];
+        resolve(base64);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+  };
+
+  // Request Wake Lock to keep screen active
+  const requestWakeLock = async () => {
+    try {
+      if ('wakeLock' in navigator) {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('Wake Lock ativado');
+      }
+    } catch (err) {
+      console.log('Wake Lock não suportado ou falhou:', err);
+    }
+  };
 
   const startRecording = async () => {
     try {
@@ -65,10 +101,43 @@ export default function NewConsultation() {
       
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      recordingSessionIdRef.current = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      chunkIndexRef.current = 0;
+      setChunksUploaded(0);
 
-      mediaRecorder.ondataavailable = (e) => {
+      // Request Wake Lock to prevent screen sleep
+      requestWakeLock();
+
+      // Handle data available - upload chunks progressively
+      mediaRecorder.ondataavailable = async (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
+          
+          // Upload chunk if we have a consultation ID and not currently uploading
+          if (currentConsultationIdRef.current && !uploadingChunk) {
+            setUploadingChunk(true);
+            try {
+              const chunkBlob = e.data;
+              const base64 = await blobToBase64(chunkBlob);
+              
+              await uploadAudioChunkMutation.mutateAsync({
+                consultationId: currentConsultationIdRef.current,
+                recordingSessionId: recordingSessionIdRef.current!,
+                chunkIndex: chunkIndexRef.current,
+                audioBase64: base64,
+                mimeType: 'audio/webm',
+                durationSeconds: 60, // Approximate chunk duration
+              });
+              
+              chunkIndexRef.current += 1;
+              setChunksUploaded(prev => prev + 1);
+            } catch (error) {
+              console.error('Erro ao enviar chunk:', error);
+              // Continue recording even if chunk upload fails
+            } finally {
+              setUploadingChunk(false);
+            }
+          }
         }
       };
 
@@ -77,9 +146,16 @@ export default function NewConsultation() {
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         stream.getTracks().forEach(track => track.stop());
+        
+        // Release Wake Lock
+        if (wakeLockRef.current) {
+          wakeLockRef.current.release().catch(() => {});
+          wakeLockRef.current = null;
+        }
       };
 
-      mediaRecorder.start(1000);
+      // Start recording with 60-second chunks
+      mediaRecorder.start(60000);
       setIsRecording(true);
       setRecordingTime(0);
       
@@ -190,22 +266,41 @@ export default function NewConsultation() {
         patientName,
       });
 
-      if (inputMode === "audio" && audioBlob) {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const base64 = (reader.result as string).split(',')[1];
-          
-          await uploadAudioMutation.mutateAsync({
-            consultationId: consultationResult.consultationId,
-            audioBase64: base64,
-            mimeType: audioBlob.type || 'audio/webm',
-            durationSeconds: recordingTime || undefined,
-          });
+      // Store consultation ID for progressive chunk uploads
+      currentConsultationIdRef.current = consultationResult.consultationId;
 
-          toast.success('Áudio enviado com sucesso!');
+      if (inputMode === "audio" && audioBlob) {
+        // Check if we used progressive chunked recording
+        const usedProgressiveRecording = recordingSessionIdRef.current && chunksUploaded > 0;
+        
+        if (usedProgressiveRecording) {
+          // Finalize progressive recording by concatenating chunks
+          await finalizeAudioRecordingMutation.mutateAsync({
+            consultationId: consultationResult.consultationId,
+            recordingSessionId: recordingSessionIdRef.current!,
+            totalDurationSeconds: recordingTime,
+          });
+          
+          toast.success('Gravação finalizada com sucesso!');
           setLocation(`/consultation/${consultationResult.consultationId}/review`);
-        };
-        reader.readAsDataURL(audioBlob);
+        } else {
+          // Legacy method: upload entire audio file at once
+          const reader = new FileReader();
+          reader.onloadend = async () => {
+            const base64 = (reader.result as string).split(',')[1];
+            
+            await uploadAudioMutation.mutateAsync({
+              consultationId: consultationResult.consultationId,
+              audioBase64: base64,
+              mimeType: audioBlob.type || 'audio/webm',
+              durationSeconds: recordingTime || undefined,
+            });
+
+            toast.success('Áudio enviado com sucesso!');
+            setLocation(`/consultation/${consultationResult.consultationId}/review`);
+          };
+          reader.readAsDataURL(audioBlob);
+        }
       } else if (inputMode === "text") {
         await updateTranscriptMutation.mutateAsync({
           consultationId: consultationResult.consultationId,
@@ -434,6 +529,15 @@ export default function NewConsultation() {
                             <div className="text-2xl lg:text-3xl font-mono font-bold">
                               {formatTime(recordingTime)}
                             </div>
+                            {chunksUploaded > 0 && (
+                              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${uploadingChunk ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`}></div>
+                                {uploadingChunk ? 'Enviando...' : `${chunksUploaded} chunk(s) enviado(s)`}
+                              </div>
+                            )}
+                            <p className="text-xs text-center text-muted-foreground max-w-sm px-4">
+                              💡 Mantenha a tela ativa para melhor qualidade de gravação
+                            </p>
                             <div className="flex gap-2 lg:gap-4">
                               <Button variant="outline" size="sm" onClick={pauseRecording}>
                                 {isPaused ? <Play className="h-4 w-4 mr-1 lg:mr-2" /> : <Pause className="h-4 w-4 mr-1 lg:mr-2" />}

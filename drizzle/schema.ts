@@ -74,6 +74,25 @@ export type Consultation = typeof consultations.$inferSelect;
 export type InsertConsultation = typeof consultations.$inferInsert;
 
 /**
+ * Audio chunks table - stores progressive audio chunks for resilient recording
+ */
+export const audioChunks = mysqlTable("audioChunks", {
+  id: int("id").autoincrement().primaryKey(),
+  consultationId: int("consultationId").notNull(),
+  recordingSessionId: varchar("recordingSessionId", { length: 64 }).notNull(),
+  chunkIndex: int("chunkIndex").notNull(),
+  fileKey: text("fileKey").notNull(),
+  url: text("url").notNull(),
+  mimeType: varchar("mimeType", { length: 50 }).notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  durationSeconds: int("durationSeconds"),
+  uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
+});
+
+export type AudioChunk = typeof audioChunks.$inferSelect;
+export type InsertAudioChunk = typeof audioChunks.$inferInsert;
+
+/**
  * Feedbacks table - stores consultation feedbacks (mandatory)
  */
 export const feedbacks = mysqlTable("feedbacks", {

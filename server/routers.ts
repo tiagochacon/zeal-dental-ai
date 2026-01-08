@@ -19,6 +19,9 @@ import {
   updateUserCRO,
   updateDentistProfile,
   getUserById,
+  createAudioChunk,
+  getAudioChunksBySession,
+  deleteAudioChunks,
 } from "./db";
 import { storagePut } from "./storage";
 import { transcribeAudio } from "./_core/voiceTranscription";
@@ -242,6 +245,107 @@ export const appRouter = router({
         });
 
         return { success: true, audioUrl: url };
+      }),
+
+    // Upload audio chunk for progressive recording
+    uploadAudioChunk: protectedProcedure
+      .input(z.object({
+        consultationId: z.number(),
+        recordingSessionId: z.string(),
+        chunkIndex: z.number(),
+        audioBase64: z.string(),
+        mimeType: z.string(),
+        durationSeconds: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+
+        // Convert base64 to buffer
+        const audioBuffer = Buffer.from(input.audioBase64, 'base64');
+        const sizeBytes = audioBuffer.length;
+        
+        // Generate unique file key for chunk
+        const extension = input.mimeType.split('/')[1] || 'webm';
+        const fileKey = `consultations/${ctx.user.id}/${input.consultationId}/chunks/${input.recordingSessionId}/chunk-${input.chunkIndex}.${extension}`;
+        
+        // Upload chunk to S3
+        const { url } = await storagePut(fileKey, audioBuffer, input.mimeType);
+
+        // Store chunk metadata in database
+        await createAudioChunk({
+          consultationId: input.consultationId,
+          recordingSessionId: input.recordingSessionId,
+          chunkIndex: input.chunkIndex,
+          fileKey,
+          url,
+          mimeType: input.mimeType,
+          sizeBytes,
+          durationSeconds: input.durationSeconds || null,
+        });
+
+        return { success: true, chunkUrl: url };
+      }),
+
+    // Concatenate audio chunks and finalize recording
+    finalizeAudioRecording: protectedProcedure
+      .input(z.object({
+        consultationId: z.number(),
+        recordingSessionId: z.string(),
+        totalDurationSeconds: z.number().optional(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+
+        // Get all chunks for this session
+        const chunks = await getAudioChunksBySession(
+          input.consultationId,
+          input.recordingSessionId
+        );
+
+        if (chunks.length === 0) {
+          throw new Error("Nenhum chunk de áudio encontrado para esta sessão");
+        }
+
+        // Download and concatenate all chunks
+        const chunkBuffers: Buffer[] = [];
+        for (const chunk of chunks) {
+          const response = await fetch(chunk.url);
+          if (!response.ok) {
+            throw new Error(`Falha ao baixar chunk ${chunk.chunkIndex}`);
+          }
+          const arrayBuffer = await response.arrayBuffer();
+          chunkBuffers.push(Buffer.from(arrayBuffer));
+        }
+
+        // Concatenate all chunks into single buffer
+        const concatenatedBuffer = Buffer.concat(chunkBuffers);
+        
+        // Upload final audio file
+        const extension = chunks[0].mimeType.split('/')[1] || 'webm';
+        const finalFileKey = `consultations/${ctx.user.id}/${input.consultationId}/audio-final-${nanoid()}.${extension}`;
+        const { url: finalUrl } = await storagePut(
+          finalFileKey,
+          concatenatedBuffer,
+          chunks[0].mimeType
+        );
+
+        // Update consultation with final audio
+        await updateConsultation(input.consultationId, {
+          audioUrl: finalUrl,
+          audioFileKey: finalFileKey,
+          audioDurationSeconds: input.totalDurationSeconds || null,
+        });
+
+        // Clean up chunks from database (keep files in S3 for safety)
+        await deleteAudioChunks(input.consultationId, input.recordingSessionId);
+
+        return { success: true, audioUrl: finalUrl };
       }),
 
     updateTranscript: protectedProcedure
