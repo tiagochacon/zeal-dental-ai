@@ -180,3 +180,6 @@
 - [x] Padronizar botão do ZEAL Básico para estilo sólido azul com gradiente
 - [x] Manter destaque "Mais Popular" no ZEAL Pro
 - [x] Garantir consistência de padding, alinhamento e fontes nos 3 cards
+
+## Ajuste UI Pricing (v17)
+- [x] Remover botão "Ou inicie um trial grátis" do plano ZEAL Básico

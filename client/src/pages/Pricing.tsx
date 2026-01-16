@@ -228,18 +228,6 @@ export default function Pricing() {
                       <CreditCard className="h-4 w-4 mr-2" />
                       {plan.cta}
                     </Button>
-                    {plan.key === "BASIC" && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full text-muted-foreground"
-                        onClick={handleStartTrial}
-                        disabled={startTrial.isPending}
-                      >
-                        <Zap className="h-3 w-3 mr-1" />
-                        Ou inicie um trial grátis
-                      </Button>
-                    )}
                   </>
                 )}
               </CardFooter>
