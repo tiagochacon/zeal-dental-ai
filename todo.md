@@ -161,3 +161,8 @@
 - [ ] Step 7: Atualizar middleware para bypass de limites para admins
 - [ ] Step 8: Atualizar UsageIndicator para mostrar Acesso Ilimitado para admins
 - [ ] Step 9: Testar fluxo completo de registro, login e enforcement
+
+## Bug Fix - Trial Access (v14)
+- [x] Corrigir middleware protectedSubscriptionProcedure para verificar trialEndsAt por datas
+- [x] Verificar se trialEndsAt esta sendo setado corretamente ao iniciar trial
+- [x] Testar fluxo completo de trial com transcricao - CORRIGIDO

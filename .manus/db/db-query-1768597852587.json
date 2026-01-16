@@ -1,0 +1,30 @@
+{
+  "query": "SELECT id, email, name, subscriptionStatus, trialStartedAt, trialEndsAt, consultationCount, role FROM users WHERE email = 'toscc@cin.ufpe.br';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, email, name, subscriptionStatus, trialStartedAt, trialEndsAt, consultationCount, role FROM users WHERE email = 'toscc@cin.ufpe.br';",
+  "rows": [
+    {
+      "id": "210001",
+      "email": "toscc@cin.ufpe.br",
+      "name": "toscc",
+      "subscriptionStatus": "inactive",
+      "trialStartedAt": "NULL",
+      "trialEndsAt": "NULL",
+      "consultationCount": "0",
+      "role": "user"
+    },
+    {
+      "id": "2190296",
+      "email": "toscc@cin.ufpe.br",
+      "name": "toscc",
+      "subscriptionStatus": "inactive",
+      "trialStartedAt": "2026-01-16 21:04:59",
+      "trialEndsAt": "2026-01-23 21:04:59",
+      "consultationCount": "0",
+      "role": "user"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\tsubscriptionStatus\ttrialStartedAt\ttrialEndsAt\tconsultationCount\trole\n210001\ttoscc@cin.ufpe.br\ttoscc\tinactive\tNULL\tNULL\t0\tuser\n2190296\ttoscc@cin.ufpe.br\ttoscc\tinactive\t2026-01-16 21:04:59\t2026-01-23 21:04:59\t0\tuser\n",
+  "stderr": "",
+  "execution_time_ms": 399
+}

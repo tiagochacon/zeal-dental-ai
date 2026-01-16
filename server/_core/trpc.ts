@@ -62,9 +62,14 @@ const requireSubscription = t.middleware(async opts => {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 
-  // Check if user has active subscription
+  // Check if user has active subscription OR active trial
   const activeStatuses = ['active', 'trialing'];
-  if (!activeStatuses.includes(ctx.user.subscriptionStatus || '')) {
+  const hasActiveSubscription = activeStatuses.includes(ctx.user.subscriptionStatus || '');
+  
+  // Check trial by dates (trialEndsAt > now)
+  const hasActiveTrial = ctx.user.trialEndsAt && new Date(ctx.user.trialEndsAt) > new Date();
+  
+  if (!hasActiveSubscription && !hasActiveTrial) {
     throw new TRPCError({ 
       code: "FORBIDDEN", 
       message: SUBSCRIPTION_REQUIRED_ERR_MSG 
