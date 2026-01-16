@@ -144,3 +144,9 @@
 - [x] Step 4: Otimizar página de pricing com gradientes e loading states
 - [x] Step 5: Criar job de reset automático de consultation_count
 - [x] Step 6: Criar 21 testes de automação comercial - todos passando
+
+## Integração Payment Links Stripe (v12)
+- [x] Step 1: Mapear links de pagamento Stripe nos botões de cada plano (Básico e Pro)
+- [x] Step 2: Configurar redirecionamento pós-pagamento com refresh de status via useEffect
+- [x] Step 3: Implementar botão de trial gratuito separado ("Ou inicie um trial grátis")
+- [x] Step 4: Validar fluxo completo - página de pricing funcionando com 3 planos

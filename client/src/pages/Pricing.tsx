@@ -5,8 +5,14 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, CreditCard, ExternalLink, Loader2, ArrowRight } from "lucide-react";
+import { Check, Crown, Zap, CreditCard, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
+// Stripe Payment Links
+const PAYMENT_LINKS = {
+  BASIC: "https://buy.stripe.com/test_4gM9AUaW8c0m94YbFk0Jq01",
+  PRO: "https://buy.stripe.com/test_4gMcN65BO6G22GAaBg0Jq00",
+};
 
 const PLANS = [
   {
@@ -67,28 +73,38 @@ const PLANS = [
 ];
 
 export default function Pricing() {
-  const { user } = useAuth();
-  const [, setLocation] = useLocation();
+  const { user, refresh } = useAuth();
+  const [location, setLocation] = useLocation();
+
+  // Check for successful payment return
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const paymentSuccess = urlParams.get("success");
+    const sessionId = urlParams.get("session_id");
+
+    if (paymentSuccess === "true" && sessionId) {
+      toast.success("Pagamento realizado com sucesso! Ativando sua assinatura...");
+      // Refresh user data to get updated subscription status
+      refresh().then(() => {
+        // Clear URL params
+        window.history.replaceState({}, "", "/pricing");
+        // Redirect to dashboard after a short delay
+        setTimeout(() => {
+          setLocation("/");
+        }, 1500);
+      });
+    }
+  }, [refresh, setLocation]);
 
   const startTrial = trpc.billing.startTrial.useMutation({
     onSuccess: () => {
       toast.success("Trial iniciado! Você tem 7 dias para testar o ZEAL Pro.");
-      setLocation("/");
+      refresh().then(() => {
+        setLocation("/");
+      });
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao iniciar trial");
-    },
-  });
-
-  const createCheckout = trpc.stripe.createCheckoutSession.useMutation({
-    onSuccess: (data) => {
-      if (data.checkoutUrl) {
-        toast.info("Redirecionando para o checkout...");
-        window.open(data.checkoutUrl, "_blank");
-      }
-    },
-    onError: (error) => {
-      toast.error(error.message || "Erro ao criar sessão de checkout");
     },
   });
 
@@ -106,15 +122,18 @@ export default function Pricing() {
       return;
     }
 
-    const priceMap: Record<string, string> = {
-      BASIC: "price_1SqJOSJRQSBgWkb1XDS4DBaw",
-      PRO: "price_1SqJOTJRQSBgWkb1BFgs9QoP",
-    };
-
-    const priceId = priceMap[planKey];
-    if (priceId) {
-      toast.loading("Abrindo checkout seguro...");
-      createCheckout.mutate({ priceId });
+    const paymentLink = PAYMENT_LINKS[planKey as keyof typeof PAYMENT_LINKS];
+    if (paymentLink) {
+      // Add user email and client_reference_id to payment link
+      const url = new URL(paymentLink);
+      if (user.email) {
+        url.searchParams.set("prefilled_email", user.email);
+      }
+      url.searchParams.set("client_reference_id", user.id.toString());
+      
+      toast.info("Redirecionando para o checkout seguro...");
+      // Open in same tab for better UX
+      window.location.href = url.toString();
     }
   };
 
@@ -186,7 +205,7 @@ export default function Pricing() {
                 </ul>
               </CardContent>
 
-              <CardFooter>
+              <CardFooter className="flex flex-col gap-3">
                 {plan.key === "TRIAL" ? (
                   <Button
                     className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
@@ -201,19 +220,28 @@ export default function Pricing() {
                     {plan.cta}
                   </Button>
                 ) : (
-                  <Button
-                    className="w-full"
-                    variant={plan.highlighted ? "default" : "outline"}
-                    onClick={() => handleSubscribe(plan.key)}
-                    disabled={createCheckout.isPending}
-                  >
-                    {createCheckout.isPending ? (
-                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : (
+                  <>
+                    <Button
+                      className="w-full"
+                      variant={plan.highlighted ? "default" : "outline"}
+                      onClick={() => handleSubscribe(plan.key)}
+                    >
                       <CreditCard className="h-4 w-4 mr-2" />
+                      {plan.cta}
+                    </Button>
+                    {plan.key === "BASIC" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full text-muted-foreground"
+                        onClick={handleStartTrial}
+                        disabled={startTrial.isPending}
+                      >
+                        <Zap className="h-3 w-3 mr-1" />
+                        Ou inicie um trial grátis
+                      </Button>
                     )}
-                    {plan.cta}
-                  </Button>
+                  </>
                 )}
               </CardFooter>
             </Card>
