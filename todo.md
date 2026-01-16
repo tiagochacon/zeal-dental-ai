@@ -150,3 +150,14 @@
 - [x] Step 2: Configurar redirecionamento pós-pagamento com refresh de status via useEffect
 - [x] Step 3: Implementar botão de trial gratuito separado ("Ou inicie um trial grátis")
 - [x] Step 4: Validar fluxo completo - página de pricing funcionando com 3 planos
+
+## Autenticação Customizada Email/Senha (v13)
+- [x] Step 1: Adicionar campo password_hash ao schema users e instalar bcrypt
+- [x] Step 2: Criar rotas de auth.register e auth.emailLogin com validacao
+- [x] Step 3: Criar arquivo auth.ts com hashPassword e authenticateUser
+- [ ] Step 4: Criar paginas de Login e Registro com branding ZEAL
+- [ ] Step 5: Implementar paywall no registro - redirecionar para /pricing
+- [ ] Step 6: Criar seed script para contas admin com acesso ilimitado
+- [ ] Step 7: Atualizar middleware para bypass de limites para admins
+- [ ] Step 8: Atualizar UsageIndicator para mostrar Acesso Ilimitado para admins
+- [ ] Step 9: Testar fluxo completo de registro, login e enforcement

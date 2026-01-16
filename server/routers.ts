@@ -31,6 +31,7 @@ import { nanoid } from "nanoid";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
 import { STRIPE_PRODUCTS } from "./stripe/products";
 import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId, incrementConsultationCount } from "./db";
+import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
 
 // Zod schemas for validation
 const createPatientSchema = z.object({
@@ -127,6 +128,22 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         await updateDentistProfile(ctx.user.id, input);
         return { success: true };
+      }),
+    register: publicProcedure
+      .input(z.object({
+        email: z.string().email("Email invalido"),
+        password: z.string().min(6, "Senha minimo 6 caracteres"),
+        name: z.string().min(1, "Nome obrigatorio"),
+      }))
+      .mutation(async ({ input }) => {
+        const user = await createUser({ email: input.email, password: input.password, name: input.name });
+        return { id: user.id, email: user.email, name: user.name, role: user.role };
+      }),
+    emailLogin: publicProcedure
+      .input(z.object({ email: z.string().email("Email invalido"), password: z.string().min(1, "Senha obrigatoria") }))
+      .mutation(async ({ input }) => {
+        const user = await authenticateUser(input.email, input.password);
+        return { id: user.id, email: user.email, name: user.name, role: user.role, subscriptionStatus: user.subscriptionStatus };
       }),
   }),
 
@@ -805,6 +822,8 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
       return { portalUrl: session.url };
     }),
   }),
+  
+
 });
 
 export type AppRouter = typeof appRouter;
