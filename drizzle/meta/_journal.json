@@ -43,6 +43,13 @@
       "when": 1767886806504,
       "tag": "0005_lethal_bloodstrike",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1768592373680,
+      "tag": "0006_orange_johnny_storm",
+      "breakpoints": true
     }
   ]
 }

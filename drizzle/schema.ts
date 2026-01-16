@@ -15,6 +15,12 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   // Dentist profile fields
   croNumber: varchar("croNumber", { length: 50 }),
+  // Stripe subscription fields
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
+  subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "past_due", "canceled", "trialing"]).default("inactive").notNull(),
+  priceId: varchar("priceId", { length: 255 }),
+  subscriptionEndDate: timestamp("subscriptionEndDate"),
 });
 
 export type User = typeof users.$inferSelect;

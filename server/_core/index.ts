@@ -8,6 +8,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { SERVER_CONFIG, HTTP_STATUS } from "../constants";
+import stripeWebhook from "../stripe/webhook";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -31,6 +32,10 @@ async function findAvailablePort(startPort: number = SERVER_CONFIG.DEFAULT_PORT)
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  
+  // Stripe webhook needs raw body for signature verification
+  // MUST be registered BEFORE express.json()
+  app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhook);
   
   // Configure body parser with reasonable limits for security
   // 10MB is sufficient for audio files while preventing DoS attacks

@@ -119,3 +119,11 @@
 - [x] Remover colunas birthDate e clinicName do schema (não existem no banco remoto)
 - [x] Remover todas as referências a birthDate do código (Patients.tsx, db.ts, routers.ts)
 - [x] Corrigir erro de OAuth callback - servidor agora rodando corretamente
+
+## Integração Stripe - Sistema de Assinaturas (v9)
+- [x] Step 1: Executar webdev_add_feature stripe para inicializar infraestrutura
+- [x] Step 2: Adicionar campos stripe_customer_id, subscription_status, price_id ao schema users
+- [x] Step 3: Criar protectedSubscriptionProcedure para verificar assinatura ativa
+- [x] Step 4: Adicionar aba Subscription no sidebar com pricing toggle/modal
+- [x] Step 5: Implementar webhooks para checkout.session.completed, subscription.updated, subscription.deleted
+- [x] Step 6: Testar fluxo completo de assinatura (13 testes passando)

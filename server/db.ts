@@ -320,3 +320,40 @@ export async function deleteAudioChunks(
       )
     );
 }
+
+// ==================== SUBSCRIPTION FUNCTIONS ====================
+
+export async function updateUserSubscription(userId: number, data: {
+  stripeCustomerId?: string | null;
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus?: "active" | "inactive" | "past_due" | "canceled" | "trialing";
+  priceId?: string | null;
+  subscriptionEndDate?: Date | null;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+export async function getUserByStripeCustomerId(stripeCustomerId: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(users)
+    .where(eq(users.stripeCustomerId, stripeCustomerId))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateUserByStripeCustomerId(stripeCustomerId: string, data: {
+  stripeSubscriptionId?: string | null;
+  subscriptionStatus?: "active" | "inactive" | "past_due" | "canceled" | "trialing";
+  priceId?: string | null;
+  subscriptionEndDate?: Date | null;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set(data).where(eq(users.stripeCustomerId, stripeCustomerId));
+}

@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   createPatient,
@@ -28,6 +28,9 @@ import { transcribeAudio } from "./_core/voiceTranscription";
 import { invokeLLM } from "./_core/llm";
 import { SOAPNote } from "../drizzle/schema";
 import { nanoid } from "nanoid";
+import { stripe, isStripeConfigured } from "./stripe/stripe";
+import { STRIPE_PRODUCTS } from "./stripe/products";
+import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId } from "./db";
 
 // Zod schemas for validation
 const createPatientSchema = z.object({
@@ -367,7 +370,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    transcribe: protectedProcedure
+    transcribe: protectedSubscriptionProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);
@@ -400,7 +403,7 @@ export const appRouter = router({
         return { success: true, transcript: result.text, segments: result.segments };
       }),
 
-    analyzeAndGenerateSOAP: protectedProcedure
+    analyzeAndGenerateSOAP: protectedSubscriptionProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);
@@ -678,6 +681,102 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         const feedback = await getFeedbackByConsultation(input.consultationId);
         return feedback ?? null;
       }),
+  }),
+
+  stripe: router({
+    // Get subscription status and available plans
+    getSubscriptionInfo: protectedProcedure.query(async ({ ctx }) => {
+      const user = await getUserById(ctx.user.id);
+      if (!user) throw new Error("Usuário não encontrado");
+
+      return {
+        subscriptionStatus: user.subscriptionStatus,
+        priceId: user.priceId,
+        subscriptionEndDate: user.subscriptionEndDate,
+        plans: Object.entries(STRIPE_PRODUCTS).map(([key, plan]) => ({
+          key,
+          name: plan.name,
+          description: plan.description,
+          price: plan.price,
+          currency: plan.currency,
+          interval: plan.interval,
+          features: plan.features,
+        })),
+      };
+    }),
+
+    // Create checkout session for subscription
+    createCheckoutSession: protectedProcedure
+      .input(z.object({
+        priceId: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        if (!stripe || !isStripeConfigured()) {
+          throw new Error("Stripe não está configurado");
+        }
+
+        const user = await getUserById(ctx.user.id);
+        if (!user) throw new Error("Usuário não encontrado");
+
+        // Get or create Stripe customer
+        let customerId = user.stripeCustomerId;
+        if (!customerId) {
+          const customer = await stripe.customers.create({
+            email: user.email || undefined,
+            name: user.name || undefined,
+            metadata: {
+              user_id: ctx.user.id.toString(),
+            },
+          });
+          customerId = customer.id;
+          await updateUserSubscription(ctx.user.id, { stripeCustomerId: customerId });
+        }
+
+        // Create checkout session
+        const origin = ctx.req.headers.origin || 'http://localhost:3000';
+        const session = await stripe.checkout.sessions.create({
+          customer: customerId,
+          client_reference_id: ctx.user.id.toString(),
+          mode: "subscription",
+          payment_method_types: ["card"],
+          line_items: [
+            {
+              price: input.priceId,
+              quantity: 1,
+            },
+          ],
+          success_url: `${origin}/subscription?success=true`,
+          cancel_url: `${origin}/subscription?canceled=true`,
+          allow_promotion_codes: true,
+          metadata: {
+            user_id: ctx.user.id.toString(),
+            customer_email: user.email || '',
+            customer_name: user.name || '',
+          },
+        });
+
+        return { checkoutUrl: session.url };
+      }),
+
+    // Create portal session for managing subscription
+    createPortalSession: protectedProcedure.mutation(async ({ ctx }) => {
+      if (!stripe || !isStripeConfigured()) {
+        throw new Error("Stripe não está configurado");
+      }
+
+      const user = await getUserById(ctx.user.id);
+      if (!user || !user.stripeCustomerId) {
+        throw new Error("Nenhuma assinatura encontrada");
+      }
+
+      const origin = ctx.req.headers.origin || 'http://localhost:3000';
+      const session = await stripe.billingPortal.sessions.create({
+        customer: user.stripeCustomerId,
+        return_url: `${origin}/subscription`,
+      });
+
+      return { portalUrl: session.url };
+    }),
   }),
 });
 
