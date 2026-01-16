@@ -174,3 +174,9 @@
 - [x] Step 4: Adicionar reset automático no webhook invoice.paid
 - [x] Step 5: Criar LimitReachedModal com opções de upgrade
 - [x] Step 6: Integrar modal no TranscriptionReview para tratamento de erro
+
+## Refinamento UI Pricing (v16)
+- [x] Remover informações de teste (cartão 4242...) da página
+- [x] Padronizar botão do ZEAL Básico para estilo sólido azul com gradiente
+- [x] Manter destaque "Mais Popular" no ZEAL Pro
+- [x] Garantir consistência de padding, alinhamento e fontes nos 3 cards

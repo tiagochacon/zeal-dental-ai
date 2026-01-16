@@ -222,8 +222,7 @@ export default function Pricing() {
                 ) : (
                   <>
                     <Button
-                      className="w-full"
-                      variant={plan.highlighted ? "default" : "outline"}
+                      className={`w-full ${plan.highlighted ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800' : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'}`}
                       onClick={() => handleSubscribe(plan.key)}
                     >
                       <CreditCard className="h-4 w-4 mr-2" />
@@ -301,13 +300,10 @@ export default function Pricing() {
           </div>
         </div>
 
-        {/* Test Mode Notice */}
+        {/* Footer */}
         <div className="text-center text-sm text-muted-foreground mt-12">
           <p>
-            Para testar o pagamento, use o cartão: <code className="bg-muted px-2 py-1 rounded">4242 4242 4242 4242</code>
-          </p>
-          <p className="mt-1">
-            Data de validade: qualquer data futura | CVV: qualquer 3 dígitos
+            Pagamento seguro processado pelo Stripe. Seus dados estão protegidos.
           </p>
         </div>
       </div>
