@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { Loader2, ArrowLeft, Play, Pause, Check, Edit2, AudioLines, FileText, LayoutDashboard, Users, Menu, X } from "lucide-react";
+import { LimitReachedModal } from "@/components/LimitReachedModal";
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -19,6 +20,7 @@ export default function TranscriptionReview() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTranscript, setEditedTranscript] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showLimitModal, setShowLimitModal] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
@@ -52,8 +54,13 @@ export default function TranscriptionReview() {
       toast.success("Nota SOAP gerada com sucesso!");
       setLocation(`/consultation/${consultationId}`);
     },
-    onError: (error) => {
-      toast.error(`Erro ao gerar nota SOAP: ${error.message}`);
+    onError: (error: any) => {
+      // Check if it's a limit reached error
+      if (error.data?.code === 'FORBIDDEN' && error.message?.includes('Limite')) {
+        setShowLimitModal(true);
+      } else {
+        toast.error(`Erro ao gerar nota SOAP: ${error.message}`);
+      }
     },
   });
 
@@ -385,6 +392,14 @@ export default function TranscriptionReview() {
           )}
         </div>
       </main>
+
+      {/* Limit Reached Modal */}
+      <LimitReachedModal
+        open={showLimitModal}
+        onClose={() => setShowLimitModal(false)}
+        currentPlan={user?.subscriptionStatus === 'active' ? 'basic' : 'trial'}
+        consultationsUsed={user?.consultationCount || 0}
+      />
     </div>
   );
 }

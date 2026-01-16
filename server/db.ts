@@ -425,3 +425,13 @@ export async function resetMonthlyConsultationCount(userId: number): Promise<voi
     consultationCountResetAt: new Date(),
   }).where(eq(users.id, userId));
 }
+
+export async function resetConsultationCount(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set({
+    consultationCount: 0,
+    consultationCountResetAt: new Date(),
+  }).where(eq(users.id, userId));
+}

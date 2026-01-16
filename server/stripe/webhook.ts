@@ -69,7 +69,7 @@ router.post(
 
         case "invoice.paid": {
           const invoice = event.data.object as Stripe.Invoice;
-          console.log(`[Webhook] Invoice paid: ${invoice.id}`);
+          await handleInvoicePaid(invoice);
           break;
         }
 
@@ -174,6 +174,27 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription) {
   });
 
   console.log(`[Webhook] User ${user.id} subscription canceled`);
+}
+
+async function handleInvoicePaid(invoice: Stripe.Invoice) {
+  console.log(`[Webhook] Invoice paid: ${invoice.id}`);
+  
+  const customerId = invoice.customer as string;
+  const user = await getUserByStripeCustomerId(customerId);
+
+  if (!user) {
+    console.error(`[Webhook] No user found for customer: ${customerId}`);
+    return;
+  }
+
+  // Reset consultation count on billing cycle renewal
+  // Only reset if this is a subscription invoice (not a one-time payment)
+  // @ts-ignore - subscription exists in Stripe API response
+  if ((invoice as any).subscription) {
+    const { resetConsultationCount } = await import("../db");
+    await resetConsultationCount(user.id);
+    console.log(`[Webhook] User ${user.id} consultation count reset for new billing cycle`);
+  }
 }
 
 async function handlePaymentFailed(invoice: Stripe.Invoice) {

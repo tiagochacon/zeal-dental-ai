@@ -86,6 +86,20 @@ const requireSubscription = t.middleware(async opts => {
 
 export const protectedSubscriptionProcedure = t.procedure.use(requireSubscription);
 
+/**
+ * Lista de emails de administradores com acesso ilimitado
+ */
+const ADMIN_EMAILS = [
+  'tiagosennachacon@gmail.com',
+  'zealtecnologia@gmail.com',
+  'victorodriguez2611@gmail.com',
+];
+
+/**
+ * Middleware que verifica limites de consultas de forma estrita.
+ * DEVE ser usado em rotas que consomem consultas (transcribe, generateSOAP).
+ * Verifica ANTES de executar qualquer lógica de AI.
+ */
 const enforceConsultationLimit = t.middleware(async opts => {
   const { ctx, next } = opts;
 
@@ -93,22 +107,26 @@ const enforceConsultationLimit = t.middleware(async opts => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
 
-  if (ctx.user.role === 'admin') {
-    return next({ ctx: { ...ctx, user: ctx.user } });
+  // Admins por role ou por email têm acesso ilimitado
+  if (ctx.user.role === 'admin' || ADMIN_EMAILS.includes(ctx.user.email || '')) {
+    return next({ ctx: { ...ctx, user: ctx.user, isUnlimited: true } });
   }
 
+  // Verificar se tem acesso premium (assinatura ou trial)
   if (!hasAccessToPremium(ctx.user)) {
     throw new TRPCError({ 
       code: "FORBIDDEN", 
-      message: "Assinatura ativa ou trial necessária. Acesse /pricing." 
+      message: "Assinatura ativa ou trial necessária. Acesse /pricing.",
     });
   }
 
+  // VERIFICAR LIMITE ESTRITAMENTE ANTES de executar qualquer lógica
   if (hasReachedConsultationLimit(ctx.user)) {
     const remaining = getRemainingConsultations(ctx.user);
+    const limit = ctx.user.consultationCount;
     throw new TRPCError({ 
       code: "FORBIDDEN", 
-      message: `Limite de consultas atingido. Consultas restantes: ${remaining}. Faça upgrade para continuar.` 
+      message: `Limite de consultas atingido para o seu plano. Você usou ${limit} consultas. Faça upgrade para continuar.`,
     });
   }
 
@@ -116,6 +134,7 @@ const enforceConsultationLimit = t.middleware(async opts => {
     ctx: {
       ...ctx,
       user: ctx.user,
+      isUnlimited: false,
     },
   });
 });

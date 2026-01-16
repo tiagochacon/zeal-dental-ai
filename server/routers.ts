@@ -1,7 +1,7 @@
 import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, consultationLimitProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   createPatient,
@@ -420,7 +420,7 @@ export const appRouter = router({
         return { success: true, transcript: result.text, segments: result.segments };
       }),
 
-    analyzeAndGenerateSOAP: protectedSubscriptionProcedure
+    analyzeAndGenerateSOAP: consultationLimitProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);

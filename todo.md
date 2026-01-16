@@ -166,3 +166,11 @@
 - [x] Corrigir middleware protectedSubscriptionProcedure para verificar trialEndsAt por datas
 - [x] Verificar se trialEndsAt esta sendo setado corretamente ao iniciar trial
 - [x] Testar fluxo completo de trial com transcricao - CORRIGIDO
+
+## Enforcement Estrito de Limites (v15)
+- [x] Step 1: Refatorar middleware para verificar consultation_count antes de executar AI
+- [x] Step 2: Criar suite de 22 testes automatizados - 100% passando
+- [x] Step 3: Implementar UpgradeBanner com upsell contextual para cada plano
+- [x] Step 4: Adicionar reset automático no webhook invoice.paid
+- [x] Step 5: Criar LimitReachedModal com opções de upgrade
+- [x] Step 6: Integrar modal no TranscriptionReview para tratamento de erro
