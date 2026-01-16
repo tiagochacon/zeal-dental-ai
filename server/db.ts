@@ -357,3 +357,71 @@ export async function updateUserByStripeCustomerId(stripeCustomerId: string, dat
   
   await db.update(users).set(data).where(eq(users.stripeCustomerId, stripeCustomerId));
 }
+
+
+// ==================== TRIAL & BILLING FUNCTIONS ====================
+
+export async function startUserTrial(userId: number, trialEndsAt: Date): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set({
+    trialStartedAt: new Date(),
+    trialEndsAt,
+  }).where(eq(users.id, userId));
+}
+
+export async function incrementConsultationCount(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user.length) throw new Error("User not found");
+  
+  // Check if we need to reset the count (monthly reset)
+  const lastReset = user[0].consultationCountResetAt;
+  const now = new Date();
+  const isNewMonth = lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear();
+  
+  if (isNewMonth) {
+    // Reset count for new month
+    await db.update(users).set({
+      consultationCount: 1,
+      consultationCountResetAt: now,
+    }).where(eq(users.id, userId));
+  } else {
+    // Increment count
+    await db.update(users).set({
+      consultationCount: user[0].consultationCount + 1,
+    }).where(eq(users.id, userId));
+  }
+}
+
+export async function getConsultationCount(userId: number): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user.length) throw new Error("User not found");
+  
+  // Check if we need to reset the count (monthly reset)
+  const lastReset = user[0].consultationCountResetAt;
+  const now = new Date();
+  const isNewMonth = lastReset.getMonth() !== now.getMonth() || lastReset.getFullYear() !== now.getFullYear();
+  
+  if (isNewMonth) {
+    return 0; // Reset for new month
+  }
+  
+  return user[0].consultationCount;
+}
+
+export async function resetMonthlyConsultationCount(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set({
+    consultationCount: 0,
+    consultationCountResetAt: new Date(),
+  }).where(eq(users.id, userId));
+}

@@ -127,3 +127,12 @@
 - [x] Step 4: Adicionar aba Subscription no sidebar com pricing toggle/modal
 - [x] Step 5: Implementar webhooks para checkout.session.completed, subscription.updated, subscription.deleted
 - [x] Step 6: Testar fluxo completo de assinatura (13 testes passando)
+
+## Lógica de Negócio Stripe - Planos e Trial (v10)
+- [x] Step 1: Criar produtos no Stripe (ZEAL Básico R$ 99,90/mês, ZEAL Pro R$ 199,90/mês) - IDs salvos em .env.local
+- [x] Step 2: Adicionar campos trial_started_at, trialEndsAt e consultation_count ao schema users
+- [x] Step 3: Criar helpers de billing (trial, subscription, consultation limits)
+- [x] Step 4: Adicionar middleware consultationLimitProcedure para enforcement
+- [x] Step 5: Criar página de Pricing com 3 planos (Trial, Básico, Pro)
+- [x] Step 6: Implementar rota billing.startTrial para iniciar trial gratuito
+- [x] Step 7: Criar 29 testes de billing - todos passando

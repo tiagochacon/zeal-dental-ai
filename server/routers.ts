@@ -683,6 +683,27 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
       }),
   }),
 
+  billing: router({
+    // Start free trial
+    startTrial: protectedProcedure.mutation(async ({ ctx }) => {
+      const { startUserTrial } = await import('./db');
+      const { calculateTrialEndDate } = await import('./billing');
+      
+      const user = await getUserById(ctx.user.id);
+      if (!user) throw new Error("Usuário não encontrado");
+      
+      // Check if user already has a trial or subscription
+      if (user.trialStartedAt || user.subscriptionStatus === 'active') {
+        throw new Error("Você já possui um trial ou assinatura ativa");
+      }
+      
+      const trialEndDate = calculateTrialEndDate();
+      await startUserTrial(ctx.user.id, trialEndDate);
+      
+      return { success: true, trialEndsAt: trialEndDate };
+    }),
+  }),
+
   stripe: router({
     // Get subscription status and available plans
     getSubscriptionInfo: protectedProcedure.query(async ({ ctx }) => {

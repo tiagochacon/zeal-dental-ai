@@ -21,6 +21,12 @@ export const users = mysqlTable("users", {
   subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "past_due", "canceled", "trialing"]).default("inactive").notNull(),
   priceId: varchar("priceId", { length: 255 }),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
+  // Trial fields
+  trialStartedAt: timestamp("trialStartedAt"),
+  trialEndsAt: timestamp("trialEndsAt"),
+  // Usage tracking
+  consultationCount: int("consultationCount").default(0).notNull(),
+  consultationCountResetAt: timestamp("consultationCountResetAt").defaultNow().notNull(),
 });
 
 export type User = typeof users.$inferSelect;

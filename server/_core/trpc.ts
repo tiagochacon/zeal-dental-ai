@@ -1,4 +1,6 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG, SUBSCRIPTION_REQUIRED_ERR_MSG } from '@shared/const';
+import { hasAccessToPremium, hasReachedConsultationLimit, getRemainingConsultations } from '../billing';
+import { getConsultationCount } from '../db';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -78,3 +80,39 @@ const requireSubscription = t.middleware(async opts => {
 });
 
 export const protectedSubscriptionProcedure = t.procedure.use(requireSubscription);
+
+const enforceConsultationLimit = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+
+  if (ctx.user.role === 'admin') {
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }
+
+  if (!hasAccessToPremium(ctx.user)) {
+    throw new TRPCError({ 
+      code: "FORBIDDEN", 
+      message: "Assinatura ativa ou trial necessária. Acesse /pricing." 
+    });
+  }
+
+  if (hasReachedConsultationLimit(ctx.user)) {
+    const remaining = getRemainingConsultations(ctx.user);
+    throw new TRPCError({ 
+      code: "FORBIDDEN", 
+      message: `Limite de consultas atingido. Consultas restantes: ${remaining}. Faça upgrade para continuar.` 
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
+
+export const consultationLimitProcedure = t.procedure.use(enforceConsultationLimit);

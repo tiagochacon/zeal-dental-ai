@@ -12,6 +12,7 @@ import Patients from "./pages/Patients";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Subscription from "./pages/Subscription";
+import Pricing from "./pages/Pricing";
 
 function Router() {
   return (
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/consultation/:id" component={ConsultationDetail} />
       <Route path="/patients" component={Patients} />
       <Route path="/subscription" component={Subscription} />
+      <Route path="/pricing" component={Pricing} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
