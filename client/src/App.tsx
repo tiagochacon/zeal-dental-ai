@@ -4,6 +4,7 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { PaywallGuard } from "./components/PaywallGuard";
 import Dashboard from "./pages/Dashboard";
 import NewConsultation from "./pages/NewConsultation";
 import TranscriptionReview from "./pages/TranscriptionReview";
@@ -38,7 +39,9 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <PaywallGuard>
+            <Router />
+          </PaywallGuard>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

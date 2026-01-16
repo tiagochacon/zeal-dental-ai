@@ -30,7 +30,7 @@ import { SOAPNote } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
 import { STRIPE_PRODUCTS } from "./stripe/products";
-import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId } from "./db";
+import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId, incrementConsultationCount } from "./db";
 
 // Zod schemas for validation
 const createPatientSchema = z.object({
@@ -602,6 +602,12 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         await updateConsultation(input.consultationId, {
           soapNote: soapNote,
         });
+
+        // Increment consultation count for billing tracking
+        // Only increment for non-admin users
+        if (ctx.user.role !== 'admin') {
+          await incrementConsultationCount(ctx.user.id);
+        }
 
         return { success: true, soapNote };
       }),

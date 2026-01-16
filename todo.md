@@ -136,3 +136,11 @@
 - [x] Step 5: Criar página de Pricing com 3 planos (Trial, Básico, Pro)
 - [x] Step 6: Implementar rota billing.startTrial para iniciar trial gratuito
 - [x] Step 7: Criar 29 testes de billing - todos passando
+
+## Automação Comercial SaaS (v11)
+- [x] Step 1: Implementar PaywallGuard global no frontend - redireciona para /pricing se sem assinatura/trial
+- [x] Step 2: Integrar incrementConsultationCount após finalização de SOAP
+- [x] Step 3: Criar componente UsageIndicator com barra de progresso e botão Upgrade
+- [x] Step 4: Otimizar página de pricing com gradientes e loading states
+- [x] Step 5: Criar job de reset automático de consultation_count
+- [x] Step 6: Criar 21 testes de automação comercial - todos passando

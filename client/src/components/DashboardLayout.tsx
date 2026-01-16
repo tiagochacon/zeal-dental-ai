@@ -26,6 +26,7 @@ import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
+import { UsageIndicator } from './UsageIndicator';
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
@@ -202,6 +203,8 @@ function DashboardLayoutContent({
               })}
             </SidebarMenu>
           </SidebarContent>
+
+          <UsageIndicator />
 
           <SidebarFooter className="p-3">
             <DropdownMenu>

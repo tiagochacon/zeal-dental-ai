@@ -5,7 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, CreditCard, ExternalLink, Loader2 } from "lucide-react";
+import { Check, Crown, Zap, CreditCard, ExternalLink, Loader2, ArrowRight } from "lucide-react";
 import { toast } from "sonner";
 
 const PLANS = [
@@ -113,6 +113,7 @@ export default function Pricing() {
 
     const priceId = priceMap[planKey];
     if (priceId) {
+      toast.loading("Abrindo checkout seguro...");
       createCheckout.mutate({ priceId });
     }
   };
@@ -188,14 +189,15 @@ export default function Pricing() {
               <CardFooter>
                 {plan.key === "TRIAL" ? (
                   <Button
-                    className="w-full"
-                    variant="outline"
+                    className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800"
                     onClick={handleStartTrial}
                     disabled={startTrial.isPending}
                   >
                     {startTrial.isPending ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    ) : null}
+                    ) : (
+                      <Zap className="h-4 w-4 mr-2" />
+                    )}
                     {plan.cta}
                   </Button>
                 ) : (
