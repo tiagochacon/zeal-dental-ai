@@ -192,3 +192,9 @@
 - [x] Polimento visual (transições, loading states, mensagens de erro)
 - [x] Redirecionar registro para /pricing após sucesso
 - [x] Criar testes de autenticação email/senha (12 testes passando)
+
+## Reset do Sistema e Finalização Auth (v19)
+- [x] Reset das tabelas users, sessions, subscriptions
+- [x] Remover todas as referências ao OAuth Manus (env vars, callbacks, botões)
+- [x] Criar 3 contas admin com acesso ilimitado
+- [x] Validar fluxo: novos usuários devem registrar e pagar, admins podem logar diretamente

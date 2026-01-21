@@ -1,0 +1,34 @@
+{
+  "query": "SELECT id, email, name, role, subscriptionStatus, loginMethod FROM users;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, email, name, role, subscriptionStatus, loginMethod FROM users;",
+  "rows": [
+    {
+      "id": "2730042",
+      "email": "zealtecnologia@gmail.com",
+      "name": "Zeal Tecnologia",
+      "role": "admin",
+      "subscriptionStatus": "active",
+      "loginMethod": "email"
+    },
+    {
+      "id": "2730051",
+      "email": "tiagosennachacon@gmail.com",
+      "name": "Tiago Senna Chacon",
+      "role": "admin",
+      "subscriptionStatus": "active",
+      "loginMethod": "email"
+    },
+    {
+      "id": "2730052",
+      "email": "victorodriguez2611@gmail.com",
+      "name": "Victor Rodriguez",
+      "role": "admin",
+      "subscriptionStatus": "active",
+      "loginMethod": "email"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\tsubscriptionStatus\tloginMethod\n2730042\tzealtecnologia@gmail.com\tZeal Tecnologia\tadmin\tactive\temail\n2730051\ttiagosennachacon@gmail.com\tTiago Senna Chacon\tadmin\tactive\temail\n2730052\tvictorodriguez2611@gmail.com\tVictor Rodriguez\tadmin\tactive\temail\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}
