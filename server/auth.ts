@@ -28,7 +28,7 @@ export async function createUser(data: {
   email: string;
   password: string;
   name: string;
-}): Promise<{ id: number; email: string; name: string; role: string }> {
+}): Promise<{ id: number; email: string; name: string; role: string; openId: string }> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
 
@@ -45,11 +45,13 @@ export async function createUser(data: {
   const passwordHash = await hashPassword(data.password);
   const isAdmin = isAdminEmail(data.email);
 
+  const openId = `email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  
   const result = await db.insert(users).values({
     email: data.email.toLowerCase(),
     passwordHash,
     name: data.name,
-    openId: `email_${Date.now()}_${Math.random().toString(36).substring(7)}`,
+    openId,
     loginMethod: "email",
     role: isAdmin ? "admin" : "user",
     // Admins get active subscription status automatically
@@ -63,6 +65,7 @@ export async function createUser(data: {
     email: data.email.toLowerCase(),
     name: data.name,
     role: isAdmin ? "admin" : "user",
+    openId,
   };
 }
 
@@ -103,6 +106,7 @@ export async function authenticateUser(email: string, password: string) {
     email: user.email,
     name: user.name,
     role: user.role,
+    openId: user.openId || '',
     subscriptionStatus: user.subscriptionStatus,
     trialEndsAt: user.trialEndsAt,
     consultationCount: user.consultationCount,

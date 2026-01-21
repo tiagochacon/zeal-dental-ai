@@ -12,6 +12,7 @@ import ConsultationDetail from "./pages/ConsultationDetail";
 import Patients from "./pages/Patients";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
+import Register from "./pages/Register";
 import Subscription from "./pages/Subscription";
 import Pricing from "./pages/Pricing";
 
@@ -20,6 +21,7 @@ function Router() {
     <Switch>
       <Route path="/" component={Dashboard} />
       <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
       <Route path="/profile" component={Profile} />
       <Route path="/new-consultation" component={NewConsultation} />
       <Route path="/consultation/:id/review" component={TranscriptionReview} />

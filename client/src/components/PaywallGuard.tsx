@@ -3,8 +3,11 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Loader2 } from "lucide-react";
 
-// Routes that don't require subscription
-const PUBLIC_ROUTES = ["/login", "/pricing", "/support", "/404"];
+// Routes that don't require authentication
+const AUTH_ROUTES = ["/login", "/register"];
+
+// Routes that don't require subscription (but require auth)
+const PUBLIC_ROUTES = ["/login", "/register", "/pricing", "/support", "/404"];
 
 interface PaywallGuardProps {
   children: React.ReactNode;
@@ -24,8 +27,13 @@ export function PaywallGuard({ children }: PaywallGuardProps) {
       return;
     }
 
-    // If not logged in, let the normal auth flow handle it
+    // If not logged in, redirect to login page
     if (!user) {
+      // Don't redirect if already on auth routes
+      if (!AUTH_ROUTES.some(route => location.startsWith(route))) {
+        setLocation("/login");
+        return;
+      }
       setIsChecking(false);
       return;
     }

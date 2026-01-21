@@ -183,3 +183,12 @@
 
 ## Ajuste UI Pricing (v17)
 - [x] Remover botão "Ou inicie um trial grátis" do plano ZEAL Básico
+
+## Autenticação Customizada UI (v18)
+- [x] Criar página de Login customizada (/login) com branding ZEAL
+- [x] Criar página de Registro customizada (/register) com branding ZEAL
+- [x] Implementar auth guard global no App.tsx
+- [x] Remover redirecionamentos para manus.im/app-auth
+- [x] Polimento visual (transições, loading states, mensagens de erro)
+- [x] Redirecionar registro para /pricing após sucesso
+- [x] Criar testes de autenticação email/senha (12 testes passando)

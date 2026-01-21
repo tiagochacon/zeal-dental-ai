@@ -1,4 +1,3 @@
-import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, consultationLimitProcedure, router } from "./_core/trpc";
@@ -32,6 +31,8 @@ import { stripe, isStripeConfigured } from "./stripe/stripe";
 import { STRIPE_PRODUCTS } from "./stripe/products";
 import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId, incrementConsultationCount } from "./db";
 import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
+import { sdk } from "./_core/sdk";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
 // Zod schemas for validation
 const createPatientSchema = z.object({
@@ -135,14 +136,38 @@ export const appRouter = router({
         password: z.string().min(6, "Senha minimo 6 caracteres"),
         name: z.string().min(1, "Nome obrigatorio"),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const user = await createUser({ email: input.email, password: input.password, name: input.name });
+        
+        // Create session token and set cookie using openId
+        const sessionToken = await sdk.createSessionToken(user.openId, { 
+          expiresInMs: ONE_YEAR_MS,
+          name: user.name 
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
+        });
+        
         return { id: user.id, email: user.email, name: user.name, role: user.role };
       }),
     emailLogin: publicProcedure
       .input(z.object({ email: z.string().email("Email invalido"), password: z.string().min(1, "Senha obrigatoria") }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ ctx, input }) => {
         const user = await authenticateUser(input.email, input.password);
+        
+        // Create session token and set cookie using openId
+        const sessionToken = await sdk.createSessionToken(user.openId, { 
+          expiresInMs: ONE_YEAR_MS,
+          name: user.name || '' 
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_YEAR_MS,
+        });
+        
         return { id: user.id, email: user.email, name: user.name, role: user.role, subscriptionStatus: user.subscriptionStatus };
       }),
   }),

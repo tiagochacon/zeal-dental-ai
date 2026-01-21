@@ -1,17 +1,30 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Eye, EyeOff } from "lucide-react";
+import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
 import { useLocation, Link } from "wouter";
-import { getLoginUrl } from "@/const";
 import { useEffect, useState } from "react";
+import { trpc } from "@/lib/trpc";
+import { toast } from "sonner";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { user, loading } = useAuth();
+  const { user, loading, refresh } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+
+  const loginMutation = trpc.auth.emailLogin.useMutation({
+    onSuccess: async () => {
+      toast.success("Login realizado com sucesso!");
+      await refresh();
+      setLocation("/");
+    },
+    onError: (err) => {
+      setError(err.message || "Erro ao fazer login. Verifique suas credenciais.");
+    },
+  });
 
   useEffect(() => {
     if (user && !loading) {
@@ -27,9 +40,16 @@ export default function Login() {
     );
   }
 
-  const handleLogin = () => {
-    // Redireciona para o OAuth do Manus
-    window.location.href = getLoginUrl();
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    
+    if (!email || !password) {
+      setError("Por favor, preencha todos os campos.");
+      return;
+    }
+
+    loginMutation.mutate({ email, password });
   };
 
   return (
@@ -101,8 +121,16 @@ export default function Login() {
             <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo de volta</h2>
             <p className="text-gray-400 mb-8">Entre na sua conta para continuar</p>
 
+            {/* Error Message */}
+            {error && (
+              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
             {/* Form */}
-            <div className="space-y-5">
+            <form onSubmit={handleLogin} className="space-y-5">
               {/* Email Field */}
               <div className="relative">
                 <label className="text-sm font-medium text-gray-300 mb-2 block">E-mail</label>
@@ -111,7 +139,8 @@ export default function Login() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 text-base focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                  disabled={loginMutation.isPending}
+                  className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 text-base focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all disabled:opacity-50"
                 />
               </div>
 
@@ -123,7 +152,8 @@ export default function Login() {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 pr-12 text-base focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all"
+                  disabled={loginMutation.isPending}
+                  className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 pr-12 text-base focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500/50 transition-all disabled:opacity-50"
                 />
                 <button
                   type="button"
@@ -140,10 +170,18 @@ export default function Login() {
 
               {/* Login Button */}
               <Button 
-                className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold text-base rounded-xl mt-6 transition-all duration-200 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-[1.02]"
-                onClick={handleLogin}
+                type="submit"
+                disabled={loginMutation.isPending}
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-semibold text-base rounded-xl mt-6 transition-all duration-200 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
               >
-                Entrar
+                {loginMutation.isPending ? (
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                    Entrando...
+                  </>
+                ) : (
+                  "Entrar"
+                )}
               </Button>
 
               {/* Divider */}
@@ -163,7 +201,7 @@ export default function Login() {
                   Cadastre-se gratuitamente
                 </Link>
               </div>
-            </div>
+            </form>
           </div>
 
           {/* Footer Info */}
