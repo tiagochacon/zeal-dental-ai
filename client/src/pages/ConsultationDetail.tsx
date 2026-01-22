@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,9 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { exportSOAPToPDF } from "@/lib/pdfExport";
+import { exportSOAPToPDF, exportTreatmentPlanToPDF } from "@/lib/pdfExport";
 import Odontogram from "@/components/Odontogram";
 import { 
   Loader2, ArrowLeft, FileText, AudioLines, Download, CheckCircle, Edit, 
@@ -18,7 +19,7 @@ import {
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
-import type { SOAPNote } from "../../../drizzle/schema";
+import type { SOAPNote, TreatmentPlan } from "../../../drizzle/schema";
 
 export default function ConsultationDetail() {
   const [, setLocation] = useLocation();
@@ -27,11 +28,19 @@ export default function ConsultationDetail() {
   
   const { user, loading: authLoading, logout } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [isEditingPlan, setIsEditingPlan] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState("");
   const [hoveredStar, setHoveredStar] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [planForm, setPlanForm] = useState({
+    summary: "",
+    stepsText: "",
+    medsText: "",
+    postOpText: "",
+    warningsText: "",
+  });
 
   const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
     { id: consultationId! },
@@ -58,6 +67,27 @@ export default function ConsultationDetail() {
     },
     onError: () => {
       toast.error("Erro ao atualizar nota SOAP");
+    },
+  });
+
+  const updateTreatmentPlanMutation = trpc.consultations.updateTreatmentPlan.useMutation({
+    onSuccess: () => {
+      toast.success("Plano de tratamento atualizado!");
+      setIsEditingPlan(false);
+      refetch();
+    },
+    onError: () => {
+      toast.error("Erro ao atualizar plano de tratamento");
+    },
+  });
+
+  const generateTreatmentPlanMutation = trpc.consultations.generateTreatmentPlan.useMutation({
+    onSuccess: () => {
+      toast.success("Plano de tratamento gerado!");
+      refetch();
+    },
+    onError: () => {
+      toast.error("Erro ao gerar plano de tratamento");
     },
   });
 
@@ -131,6 +161,129 @@ export default function ConsultationDetail() {
       console.error(error);
     }
   };
+
+  const treatmentPlan = (consultation?.treatmentPlan || null) as TreatmentPlan | null;
+
+  const formatPlanLines = (items: Array<string>) => items.join("\n");
+
+  const formatSteps = (steps: TreatmentPlan["steps"]) =>
+    steps
+      .map(step =>
+        [
+          step.title,
+          step.description,
+          step.duration,
+          step.frequency,
+          step.notes,
+        ]
+          .filter(Boolean)
+          .join(" | ")
+      )
+      .join("\n");
+
+  const formatMeds = (meds: TreatmentPlan["medications"]) =>
+    meds
+      .map(med =>
+        [
+          med.name,
+          med.dose,
+          med.frequency,
+          med.duration,
+          med.notes,
+        ]
+          .filter(Boolean)
+          .join(" | ")
+      )
+      .join("\n");
+
+  const parseLines = (text: string) =>
+    text
+      .split("\n")
+      .map(line => line.trim())
+      .filter(Boolean);
+
+  const parseSteps = (text: string): TreatmentPlan["steps"] => {
+    return parseLines(text).map(line => {
+      const [title, description, duration, frequency, notes] = line
+        .split("|")
+        .map(part => part.trim());
+      if (!title || !description) {
+        throw new Error("Cada passo precisa de Título e Descrição");
+      }
+      return { title, description, duration, frequency, notes };
+    });
+  };
+
+  const parseMeds = (text: string): TreatmentPlan["medications"] => {
+    return parseLines(text).map(line => {
+      const [name, dose, frequency, duration, notes] = line
+        .split("|")
+        .map(part => part.trim());
+      if (!name || !dose || !frequency) {
+        throw new Error("Cada medicação precisa de Nome, Dose e Frequência");
+      }
+      return { name, dose, frequency, duration, notes };
+    });
+  };
+
+  const handleExportTreatmentPlanPDF = () => {
+    if (!consultation || !treatmentPlan) {
+      toast.error("Plano de tratamento não disponível para exportação");
+      return;
+    }
+    try {
+      exportTreatmentPlanToPDF({
+        patientName: consultation.patientName,
+        createdAt: consultation.createdAt,
+        treatmentPlan,
+        dentistName: dentistProfile?.name,
+        dentistCRO: dentistProfile?.croNumber,
+      });
+      toast.success("PDF exportado com sucesso!");
+    } catch (error) {
+      toast.error("Erro ao exportar PDF");
+      console.error(error);
+    }
+  };
+
+  const handleSaveTreatmentPlan = () => {
+    if (!consultationId) return;
+    try {
+      const updatedPlan: TreatmentPlan = {
+        summary: planForm.summary.trim() || undefined,
+        steps: parseSteps(planForm.stepsText),
+        medications: parseMeds(planForm.medsText),
+        postOpInstructions: parseLines(planForm.postOpText),
+        warnings: parseLines(planForm.warningsText),
+      };
+      updateTreatmentPlanMutation.mutate({
+        consultationId,
+        treatmentPlan: updatedPlan,
+      });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Erro ao salvar plano");
+    }
+  };
+
+  useEffect(() => {
+    if (treatmentPlan) {
+      setPlanForm({
+        summary: treatmentPlan.summary || "",
+        stepsText: formatSteps(treatmentPlan.steps || []),
+        medsText: formatMeds(treatmentPlan.medications || []),
+        postOpText: formatPlanLines(treatmentPlan.postOpInstructions || []),
+        warningsText: formatPlanLines(treatmentPlan.warnings || []),
+      });
+    } else {
+      setPlanForm({
+        summary: "",
+        stepsText: "",
+        medsText: "",
+        postOpText: "",
+        warningsText: "",
+      });
+    }
+  }, [treatmentPlan]);
 
   if (authLoading || isLoading) {
     return (
@@ -215,6 +368,15 @@ export default function ConsultationDetail() {
             </li>
             <li>
               <button
+                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <FileText className="h-5 w-5" />
+                Consultas
+              </button>
+            </li>
+            <li>
+              <button
                 onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >
@@ -281,6 +443,12 @@ export default function ConsultationDetail() {
                   <span className="hidden sm:inline">Exportar</span> PDF
                 </Button>
               )}
+              {treatmentPlan && (
+                <Button variant="outline" size="sm" onClick={handleExportTreatmentPlanPDF}>
+                  <Download className="mr-2 h-4 w-4" />
+                  <span className="hidden sm:inline">Plano</span> PDF
+                </Button>
+              )}
               
               {consultation.status !== "finalized" && !isEditing && (
                 <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
@@ -317,7 +485,7 @@ export default function ConsultationDetail() {
 
         <div className="p-4 lg:p-6 max-w-4xl mx-auto">
           <Tabs defaultValue="soap" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="soap" className="text-xs sm:text-sm">
                 <FileText className="mr-1 sm:mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Nota</span> SOAP
@@ -327,6 +495,10 @@ export default function ConsultationDetail() {
                   <path d="M12 2C8 2 5 5 5 9c0 2 1 4 2 5l1 8h8l1-8c1-1 2-3 2-5 0-4-3-7-7-7z" />
                 </svg>
                 Odontograma
+              </TabsTrigger>
+              <TabsTrigger value="treatment-plan" className="text-xs sm:text-sm">
+                <ClipboardList className="mr-1 sm:mr-2 h-4 w-4" />
+                Plano
               </TabsTrigger>
               <TabsTrigger value="transcript" className="text-xs sm:text-sm">
                 <AudioLines className="mr-1 sm:mr-2 h-4 w-4" />
@@ -368,6 +540,177 @@ export default function ConsultationDetail() {
               />
             </TabsContent>
 
+            <TabsContent value="treatment-plan" className="space-y-6">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <h3 className="text-base font-semibold">Plano de Tratamento</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Detalhamento clínico com sequência, medicações e cuidados
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {treatmentPlan && (
+                    <Button variant="outline" size="sm" onClick={() => setIsEditingPlan(true)}>
+                      <Edit className="mr-2 h-4 w-4" />
+                      Editar
+                    </Button>
+                  )}
+                  <Button
+                    size="sm"
+                    onClick={() => consultationId && generateTreatmentPlanMutation.mutate({ consultationId })}
+                    disabled={generateTreatmentPlanMutation.isPending}
+                  >
+                    {generateTreatmentPlanMutation.isPending ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Gerando...
+                      </>
+                    ) : (
+                      <>
+                        <Stethoscope className="mr-2 h-4 w-4" />
+                        Gerar Plano
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {!treatmentPlan && (
+                <Card>
+                  <CardContent className="py-10 text-center">
+                    <ClipboardList className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground mb-4">
+                      Nenhum plano de tratamento disponível para esta consulta.
+                    </p>
+                    <Button
+                      onClick={() => consultationId && generateTreatmentPlanMutation.mutate({ consultationId })}
+                      disabled={generateTreatmentPlanMutation.isPending}
+                    >
+                      {generateTreatmentPlanMutation.isPending ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Gerando...
+                        </>
+                      ) : (
+                        "Gerar Plano"
+                      )}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {treatmentPlan && (
+                <div className="space-y-6">
+                  {treatmentPlan.summary && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-primary" />
+                          Resumo
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-sm text-muted-foreground">{treatmentPlan.summary}</p>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {treatmentPlan.steps.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <ClipboardList className="h-4 w-4 text-primary" />
+                          Sequência de Tratamento
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {treatmentPlan.steps.map((step, index) => (
+                          <div key={index} className="border border-border rounded-lg p-3 bg-muted/30">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium text-sm">{step.title}</p>
+                              <Badge variant="secondary" className="text-xs">
+                                Etapa {index + 1}
+                              </Badge>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2">{step.description}</p>
+                            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-2">
+                              {step.duration && <span>Duração: {step.duration}</span>}
+                              {step.frequency && <span>Frequência: {step.frequency}</span>}
+                              {step.notes && <span>Obs: {step.notes}</span>}
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {treatmentPlan.medications.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <Stethoscope className="h-4 w-4 text-primary" />
+                          Medicações
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {treatmentPlan.medications.map((med, index) => (
+                          <div key={index} className="flex items-start gap-2 text-sm bg-muted/40 p-3 rounded-lg">
+                            <Badge className="mt-0.5" variant="secondary">
+                              {med.name}
+                            </Badge>
+                            <div className="flex-1">
+                              <p className="font-medium">{med.dose}</p>
+                              <p className="text-xs text-muted-foreground">{med.frequency}</p>
+                              <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mt-1">
+                                {med.duration && <span>Duração: {med.duration}</span>}
+                                {med.notes && <span>Obs: {med.notes}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {treatmentPlan.postOpInstructions.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-primary" />
+                          Instruções Pós-Operatórias
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          {treatmentPlan.postOpInstructions.map((item, index) => (
+                            <li key={index}>• {item}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {treatmentPlan.warnings.length > 0 && (
+                    <Card>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-base flex items-center gap-2">
+                          <AlertTriangle className="h-4 w-4 text-destructive" />
+                          Alertas e Cuidados
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="text-sm text-muted-foreground space-y-1">
+                          {treatmentPlan.warnings.map((item, index) => (
+                            <li key={index}>• {item}</li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
             <TabsContent value="transcript" className="space-y-4">
               {consultation.transcript ? (
                 <Card>
@@ -402,6 +745,86 @@ export default function ConsultationDetail() {
           </Tabs>
         </div>
       </main>
+
+      {/* Treatment Plan Editor */}
+      <Dialog open={isEditingPlan} onOpenChange={setIsEditingPlan}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Editar Plano de Tratamento</DialogTitle>
+            <DialogDescription>
+              Preencha cada item em uma linha. Use o formato com separadores "|".
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Resumo</Label>
+              <Textarea
+                value={planForm.summary}
+                onChange={(e) => setPlanForm(prev => ({ ...prev, summary: e.target.value }))}
+                placeholder="Resumo clínico do plano..."
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Sequência (Título | Descrição | Duração | Frequência | Observações)</Label>
+              <Textarea
+                value={planForm.stepsText}
+                onChange={(e) => setPlanForm(prev => ({ ...prev, stepsText: e.target.value }))}
+                placeholder="Ex.: Avaliação inicial | Revisar exames e sintomas | 1 consulta | Semanal | Priorizar dor"
+                rows={5}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Medicações (Nome | Dose | Frequência | Duração | Observações)</Label>
+              <Textarea
+                value={planForm.medsText}
+                onChange={(e) => setPlanForm(prev => ({ ...prev, medsText: e.target.value }))}
+                placeholder="Ex.: Paracetamol | 500mg | a cada 12h | 8 dias | após refeições"
+                rows={4}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Instruções Pós-Operatórias (uma por linha)</Label>
+              <Textarea
+                value={planForm.postOpText}
+                onChange={(e) => setPlanForm(prev => ({ ...prev, postOpText: e.target.value }))}
+                placeholder="Ex.: Repouso por 12 dias"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label>Alertas e Cuidados (uma por linha)</Label>
+              <Textarea
+                value={planForm.warningsText}
+                onChange={(e) => setPlanForm(prev => ({ ...prev, warningsText: e.target.value }))}
+                placeholder="Ex.: Retornar imediatamente em caso de febre"
+                rows={3}
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={() => setIsEditingPlan(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleSaveTreatmentPlan} disabled={updateTreatmentPlanMutation.isPending}>
+              {updateTreatmentPlanMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                "Salvar Plano"
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Feedback Modal */}
       <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>

@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import NewConsultation from "./pages/NewConsultation";
 import TranscriptionReview from "./pages/TranscriptionReview";
 import ConsultationDetail from "./pages/ConsultationDetail";
+import Consultations from "./pages/Consultations";
 import Patients from "./pages/Patients";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
@@ -26,6 +27,7 @@ function Router() {
       <Route path="/new-consultation" component={NewConsultation} />
       <Route path="/consultation/:id/review" component={TranscriptionReview} />
       <Route path="/consultation/:id" component={ConsultationDetail} />
+      <Route path="/consultations" component={Consultations} />
       <Route path="/patients" component={Patients} />
       <Route path="/subscription" component={Subscription} />
       <Route path="/pricing" component={Pricing} />

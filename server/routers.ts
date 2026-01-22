@@ -8,6 +8,7 @@ import {
   getPatientById,
   updatePatient,
   deletePatient,
+  getPatientByNameForDentist,
   createConsultation,
   getConsultationsByDentist,
   getConsultationById,
@@ -15,17 +16,21 @@ import {
   getConsultationsByPatient,
   createFeedback,
   getFeedbackByConsultation,
+  deleteFeedbacksByConsultation,
   updateUserCRO,
   updateDentistProfile,
   getUserById,
   createAudioChunk,
   getAudioChunksBySession,
   deleteAudioChunks,
+  getAudioChunksByConsultation,
+  deleteAudioChunksByConsultation,
+  deleteConsultation,
 } from "./db";
-import { storagePut } from "./storage";
+import { storagePut, storageDelete } from "./storage";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { invokeLLM } from "./_core/llm";
-import { SOAPNote } from "../drizzle/schema";
+import { SOAPNote, TreatmentPlan } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
 import { STRIPE_PRODUCTS } from "./stripe/products";
@@ -92,6 +97,26 @@ const soapNoteSchema = z.object({
     orientacoes: z.array(z.string()),
     lembretes_clinicos: z.array(z.string()),
   }),
+});
+
+const treatmentPlanSchema = z.object({
+  summary: z.string().optional(),
+  steps: z.array(z.object({
+    title: z.string().min(1),
+    description: z.string().min(1),
+    duration: z.string().optional(),
+    frequency: z.string().optional(),
+    notes: z.string().optional(),
+  })),
+  medications: z.array(z.object({
+    name: z.string().min(1),
+    dose: z.string().min(1),
+    frequency: z.string().min(1),
+    duration: z.string().optional(),
+    notes: z.string().optional(),
+  })),
+  postOpInstructions: z.array(z.string()),
+  warnings: z.array(z.string()),
 });
 
 export const appRouter = router({
@@ -176,6 +201,10 @@ export const appRouter = router({
     create: protectedProcedure
       .input(createPatientSchema)
       .mutation(async ({ ctx, input }) => {
+        const existing = await getPatientByNameForDentist(ctx.user.id, input.name);
+        if (existing) {
+          throw new Error("Já existe um paciente com este nome.");
+        }
         const patient = await createPatient({
           dentistId: ctx.user.id,
           ...input,
@@ -257,6 +286,120 @@ export const appRouter = router({
       .input(z.object({ patientId: z.number() }))
       .query(async ({ ctx, input }) => {
         return await getConsultationsByPatient(input.patientId, ctx.user.id);
+      }),
+
+    getTreatmentPlan: protectedProcedure
+      .input(z.object({ consultationId: z.number() }))
+      .query(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+        return consultation.treatmentPlan || null;
+      }),
+
+    updateTreatmentPlan: protectedProcedure
+      .input(z.object({
+        consultationId: z.number(),
+        treatmentPlan: treatmentPlanSchema,
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+        await updateConsultation(input.consultationId, {
+          treatmentPlan: input.treatmentPlan,
+        });
+        return { success: true };
+      }),
+
+    generateTreatmentPlan: protectedProcedure
+      .input(z.object({ consultationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+
+        const patient = await getPatientById(consultation.patientId);
+        if (!patient) {
+          throw new Error("Paciente não encontrado");
+        }
+
+        const soapNote = consultation.soapNote as SOAPNote | null;
+        if (!soapNote) {
+          throw new Error("Nota SOAP não disponível para gerar plano");
+        }
+
+        const prompt = `Você é um assistente de IA odontológico especializado em planos de tratamento detalhados.\n\nGere um plano estruturado em JSON estritamente no formato abaixo, em português, com linguagem clínica clara e instruções detalhadas:\n\n{\n  \"summary\": \"...\",\n  \"steps\": [\n    {\n      \"title\": \"...\",\n      \"description\": \"...\",\n      \"duration\": \"...\",\n      \"frequency\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"medications\": [\n    {\n      \"name\": \"...\",\n      \"dose\": \"...\",\n      \"frequency\": \"...\",\n      \"duration\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"postOpInstructions\": [\"...\"],\n  \"warnings\": [\"...\"]\n}\n\nContexto:\n- Paciente: ${patient.name}\n- Histórico médico: ${patient.medicalHistory || "Não informado"}\n- Alergias: ${patient.allergies || "Não informado"}\n- Medicações em uso: ${patient.medications || "Não informado"}\n- Achados clínicos (SOAP): ${JSON.stringify(soapNote)}\n\nRegras:\n- Inclua cronogramas precisos (ex: \"a cada 12h por 8 dias\").\n- Inclua instruções pós-operatórias quando aplicável.\n- Não invente dados fora do contexto clínico fornecido.\n- Se não houver medicamento, deixe medications como array vazio.\n- Retorne apenas JSON válido.`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "Você é um assistente especializado em planos odontológicos. Nunca invente dados clínicos." },
+            { role: "user", content: prompt }
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "treatment_plan",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  summary: { type: "string" },
+                  steps: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        description: { type: "string" },
+                        duration: { type: "string" },
+                        frequency: { type: "string" },
+                        notes: { type: "string" }
+                      },
+                      required: ["title", "description"],
+                      additionalProperties: false
+                    }
+                  },
+                  medications: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        dose: { type: "string" },
+                        frequency: { type: "string" },
+                        duration: { type: "string" },
+                        notes: { type: "string" }
+                      },
+                      required: ["name", "dose", "frequency"],
+                      additionalProperties: false
+                    }
+                  },
+                  postOpInstructions: { type: "array", items: { type: "string" } },
+                  warnings: { type: "array", items: { type: "string" } }
+                },
+                required: ["steps", "medications", "postOpInstructions", "warnings"],
+                additionalProperties: false
+              }
+            }
+          }
+        });
+
+        const content = response.choices[0]?.message?.content;
+        if (!content) {
+          throw new Error("Resposta vazia da IA");
+        }
+
+        const parsed = JSON.parse(typeof content === "string" ? content : JSON.stringify(content)) as TreatmentPlan;
+        const validated = treatmentPlanSchema.parse(parsed);
+        await updateConsultation(input.consultationId, {
+          treatmentPlan: validated,
+        });
+
+        return { success: true, treatmentPlan: validated };
       }),
 
     uploadAudio: protectedProcedure
@@ -443,6 +586,31 @@ export const appRouter = router({
         });
 
         return { success: true, transcript: result.text, segments: result.segments };
+      }),
+
+    delete: protectedProcedure
+      .input(z.object({ consultationId: z.number() }))
+      .mutation(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+
+        const chunkFiles = await getAudioChunksByConsultation(input.consultationId);
+        const deleteKeys = [
+          consultation.audioFileKey,
+          ...chunkFiles.map(chunk => chunk.fileKey),
+        ].filter(Boolean) as string[];
+
+        for (const key of deleteKeys) {
+          await storageDelete(key);
+        }
+
+        await deleteFeedbacksByConsultation(input.consultationId);
+        await deleteAudioChunksByConsultation(input.consultationId);
+        await deleteConsultation(input.consultationId);
+
+        return { success: true };
       }),
 
     analyzeAndGenerateSOAP: consultationLimitProcedure

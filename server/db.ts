@@ -1,4 +1,4 @@
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { 
   InsertUser, users, 
@@ -7,7 +7,8 @@ import {
   feedbacks, InsertFeedback, Feedback,
   consultationTemplates, InsertConsultationTemplate, ConsultationTemplate,
   audioChunks, InsertAudioChunk, AudioChunk,
-  SOAPNote
+  SOAPNote,
+  TreatmentPlan
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -135,6 +136,29 @@ export async function createPatient(data: InsertPatient): Promise<Patient> {
   return patient;
 }
 
+export async function getPatientByNameForDentist(
+  dentistId: number,
+  name: string
+): Promise<Patient | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const normalized = name.trim().toLowerCase();
+  if (!normalized) return undefined;
+
+  const result = await db
+    .select()
+    .from(patients)
+    .where(
+      and(
+        eq(patients.dentistId, dentistId),
+        eq(sql`lower(${patients.name})`, normalized)
+      )
+    )
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
 export async function getPatientsByDentist(dentistId: number): Promise<Patient[]> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -212,6 +236,7 @@ export async function updateConsultation(id: number, data: Partial<{
   transcript: string | null;
   transcriptSegments: unknown;
   soapNote: SOAPNote | null;
+  treatmentPlan: TreatmentPlan | null;
   status: "draft" | "transcribed" | "reviewed" | "finalized";
   finalizedAt: Date | null;
 }>): Promise<void> {
@@ -249,6 +274,13 @@ export async function getFeedbackByConsultation(consultationId: number): Promise
     .where(eq(feedbacks.consultationId, consultationId))
     .limit(1);
   return result.length > 0 ? result[0] : null;
+}
+
+export async function deleteFeedbacksByConsultation(consultationId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(feedbacks).where(eq(feedbacks.consultationId, consultationId));
 }
 
 // ==================== TEMPLATE FUNCTIONS ====================
@@ -320,6 +352,7 @@ export async function deleteAudioChunks(
       )
     );
 }
+
 
 // ==================== SUBSCRIPTION FUNCTIONS ====================
 
@@ -434,4 +467,24 @@ export async function resetConsultationCount(userId: number): Promise<void> {
     consultationCount: 0,
     consultationCountResetAt: new Date(),
   }).where(eq(users.id, userId));
+export async function getAudioChunksByConsultation(
+  consultationId: number
+): Promise<AudioChunk[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  return await db
+    .select()
+    .from(audioChunks)
+    .where(eq(audioChunks.consultationId, consultationId))
+    .orderBy(audioChunks.chunkIndex);
+}
+
+export async function deleteAudioChunksByConsultation(
+  consultationId: number
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db.delete(audioChunks).where(eq(audioChunks.consultationId, consultationId));
 }

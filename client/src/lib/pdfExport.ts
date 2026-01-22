@@ -1,11 +1,20 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import type { SOAPNote } from '../../../drizzle/schema';
+import type { SOAPNote, TreatmentPlan } from '../../../drizzle/schema';
 
 interface ConsultationData {
   patientName: string;
   createdAt: Date | string;
   soapNote: SOAPNote;
+  dentistName?: string;
+  dentistCRO?: string;
+  clinicName?: string;
+}
+
+interface TreatmentPlanExportData {
+  patientName: string;
+  createdAt: Date | string;
+  treatmentPlan: TreatmentPlan;
   dentistName?: string;
   dentistCRO?: string;
   clinicName?: string;
@@ -394,5 +403,183 @@ export function exportSOAPToPDF(consultation: ConsultationData): void {
 
   // Save the PDF with formatted filename
   const fileName = `nota-soap-${consultation.patientName.replace(/\s+/g, '-').toLowerCase()}-${new Date(consultation.createdAt).toISOString().split('T')[0]}.pdf`;
+  doc.save(fileName);
+}
+
+export function exportTreatmentPlanToPDF(data: TreatmentPlanExportData): void {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const margin = 20;
+  let yPos = 20;
+
+  // Header
+  doc.setFillColor(30, 27, 75);
+  doc.rect(0, 0, pageWidth, 45, 'F');
+  doc.setFillColor(59, 130, 246);
+  doc.rect(0, 43, pageWidth, 2, 'F');
+
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(28);
+  doc.setFont('helvetica', 'bold');
+  doc.text('ZEAL', margin, 30);
+
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(200, 200, 255);
+  doc.text('Assistente de IA Odontológico', margin + 50, 30);
+
+  // Patient info
+  yPos = 60;
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text(data.patientName, margin, yPos);
+
+  yPos += 10;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  const dateStr = new Date(data.createdAt).toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: 'long',
+    year: 'numeric',
+  });
+  doc.text(`Data da consulta: ${dateStr}`, margin, yPos);
+  yPos += 15;
+
+  const plan = data.treatmentPlan;
+
+  const addSection = (
+    title: string,
+    sectionColor: number[],
+    content: { label?: string; value: string | string[] }[]
+  ) => {
+    if (yPos > 250) {
+      doc.addPage();
+      yPos = 20;
+    }
+
+    doc.setFillColor(248, 250, 252);
+    doc.roundedRect(margin, yPos, pageWidth - 2 * margin, 12, 2, 2, 'F');
+    doc.setFillColor(sectionColor[0], sectionColor[1], sectionColor[2]);
+    doc.roundedRect(margin, yPos, 4, 12, 2, 2, 'F');
+    doc.setTextColor(30, 41, 59);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text(title, margin + 10, yPos + 8);
+    yPos += 18;
+
+    content.forEach(item => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      if (item.label) {
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'bold');
+        doc.setTextColor(71, 85, 105);
+        doc.text(item.label, margin + 5, yPos);
+        yPos += 6;
+      }
+
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(30, 41, 59);
+
+      if (Array.isArray(item.value)) {
+        item.value.forEach(v => {
+          const lines = doc.splitTextToSize(`• ${v}`, pageWidth - 2 * margin - 15);
+          doc.text(lines, margin + 10, yPos);
+          yPos += lines.length * 5 + 1;
+        });
+      } else {
+        const lines = doc.splitTextToSize(item.value || 'Não informado', pageWidth - 2 * margin - 15);
+        doc.text(lines, margin + 10, yPos);
+        yPos += lines.length * 5;
+      }
+      yPos += 5;
+    });
+    yPos += 3;
+  };
+
+  if (plan.summary) {
+    addSection('Resumo do Plano', [59, 130, 246], [{ value: plan.summary }]);
+  }
+
+  if (plan.steps.length > 0) {
+    const steps = plan.steps.map(step => {
+      const meta = [
+        step.duration ? `Duração: ${step.duration}` : null,
+        step.frequency ? `Frequência: ${step.frequency}` : null,
+        step.notes ? `Observações: ${step.notes}` : null,
+      ].filter(Boolean).join(" | ");
+
+      return `${step.title} — ${step.description}${meta ? ` (${meta})` : ""}`;
+    });
+    addSection('Sequência de Tratamento', [99, 102, 241], [{ value: steps }]);
+  }
+
+  if (plan.medications.length > 0) {
+    const meds = plan.medications.map(med => {
+      const meta = [
+        med.duration ? `Duração: ${med.duration}` : null,
+        med.notes ? `Observações: ${med.notes}` : null,
+      ].filter(Boolean).join(" | ");
+      return `${med.name} ${med.dose} — ${med.frequency}${meta ? ` (${meta})` : ""}`;
+    });
+    addSection('Medicações', [16, 185, 129], [{ value: meds }]);
+  }
+
+  if (plan.postOpInstructions.length > 0) {
+    addSection('Instruções Pós-Operatórias', [249, 115, 22], [
+      { value: plan.postOpInstructions },
+    ]);
+  }
+
+  if (plan.warnings.length > 0) {
+    addSection('Alertas e Cuidados', [220, 38, 38], [{ value: plan.warnings }]);
+  }
+
+  // Signature section
+  if (yPos > pageHeight - 70) {
+    doc.addPage();
+    yPos = 20;
+  }
+  yPos += 15;
+  const signatureLineWidth = 80;
+  const signatureStartX = pageWidth - margin - signatureLineWidth;
+  doc.setDrawColor(100, 116, 139);
+  doc.setLineWidth(0.5);
+  doc.line(signatureStartX, yPos, signatureStartX + signatureLineWidth, yPos);
+  yPos += 6;
+
+  const hasDentistInfo =
+    data.dentistName && data.dentistName.trim() !== "" &&
+    data.dentistCRO && data.dentistCRO.trim() !== "";
+
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  if (hasDentistInfo) {
+    doc.setTextColor(30, 41, 59);
+    doc.text(data.dentistName!, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+    doc.text(data.dentistCRO!, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    if (data.clinicName) {
+      yPos += 5;
+      doc.setFontSize(8);
+      doc.setTextColor(71, 85, 105);
+      doc.text(data.clinicName, signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    }
+  } else {
+    doc.setTextColor(156, 163, 175);
+    doc.setFont('helvetica', 'italic');
+    doc.text('[Nome Completo do Dentista]', signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+    yPos += 5;
+    doc.text('[CRO/Número de Registro]', signatureStartX + signatureLineWidth / 2, yPos, { align: 'center' });
+  }
+
+  const fileName = `plano-tratamento-${data.patientName.replace(/\s+/g, '-').toLowerCase()}-${new Date(data.createdAt).toISOString().split('T')[0]}.pdf`;
   doc.save(fileName);
 }

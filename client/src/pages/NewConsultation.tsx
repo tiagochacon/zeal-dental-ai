@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText, LayoutDashboard, Users, Menu, X } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText, LayoutDashboard, Users, Menu, X, UserCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -251,6 +251,14 @@ export default function NewConsultation() {
       let patientName: string;
 
       if (isNewPatient && newPatientName) {
+        const normalizedName = newPatientName.trim().toLowerCase();
+        const duplicate = patients?.some(
+          patient => patient.name.trim().toLowerCase() === normalizedName
+        );
+        if (duplicate) {
+          toast.error("Já existe um paciente com este nome.");
+          return;
+        }
         const result = await createPatientMutation.mutateAsync({
           name: newPatientName,
         });
@@ -382,6 +390,24 @@ export default function NewConsultation() {
               >
                 <Users className="h-5 w-5" />
                 Pacientes
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <FileText className="h-5 w-5" />
+                Consultas
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <UserCircle className="h-5 w-5" />
+                Meu Perfil
               </button>
             </li>
           </ul>

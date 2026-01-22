@@ -1,7 +1,8 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Eye, EyeOff, AlertCircle } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useLocation, Link } from "wouter";
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
@@ -14,15 +15,18 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-
+  const [shake, setShake] = useState(false);
   const loginMutation = trpc.auth.emailLogin.useMutation({
     onSuccess: async () => {
       toast.success("Login realizado com sucesso!");
+      setError("");
       await refresh();
       setLocation("/");
     },
     onError: (err) => {
       setError(err.message || "Erro ao fazer login. Verifique suas credenciais.");
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
     },
   });
 
@@ -46,10 +50,28 @@ export default function Login() {
     
     if (!email || !password) {
       setError("Por favor, preencha todos os campos.");
+      setShake(true);
+      setTimeout(() => setShake(false), 600);
       return;
     }
 
     loginMutation.mutate({ email, password });
+  };
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 24 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+    shake: { x: [0, -8, 8, -6, 6, 0], transition: { duration: 0.5 } },
+  };
+
+  const formVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+  };
+
+  const fieldVariants = {
+    hidden: { opacity: 0, y: 8 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
   };
 
   return (
@@ -117,11 +139,15 @@ export default function Login() {
             <span className="text-3xl font-bold text-white tracking-tight">Zeal</span>
           </div>
 
-          <div className="bg-card/90 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-border shadow-2xl">
-            <h2 className="text-2xl font-bold text-foreground mb-2">Bem-vindo de volta</h2>
-            <p className="text-muted-foreground mb-8">Entre na sua conta para continuar</p>
+          <motion.div
+            variants={cardVariants}
+            initial="hidden"
+            animate={shake ? "shake" : "visible"}
+            className="bg-[#1a1a2e]/90 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-white/10 shadow-2xl"
+          >
+            <h2 className="text-2xl font-bold text-white mb-2">Bem-vindo de volta</h2>
+            <p className="text-gray-400 mb-8">Entre na sua conta para continuar</p>
 
-            {/* Error Message */}
             {error && (
               <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
                 <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
@@ -129,80 +155,78 @@ export default function Login() {
               </div>
             )}
 
-            {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              {/* Email Field */}
-              <div className="relative">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">E-mail</label>
-                <Input
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
-                />
-              </div>
+            <form onSubmit={handleLogin}>
+              <motion.div variants={formVariants} initial="hidden" animate="visible" className="space-y-5">
+                <motion.div variants={fieldVariants} className="relative">
+                  <label className="text-sm font-medium text-gray-300 mb-2 block">E-mail</label>
+                  <Input
+                    type="email"
+                    placeholder="seu@email.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loginMutation.isPending}
+                    className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.35)] transition-all disabled:opacity-50"
+                  />
+                </motion.div>
 
-              {/* Password Field */}
-              <div className="relative">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Senha</label>
-                <Input
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-[42px] text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-5 w-5" />
-                  ) : (
-                    <Eye className="h-5 w-5" />
-                  )}
-                </button>
-              </div>
+                <motion.div variants={fieldVariants} className="relative">
+                  <label className="text-sm font-medium text-gray-300 mb-2 block">Senha</label>
+                  <Input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loginMutation.isPending}
+                    className="w-full h-12 bg-[#252538] border border-white/5 rounded-xl text-white placeholder:text-gray-600 px-4 pr-12 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 focus:shadow-[0_0_0_2px_rgba(59,130,246,0.35)] transition-all disabled:opacity-50"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-[42px] text-gray-500 hover:text-gray-300 transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-5 w-5" />
+                    ) : (
+                      <Eye className="h-5 w-5" />
+                    )}
+                  </button>
+                </motion.div>
 
-              {/* Login Button */}
-              <Button 
-                type="submit"
-                disabled={loginMutation.isPending}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-base rounded-xl mt-6 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
-              >
-                {loginMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Entrando...
-                  </>
-                ) : (
-                  "Entrar"
-                )}
-              </Button>
+                <motion.div variants={fieldVariants}>
+                  <Button
+                    type="submit"
+                    disabled={loginMutation.isPending}
+                    className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-base rounded-xl mt-6 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                  >
+                    {loginMutation.isPending ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                        Entrando...
+                      </>
+                    ) : (
+                      "Entrar"
+                    )}
+                  </Button>
+                </motion.div>
 
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 text-muted-foreground bg-card">ou</span>
-                </div>
-              </div>
+                <motion.div variants={fieldVariants} className="relative my-6">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-white/10"></div>
+                  </div>
+                  <div className="relative flex justify-center text-sm">
+                    <span className="px-4 text-gray-500 bg-[#1a1a2e]">ou</span>
+                  </div>
+                </motion.div>
 
-              {/* Register Link */}
-              <div className="text-center">
-                <span className="text-muted-foreground">Não tem conta? </span>
-                <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-                  Cadastre-se gratuitamente
-                </Link>
-              </div>
+                <motion.div variants={fieldVariants} className="text-center">
+                  <span className="text-gray-400">Não tem conta? </span>
+                  <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                    Cadastre-se gratuitamente
+                  </Link>
+                </motion.div>
+              </motion.div>
             </form>
-          </div>
+          </motion.div>
 
           {/* Footer Info */}
           <p className="text-center text-muted-foreground text-sm mt-8">

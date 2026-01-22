@@ -108,6 +108,15 @@ export default function Dashboard() {
             </li>
             <li>
               <button
+                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <FileText className="h-5 w-5" />
+                Consultas
+              </button>
+            </li>
+            <li>
+              <button
                 onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
               >

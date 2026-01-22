@@ -73,6 +73,9 @@ export const consultations = mysqlTable("consultations", {
   
   // AI Analysis and SOAP note
   soapNote: json("soapNote").$type<SOAPNote>(),
+
+  // Treatment plan (editable and exportable)
+  treatmentPlan: json("treatmentPlan").$type<TreatmentPlan>(),
   
   // Metadata
   templateUsed: varchar("templateUsed", { length: 50 }),
@@ -177,6 +180,29 @@ export interface SOAPNote {
     orientacoes: string[];
     lembretes_clinicos: string[];
   };
+}
+
+/**
+ * Treatment plan structure for dental consultations
+ */
+export interface TreatmentPlan {
+  summary?: string;
+  steps: Array<{
+    title: string;
+    description: string;
+    duration?: string;
+    frequency?: string;
+    notes?: string;
+  }>;
+  medications: Array<{
+    name: string;
+    dose: string;
+    frequency: string;
+    duration?: string;
+    notes?: string;
+  }>;
+  postOpInstructions: string[];
+  warnings: string[];
 }
 
 /**

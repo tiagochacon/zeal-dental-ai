@@ -5,7 +5,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, Crown, Zap, CreditCard, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Crown, CreditCard, Loader2, UserPlus, Zap } from "lucide-react";
 import { toast } from "sonner";
 
 // Stripe Payment Links
@@ -148,6 +148,16 @@ export default function Pricing() {
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
             Escolha o plano perfeito para sua clínica odontológica. Sem taxas ocultas, cancele quando quiser.
           </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button variant="outline" onClick={() => setLocation("/login")}>
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Voltar para Login
+            </Button>
+            <Button variant="outline" onClick={() => setLocation("/register")}>
+              <UserPlus className="h-4 w-4 mr-2" />
+              Criar Nova Conta
+            </Button>
+          </div>
         </div>
 
         {/* Pricing Cards */}

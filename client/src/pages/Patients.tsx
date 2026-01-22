@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, Menu, X, LogOut, UserCircle } from "lucide-react";
+import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, FileText, Menu, X, LogOut, UserCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -229,9 +229,17 @@ export default function Patients() {
         ...formData,
       });
     } else {
+      const normalizedName = formData.name.trim().toLowerCase();
+      const duplicate = patients?.some(
+        patient => patient.name.trim().toLowerCase() === normalizedName
+      );
+      if (duplicate) {
+        toast.error("Já existe um paciente com este nome.");
+        return;
+      }
       createMutation.mutate(formData);
     }
-  }, [formData, editingPatient, updateMutation, createMutation]);
+  }, [formData, editingPatient, updateMutation, createMutation, patients]);
 
   const handleEdit = useCallback((patient: NonNullable<typeof patients>[number]) => {
     setEditingPatient(patient.id);
@@ -328,6 +336,15 @@ export default function Patients() {
               >
                 <Users className="h-5 w-5" />
                 Pacientes
+              </button>
+            </li>
+            <li>
+              <button
+                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              >
+                <FileText className="h-5 w-5" />
+                Consultas
               </button>
             </li>
             <li>
