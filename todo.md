@@ -198,3 +198,10 @@
 - [x] Remover todas as referências ao OAuth Manus (env vars, callbacks, botões)
 - [x] Criar 3 contas admin com acesso ilimitado
 - [x] Validar fluxo: novos usuários devem registrar e pagar, admins podem logar diretamente
+
+## Refinamento de Cores Auth (v20)
+- [x] Auditar cores purple/violet nas páginas de Login e Registro
+- [x] Substituir purple por Deep Blue/Navy (consistente com Dashboard)
+- [x] Atualizar botões, focus rings, gradientes e links
+- [x] Verificar consistência visual com sidebar/dashboard
+- [x] Garantir logo ZEAL visível contra fundo deep blue
