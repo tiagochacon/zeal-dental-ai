@@ -467,6 +467,8 @@ export async function resetConsultationCount(userId: number): Promise<void> {
     consultationCount: 0,
     consultationCountResetAt: new Date(),
   }).where(eq(users.id, userId));
+}
+
 export async function getAudioChunksByConsultation(
   consultationId: number
 ): Promise<AudioChunk[]> {
