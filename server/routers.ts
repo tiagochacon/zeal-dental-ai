@@ -1015,7 +1015,220 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
       return { portalUrl: session.url };
     }),
   }),
-  
+
+  // Neurovendas Analysis Router
+  neurovendas: router({
+    // Analyze consultation transcript for sales intelligence
+    analyzeConsultation: protectedProcedure
+      .input(z.object({
+        consultationId: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+
+        if (!consultation.transcript) {
+          throw new Error("Esta consulta não possui transcrição para análise");
+        }
+
+        const prompt = `Você é um especialista em Neurovendas e Linguagem Corporal para Dentistas, baseado na metodologia do Dr. Carlos Rodriguez.
+
+Analise a seguinte transcrição de consulta odontológica e forneça uma análise de inteligência de vendas:
+
+TRANSCRIÇÃO:
+${consultation.transcript}
+
+Com base na transcrição, analise:
+
+1. PERFIL PSICOGRÁFICO DO PACIENTE:
+- Identifique o nível cerebral dominante (Neocórtex/Límbico/Reptiliano)
+- Determine a motivação primária (Alívio da Dor, Estética, Status, Saúde)
+- Avalie o nível de ansiedade/receptividade (1-10)
+
+2. OBJEÇÕES IDENTIFICADAS:
+- Liste objeções verdadeiras detectadas
+- Liste possíveis objeções ocultas/falsas
+- Classifique cada objeção (financeira, medo, tempo, confiança)
+
+3. SINAIS DE LINGUAGEM:
+- Sinais positivos de absorção identificados
+- Sinais de resistência ou objeção oculta
+- Palavras-chave emocionais usadas pelo paciente
+
+4. GATILHOS MENTAIS RECOMENDADOS:
+- Liste os 3 gatilhos mais eficazes para este paciente
+- Explique por que cada gatilho é adequado
+
+5. SCRIPT DE FECHAMENTO (Modelo PARE):
+- Problema: Como abordar a dor/necessidade
+- Amplificação: Como mostrar consequências
+- Resolução: Como apresentar a solução
+- Engajamento: Como criar compromisso
+
+6. TÉCNICA RECOMENDADA PARA OBJEÇÕES:
+- Se objeção verdadeira: Aplique técnica LAER
+- Se objeção falsa: Aplique técnica de Redirecionamento
+
+7. NÍVEL DE RAPPORT (1-10):
+- Avalie o rapport atual
+- Sugira ações para melhorar
+
+Responda em JSON estruturado.`;
+
+        const response = await invokeLLM({
+          messages: [
+            { role: "system", content: "Você é um especialista em Neurovendas aplicadas à Odontologia, treinado na metodologia do Dr. Carlos Rodriguez. Sua análise deve ser prática, ética e focada em ajudar o dentista a comunicar melhor o valor dos tratamentos." },
+            { role: "user", content: prompt }
+          ],
+          response_format: {
+            type: "json_schema",
+            json_schema: {
+              name: "neurovendas_analysis",
+              strict: true,
+              schema: {
+                type: "object",
+                properties: {
+                  perfilPsicografico: {
+                    type: "object",
+                    properties: {
+                      nivelCerebralDominante: { type: "string", enum: ["neocortex", "limbico", "reptiliano"] },
+                      motivacaoPrimaria: { type: "string", enum: ["alivio_dor", "estetica", "status", "saude"] },
+                      nivelAnsiedade: { type: "number" },
+                      nivelReceptividade: { type: "number" },
+                      descricaoPerfil: { type: "string" }
+                    },
+                    required: ["nivelCerebralDominante", "motivacaoPrimaria", "nivelAnsiedade", "nivelReceptividade", "descricaoPerfil"],
+                    additionalProperties: false
+                  },
+                  objecoes: {
+                    type: "object",
+                    properties: {
+                      verdadeiras: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            texto: { type: "string" },
+                            categoria: { type: "string", enum: ["financeira", "medo", "tempo", "confianca", "outra"] },
+                            tecnicaSugerida: { type: "string" }
+                          },
+                          required: ["texto", "categoria", "tecnicaSugerida"],
+                          additionalProperties: false
+                        }
+                      },
+                      ocultas: {
+                        type: "array",
+                        items: {
+                          type: "object",
+                          properties: {
+                            texto: { type: "string" },
+                            sinaisDetectados: { type: "string" },
+                            perguntaReveladora: { type: "string" }
+                          },
+                          required: ["texto", "sinaisDetectados", "perguntaReveladora"],
+                          additionalProperties: false
+                        }
+                      }
+                    },
+                    required: ["verdadeiras", "ocultas"],
+                    additionalProperties: false
+                  },
+                  sinaisLinguagem: {
+                    type: "object",
+                    properties: {
+                      positivos: { type: "array", items: { type: "string" } },
+                      negativos: { type: "array", items: { type: "string" } },
+                      palavrasChaveEmocionais: { type: "array", items: { type: "string" } }
+                    },
+                    required: ["positivos", "negativos", "palavrasChaveEmocionais"],
+                    additionalProperties: false
+                  },
+                  gatilhosMentais: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        nome: { type: "string", enum: ["transformacao", "saude_longevidade", "status", "conforto", "exclusividade"] },
+                        justificativa: { type: "string" },
+                        exemploFrase: { type: "string" }
+                      },
+                      required: ["nome", "justificativa", "exemploFrase"],
+                      additionalProperties: false
+                    }
+                  },
+                  scriptPARE: {
+                    type: "object",
+                    properties: {
+                      problema: { type: "string" },
+                      amplificacao: { type: "string" },
+                      resolucao: { type: "string" },
+                      engajamento: { type: "string" }
+                    },
+                    required: ["problema", "amplificacao", "resolucao", "engajamento"],
+                    additionalProperties: false
+                  },
+                  tecnicaObjecao: {
+                    type: "object",
+                    properties: {
+                      tipo: { type: "string", enum: ["LAER", "redirecionamento"] },
+                      passos: { type: "array", items: { type: "string" } }
+                    },
+                    required: ["tipo", "passos"],
+                    additionalProperties: false
+                  },
+                  rapport: {
+                    type: "object",
+                    properties: {
+                      nivel: { type: "number" },
+                      pontosFortesRelacionamento: { type: "array", items: { type: "string" } },
+                      acoesParaMelhorar: { type: "array", items: { type: "string" } }
+                    },
+                    required: ["nivel", "pontosFortesRelacionamento", "acoesParaMelhorar"],
+                    additionalProperties: false
+                  },
+                  resumoExecutivo: { type: "string" }
+                },
+                required: ["perfilPsicografico", "objecoes", "sinaisLinguagem", "gatilhosMentais", "scriptPARE", "tecnicaObjecao", "rapport", "resumoExecutivo"],
+                additionalProperties: false
+              }
+            }
+          }
+        });
+
+        const analysisContent = response.choices[0]?.message?.content;
+        if (!analysisContent || typeof analysisContent !== 'string') {
+          throw new Error("Falha ao gerar análise de neurovendas");
+        }
+
+        const analysis = JSON.parse(analysisContent);
+
+        // Save analysis to consultation
+        await updateConsultation(input.consultationId, {
+          neurovendasAnalysis: analysis,
+        });
+
+        return { success: true, analysis };
+      }),
+
+    // Get neurovendas analysis for a consultation
+    getAnalysis: protectedProcedure
+      .input(z.object({
+        consultationId: z.number(),
+      }))
+      .query(async ({ ctx, input }) => {
+        const consultation = await getConsultationById(input.consultationId);
+        if (!consultation || consultation.dentistId !== ctx.user.id) {
+          throw new Error("Consulta não encontrada ou acesso negado");
+        }
+
+        return {
+          hasAnalysis: !!consultation.neurovendasAnalysis,
+          analysis: consultation.neurovendasAnalysis,
+        };
+      }),
+  }),
 
 });
 

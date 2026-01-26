@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, email, name, role, plan, subscriptionStatus FROM users WHERE email IN ('drcarlosrodriguezbr@gmail.com', 'leo_brasill@hotmail.com', 'fabionetto81@yahoo.com.br');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, email, name, role, plan, subscriptionStatus FROM users WHERE email IN ('drcarlosrodriguezbr@gmail.com', 'leo_brasill@hotmail.com', 'fabionetto81@yahoo.com.br');",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'plan' in 'field list'"
+  ]
+}

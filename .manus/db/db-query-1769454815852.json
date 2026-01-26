@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE users SET role = 'admin', subscriptionStatus = 'active', priceId = 'unlimited' WHERE email IN ('drcarlosrodriguezbr@gmail.com', 'leo_brasill@hotmail.com', 'fabionetto81@yahoo.com.br');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute UPDATE users SET role = 'admin', subscriptionStatus = 'active', priceId = 'unlimited' WHERE email IN ('drcarlosrodriguezbr@gmail.com', 'leo_brasill@hotmail.com', 'fabionetto81@yahoo.com.br');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 57
+}

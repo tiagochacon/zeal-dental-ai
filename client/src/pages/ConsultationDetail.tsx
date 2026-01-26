@@ -14,12 +14,13 @@ import Odontogram from "@/components/Odontogram";
 import { 
   Loader2, ArrowLeft, FileText, AudioLines, Download, CheckCircle, Edit, 
   AlertTriangle, Stethoscope, ClipboardList, CheckCircle2, Star,
-  LayoutDashboard, Users, Menu, X, LogOut, UserCircle
+  LayoutDashboard, Users, Menu, X, LogOut, UserCircle, TrendingUp
 } from "lucide-react";
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import type { SOAPNote, TreatmentPlan } from "../../../drizzle/schema";
+import NeurovendasTab from "@/components/NeurovendasTab";
 
 export default function ConsultationDetail() {
   const [, setLocation] = useLocation();
@@ -485,7 +486,7 @@ export default function ConsultationDetail() {
 
         <div className="p-4 lg:p-6 max-w-4xl mx-auto">
           <Tabs defaultValue="soap" className="space-y-6">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="soap" className="text-xs sm:text-sm">
                 <FileText className="mr-1 sm:mr-2 h-4 w-4" />
                 <span className="hidden sm:inline">Nota</span> SOAP
@@ -503,6 +504,10 @@ export default function ConsultationDetail() {
               <TabsTrigger value="transcript" className="text-xs sm:text-sm">
                 <AudioLines className="mr-1 sm:mr-2 h-4 w-4" />
                 Transcrição
+              </TabsTrigger>
+              <TabsTrigger value="neurovendas" className="text-xs sm:text-sm">
+                <TrendingUp className="mr-1 sm:mr-2 h-4 w-4" />
+                Negociação
               </TabsTrigger>
             </TabsList>
 
@@ -741,6 +746,13 @@ export default function ConsultationDetail() {
                   </CardContent>
                 </Card>
               )}
+            </TabsContent>
+
+            <TabsContent value="neurovendas" className="space-y-6">
+              <NeurovendasTab 
+                consultationId={consultationId!} 
+                hasTranscript={!!consultation.transcript}
+              />
             </TabsContent>
           </Tabs>
         </div>

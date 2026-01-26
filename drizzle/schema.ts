@@ -77,6 +77,9 @@ export const consultations = mysqlTable("consultations", {
   // Treatment plan (editable and exportable)
   treatmentPlan: json("treatmentPlan").$type<TreatmentPlan>(),
   
+  // Neurovendas Analysis
+  neurovendasAnalysis: json("neurovendasAnalysis").$type<NeurovendasAnalysis>(),
+  
   // Metadata
   templateUsed: varchar("templateUsed", { length: 50 }),
   status: mysqlEnum("status", ["draft", "transcribed", "reviewed", "finalized"]).default("draft").notNull(),
@@ -214,4 +217,55 @@ export interface TranscriptSegment {
   end: number;
   text: string;
   speaker?: "dentist" | "patient";
+}
+
+/**
+ * Neurovendas Analysis structure for sales intelligence
+ */
+export interface NeurovendasAnalysis {
+  perfilPsicografico: {
+    nivelCerebralDominante: "neocortex" | "limbico" | "reptiliano";
+    motivacaoPrimaria: "alivio_dor" | "estetica" | "status" | "saude";
+    nivelAnsiedade: number;
+    nivelReceptividade: number;
+    descricaoPerfil: string;
+  };
+  objecoes: {
+    verdadeiras: Array<{
+      texto: string;
+      categoria: "financeira" | "medo" | "tempo" | "confianca" | "outra";
+      tecnicaSugerida: string;
+    }>;
+    ocultas: Array<{
+      texto: string;
+      sinaisDetectados: string;
+      perguntaReveladora: string;
+    }>;
+  };
+  sinaisLinguagem: {
+    positivos: string[];
+    negativos: string[];
+    palavrasChaveEmocionais: string[];
+  };
+  gatilhosMentais: Array<{
+    nome: "transformacao" | "saude_longevidade" | "status" | "conforto" | "exclusividade";
+    justificativa: string;
+    exemploFrase: string;
+  }>;
+  scriptPARE: {
+    problema: string;
+    amplificacao: string;
+    resolucao: string;
+    engajamento: string;
+  };
+  tecnicaObjecao: {
+    tipo: "LAER" | "redirecionamento";
+    passos: string[];
+  };
+  rapport: {
+    nivel: number;
+    pontosFortesRelacionamento: string[];
+    acoesParaMelhorar: string[];
+  };
+  resumoExecutivo: string;
 }

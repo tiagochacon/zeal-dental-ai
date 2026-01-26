@@ -205,3 +205,20 @@
 - [x] Atualizar botões, focus rings, gradientes e links
 - [x] Verificar consistência visual com sidebar/dashboard
 - [x] Garantir logo ZEAL visível contra fundo deep blue
+
+## Atualização de Privilégios (v21)
+- [x] Identificar usuários: drcarlosrodriguezbr@gmail.com, leo_brasill@hotmail.com, fabionetto81@yahoo.com.br
+- [x] Atualizar para role=admin, subscriptionStatus=active, priceId=unlimited
+- [x] Verificar atualização no banco de dados
+
+## Inteligência de Vendas Clínicas - Neurovendas (v22)
+- [x] Analisar eBook de Neurovendas e extrair conceitos-chave
+- [x] Criar procedimento de análise neuro no backend (routers.ts)
+- [x] Implementar aba de Negociação na página de consulta
+- [x] Adicionar Perfil Psicográfico do Paciente
+- [x] Implementar Script de Fechamento (Modelo PARE)
+- [x] Criar Mapeador de Objeções
+- [x] Adicionar Gatilhos Mentais Recomendados
+- [x] Implementar indicadores visuais (Temperature Gauge para rapport)
+- [x] Testar integração com análise de consulta existente
+- [x] Criar testes de Neurovendas (11 testes passando)

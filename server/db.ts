@@ -8,7 +8,8 @@ import {
   consultationTemplates, InsertConsultationTemplate, ConsultationTemplate,
   audioChunks, InsertAudioChunk, AudioChunk,
   SOAPNote,
-  TreatmentPlan
+  TreatmentPlan,
+  NeurovendasAnalysis
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -237,6 +238,7 @@ export async function updateConsultation(id: number, data: Partial<{
   transcriptSegments: unknown;
   soapNote: SOAPNote | null;
   treatmentPlan: TreatmentPlan | null;
+  neurovendasAnalysis: NeurovendasAnalysis | null;
   status: "draft" | "transcribed" | "reviewed" | "finalized";
   finalizedAt: Date | null;
 }>): Promise<void> {
