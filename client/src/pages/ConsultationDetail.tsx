@@ -501,13 +501,13 @@ export default function ConsultationDetail() {
                 <ClipboardList className="mr-1 sm:mr-2 h-4 w-4" />
                 Plano
               </TabsTrigger>
-              <TabsTrigger value="transcript" className="text-xs sm:text-sm">
-                <AudioLines className="mr-1 sm:mr-2 h-4 w-4" />
-                Transcrição
-              </TabsTrigger>
               <TabsTrigger value="neurovendas" className="text-xs sm:text-sm">
                 <TrendingUp className="mr-1 sm:mr-2 h-4 w-4" />
                 Negociação
+              </TabsTrigger>
+              <TabsTrigger value="transcript" className="text-xs sm:text-sm">
+                <AudioLines className="mr-1 sm:mr-2 h-4 w-4" />
+                Transcrição
               </TabsTrigger>
             </TabsList>
 
