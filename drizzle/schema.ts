@@ -147,8 +147,21 @@ export type InsertConsultationTemplate = typeof consultationTemplates.$inferInse
 /**
  * SOAP Note structure for dental consultations
  */
+export interface PatientProfile {
+  type: 'reptilian' | 'neocortex' | 'limbic';
+  confidence: number;
+  primaryTraits: string[];
+  detectedKeywords: string[];
+  recommendedApproach: string;
+  triggers: {
+    positive: string[];
+    negative: string[];
+  };
+}
+
 export interface SOAPNote {
   urgency?: "high" | "medium" | "low";
+  patientProfile?: PatientProfile;
   subjective: {
     queixa_principal: string;
     historia_doenca_atual: string;

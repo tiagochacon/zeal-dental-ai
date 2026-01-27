@@ -20,7 +20,8 @@ import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import type { SOAPNote, TreatmentPlan } from "../../../drizzle/schema";
-import NeurovendasTab from "@/components/NeurovendasTab";
+import { AdaptiveNegotiationTab } from "@/components/negotiation";
+import type { PatientProfile, NeurovendasAnalysis } from "../../../drizzle/schema";
 
 export default function ConsultationDetail() {
   const [, setLocation] = useLocation();
@@ -749,9 +750,11 @@ export default function ConsultationDetail() {
             </TabsContent>
 
             <TabsContent value="neurovendas" className="space-y-6">
-              <NeurovendasTab 
+              <AdaptiveNegotiationTab 
                 consultationId={consultationId!} 
-                hasTranscript={!!consultation.transcript}
+                patientProfile={(consultation.soapNote as SOAPNote & { patientProfile?: PatientProfile })?.patientProfile}
+                neurovendasAnalysis={consultation.neurovendasAnalysis as NeurovendasAnalysis | null}
+                transcript={consultation.transcript}
               />
             </TabsContent>
           </Tabs>

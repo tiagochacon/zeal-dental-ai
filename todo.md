@@ -222,3 +222,16 @@
 - [x] Implementar indicadores visuais (Temperature Gauge para rapport)
 - [x] Testar integração com análise de consulta existente
 - [x] Criar testes de Neurovendas (11 testes passando)
+
+## Interface Adaptativa de Negociação por Perfil Neurológico (v23)
+- [x] Fase 1: Atualizar backend para detectar perfil neurológico na geração SOAP
+- [x] Fase 2: Criar componente RapportGauge (gauge circular animado)
+- [x] Fase 2: Criar componente NegotiationBadge (chips para gatilhos mentais)
+- [x] Fase 2: Criar componente ObjectionMapper (lista expansível de objeções)
+- [x] Fase 2: Criar componente ScriptPARE (script PARE visual)
+- [x] Fase 3: Criar AdaptiveNegotiationTab com UI por perfil (Reptiliano, Neocórtex, Límbico)
+- [x] Fase 3: Implementar ReptilianNegotiationView (foco em segurança, verde)
+- [x] Fase 3: Implementar NeocortexNegotiationView (foco em dados, azul)
+- [x] Fase 3: Implementar LimbicNegotiationView (foco em transformação, roxo)
+- [x] Fase 4: Integrar na página ConsultationDetail
+- [x] Fase 5: Testar e validar funcionalidade (17 testes passando)

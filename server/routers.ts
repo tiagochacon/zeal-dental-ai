@@ -672,6 +672,30 @@ RED FLAGS (sinais de alerta) - identifique se presentes:
 - Lesões suspeitas
 - Contraindicações para procedimentos
 
+ANÁLISE DE PERFIL NEUROLÓGICO DO PACIENTE:
+Baseado na transcrição, classifique o perfil predominante do paciente:
+
+1. REPTILIANO (Cérebro Primitivo - Sobrevivência):
+   - Indicadores: Expressões de medo, ansiedade, preocupação com dor/risco
+   - Palavras-chave: 'medo', 'dor', 'seguro', 'garantia', 'nervoso', 'ansioso', 'vai doer'
+   - Comportamento: Hesitante, busca controle e segurança
+   - Gatilhos positivos: Ambiente Seguro, Sem Dor, Controle Total, Reversível
+   - Gatilhos negativos: Termos técnicos complexos, Urgência, Pressão de tempo
+
+2. NEOCORTEX (Cérebro Racional - Lógica):
+   - Indicadores: Perguntas técnicas, busca por dados, comparações
+   - Palavras-chave: 'estatística', 'evidência', 'técnica', 'comparação', 'quanto tempo', 'taxa de sucesso'
+   - Comportamento: Analítico, cético, quer informações concretas
+   - Gatilhos positivos: Taxa de Sucesso, Estudos Comprovados, Análise Custo-Benefício
+   - Gatilhos negativos: Apelos emocionais, Linguagem vaga, Falta de dados
+
+3. LÍMBICO (Cérebro Emocional - Sentimentos):
+   - Indicadores: Foco em transformação, estética, impacto social
+   - Palavras-chave: 'bonito', 'sorriso', 'confiança', 'autoestima', 'transformação', 'pessoas vão ver'
+   - Comportamento: Emocional, aspiracional, busca status/pertencimento
+   - Gatilhos positivos: Transformação Total, Autoconfiança, Sorriso de Celebridade, Realização
+   - Gatilhos negativos: Dados técnicos frios, Argumentos puramente racionais
+
 FORMATO DE SAÍDA (JSON):
 {
   "urgency": "high" | "medium" | "low",
@@ -695,6 +719,17 @@ FORMATO DE SAÍDA (JSON):
     "tratamentos": [{"procedimento": "string", "dente": "string", "urgencia": "baixa|media|alta", "prazo": "string (ex: imediato, 1 semana, 1 mês, 3 meses)"}],
     "orientacoes": ["string"],
     "lembretes_clinicos": ["string"]
+  },
+  "patientProfile": {
+    "type": "reptilian" | "neocortex" | "limbic",
+    "confidence": 0-100,
+    "primaryTraits": ["trait1", "trait2"],
+    "detectedKeywords": ["palavra1", "palavra2"],
+    "recommendedApproach": "descrição breve da abordagem recomendada",
+    "triggers": {
+      "positive": ["gatilho positivo 1", "gatilho positivo 2"],
+      "negative": ["gatilho negativo 1", "gatilho negativo 2"]
+    }
   }
 }
 
@@ -791,9 +826,30 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
                     },
                     required: ["tratamentos", "orientacoes", "lembretes_clinicos"],
                     additionalProperties: false
+                  },
+                  patientProfile: {
+                    type: "object",
+                    properties: {
+                      type: { type: "string", enum: ["reptilian", "neocortex", "limbic"] },
+                      confidence: { type: "number" },
+                      primaryTraits: { type: "array", items: { type: "string" } },
+                      detectedKeywords: { type: "array", items: { type: "string" } },
+                      recommendedApproach: { type: "string" },
+                      triggers: {
+                        type: "object",
+                        properties: {
+                          positive: { type: "array", items: { type: "string" } },
+                          negative: { type: "array", items: { type: "string" } }
+                        },
+                        required: ["positive", "negative"],
+                        additionalProperties: false
+                      }
+                    },
+                    required: ["type", "confidence", "primaryTraits", "detectedKeywords", "recommendedApproach", "triggers"],
+                    additionalProperties: false
                   }
                 },
-                required: ["urgency", "subjective", "objective", "assessment", "plan"],
+                required: ["urgency", "subjective", "objective", "assessment", "plan", "patientProfile"],
                 additionalProperties: false
               }
             }
