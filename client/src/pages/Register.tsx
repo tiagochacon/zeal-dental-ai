@@ -89,13 +89,13 @@ export default function Register() {
           </div>
           
           <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
-            Comece sua jornada<br />
-            <span className="text-blue-400">com IA Odontológica</span>
+            Revolucione sua<br />
+            <span className="text-blue-400">Clínica Odontológica</span>
           </h1>
           
           <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-            Crie sua conta gratuita e experimente o poder da inteligência artificial 
-            na sua prática odontológica.
+            Automatize sua burocracia, ganhe tempo e aumente a aceitação de tratamentos 
+            com Inteligência Artificial e Neurovendas.
           </p>
           
           <div className="space-y-4">
@@ -103,19 +103,19 @@ export default function Register() {
               <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-gray-300">7 dias de trial gratuito</span>
+              <span className="text-gray-300">Teste grátis por 7 dias</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-gray-300">Sem necessidade de cartão de crédito</span>
+              <span className="text-gray-300">Sem cartão de crédito necessário</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
                 <CheckCircle className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-gray-300">Cancele quando quiser</span>
+              <span className="text-gray-300">Comece a aumentar seu faturamento hoje</span>
             </div>
           </div>
         </div>
