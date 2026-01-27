@@ -492,3 +492,77 @@ export async function deleteAudioChunksByConsultation(
 
   await db.delete(audioChunks).where(eq(audioChunks.consultationId, consultationId));
 }
+
+// ==================== ADMIN FUNCTIONS ====================
+
+export async function resetUserAccount(email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  // 1. Buscar usuário
+  const userResult = await db.select().from(users).where(eq(users.email, email)).limit(1);
+  
+  if (userResult.length === 0) {
+    throw new Error(`Usuário com email ${email} não encontrado`);
+  }
+  
+  const user = userResult[0];
+  
+  // 2. Buscar todas as consultas (para estatísticas)
+  const userConsultations = await db
+    .select()
+    .from(consultations)
+    .where(eq(consultations.dentistId, user.id));
+  
+  const stats = {
+    consultationsDeleted: userConsultations.length,
+    patientsDeleted: 0,
+    audioChunksDeleted: 0,
+    feedbacksDeleted: 0,
+  };
+  
+  // 3. Deletar feedbacks e audioChunks primeiro (devido a foreign keys)
+  for (const consultation of userConsultations) {
+    // Deletar feedbacks
+    const feedbacksResult = await db
+      .select()
+      .from(feedbacks)
+      .where(eq(feedbacks.consultationId, consultation.id));
+    stats.feedbacksDeleted += feedbacksResult.length;
+    await db.delete(feedbacks).where(eq(feedbacks.consultationId, consultation.id));
+    
+    // Deletar audio chunks
+    const audioChunksResult = await db
+      .select()
+      .from(audioChunks)
+      .where(eq(audioChunks.consultationId, consultation.id));
+    stats.audioChunksDeleted += audioChunksResult.length;
+    await db.delete(audioChunks).where(eq(audioChunks.consultationId, consultation.id));
+  }
+  
+  // 4. Deletar consultas
+  await db.delete(consultations).where(eq(consultations.dentistId, user.id));
+  
+  // 5. Contar e deletar pacientes
+  const userPatients = await db
+    .select()
+    .from(patients)
+    .where(eq(patients.dentistId, user.id));
+  stats.patientsDeleted = userPatients.length;
+  await db.delete(patients).where(eq(patients.dentistId, user.id));
+  
+  // 6. Resetar contadores do usuário
+  await db.update(users)
+    .set({
+      subscriptionStatus: 'active',
+      consultationCount: 0,
+      consultationCountResetAt: new Date(),
+    })
+    .where(eq(users.id, user.id));
+  
+  return {
+    success: true,
+    message: `Conta ${email} resetada com sucesso`,
+    stats,
+  };
+}

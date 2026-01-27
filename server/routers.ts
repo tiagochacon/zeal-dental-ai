@@ -26,6 +26,7 @@ import {
   getAudioChunksByConsultation,
   deleteAudioChunksByConsultation,
   deleteConsultation,
+  resetUserAccount,
 } from "./db";
 import { storagePut, storageDelete } from "./storage";
 import { transcribeAudio } from "./_core/voiceTranscription";
@@ -1283,6 +1284,30 @@ Responda em JSON estruturado.`;
           hasAnalysis: !!consultation.neurovendasAnalysis,
           analysis: consultation.neurovendasAnalysis,
         };
+      }),
+  }),
+
+  // Admin functions
+  admin: router({
+    resetAccount: protectedProcedure
+      .input(z.object({
+        email: z.string().email(),
+        adminPassword: z.string(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        // Validate admin password (configured in environment)
+        const adminPassword = process.env.ADMIN_PASSWORD || 'changeme';
+        
+        // Check if user is admin
+        if (ctx.user.role !== 'admin') {
+          throw new Error('Acesso negado: apenas administradores');
+        }
+        
+        if (input.adminPassword !== adminPassword) {
+          throw new Error('Senha de admin inválida');
+        }
+        
+        return await resetUserAccount(input.email);
       }),
   }),
 
