@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, email, name, role, subscriptionStatus, priceId, openId FROM users WHERE email = 'victorodriguez2611@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, email, name, role, subscriptionStatus, priceId, openId FROM users WHERE email = 'victorodriguez2611@gmail.com';",
+  "rows": [
+    {
+      "id": "2730052",
+      "email": "victorodriguez2611@gmail.com",
+      "name": "Victor Rodriguez",
+      "role": "admin",
+      "subscriptionStatus": "active",
+      "priceId": "NULL",
+      "openId": "email_d12c79d4eccff7c798b7700e9465578f"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\tname\trole\tsubscriptionStatus\tpriceId\topenId\n2730052\tvictorodriguez2611@gmail.com\tVictor Rodriguez\tadmin\tactive\tNULL\temail_d12c79d4eccff7c798b7700e9465578f\n",
+  "stderr": "",
+  "execution_time_ms": 93
+}

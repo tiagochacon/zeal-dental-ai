@@ -235,3 +235,6 @@
 - [x] Fase 3: Implementar LimbicNegotiationView (foco em transformação, roxo)
 - [x] Fase 4: Integrar na página ConsultationDetail
 - [x] Fase 5: Testar e validar funcionalidade (17 testes passando)
+
+## Restauração Visual Login (v24)
+- [x] Restaurar tela de login para visual anterior com tema Deep Blue
