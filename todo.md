@@ -238,3 +238,11 @@
 
 ## Restauração Visual Login (v24)
 - [x] Restaurar tela de login para visual anterior com tema Deep Blue
+
+## Correção de Bugs - Aba Negociação (v25)
+- [x] Corrigir persistência do Rapport no backend (não recalcular após primeira geração)
+- [x] Implementar auto-geração da análise ao entrar na aba Negociação
+- [x] Exibir Skeleton durante loading da análise
+- [x] Renderizar todos os 3 blocos simultaneamente (Rapport + Objeções + Script)
+- [x] Garantir que estado persiste ao trocar de aba e voltar
+- [x] Criar testes de auto-load e persistência (11 testes passando)

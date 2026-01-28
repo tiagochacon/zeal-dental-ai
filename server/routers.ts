@@ -1090,6 +1090,11 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
           throw new Error("Esta consulta não possui transcrição para análise");
         }
 
+        // Se já existe análise, retornar a existente (não recalcular para manter Rapport persistente)
+        if (consultation.neurovendasAnalysis) {
+          return { success: true, analysis: consultation.neurovendasAnalysis, cached: true };
+        }
+
         const prompt = `Você é um especialista em Neurovendas e Linguagem Corporal para Dentistas, baseado na metodologia do Dr. Carlos Rodriguez.
 
 Analise a seguinte transcrição de consulta odontológica e forneça uma análise de inteligência de vendas:

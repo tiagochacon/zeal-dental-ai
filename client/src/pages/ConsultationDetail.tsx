@@ -43,6 +43,7 @@ export default function ConsultationDetail() {
     postOpText: "",
     warningsText: "",
   });
+  const [activeTab, setActiveTab] = useState("soap");
 
   const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
     { id: consultationId! },
@@ -486,7 +487,7 @@ export default function ConsultationDetail() {
         </header>
 
         <div className="p-4 lg:p-6 max-w-4xl mx-auto">
-          <Tabs defaultValue="soap" className="space-y-6">
+          <Tabs defaultValue="soap" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="soap" className="text-xs sm:text-sm">
                 <FileText className="mr-1 sm:mr-2 h-4 w-4" />
@@ -755,6 +756,7 @@ export default function ConsultationDetail() {
                 patientProfile={(consultation.soapNote as SOAPNote & { patientProfile?: PatientProfile })?.patientProfile}
                 neurovendasAnalysis={consultation.neurovendasAnalysis as NeurovendasAnalysis | null}
                 transcript={consultation.transcript}
+                isActive={activeTab === "neurovendas"}
               />
             </TabsContent>
           </Tabs>
