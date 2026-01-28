@@ -1133,9 +1133,41 @@ Com base na transcrição, analise:
 - Se objeção verdadeira: Aplique técnica LAER
 - Se objeção falsa: Aplique técnica de Redirecionamento
 
-7. NÍVEL DE RAPPORT (1-10):
-- Avalie o rapport atual
-- Sugira ações para melhorar
+7. NÍVEL DE RAPPORT (0-100) - ANÁLISE DETALHADA:
+Calcule o Rapport usando os seguintes critérios com pesos específicos:
+
+a) VALIDAÇÃO EMOCIONAL (máx 30 pontos):
+   - Frases como 'entendo', 'faz sentido', 'é normal sentir', 'compreendo sua preocupação'
+   - Reconhecimento dos sentimentos do paciente
+
+b) ESPELHAMENTO LINGUÍSTICO (máx 25 pontos):
+   - Dentista repete palavras-chave do paciente (ex: se paciente diz 'dor', dentista usa 'dor' em vez de 'desconforto')
+   - Uso do vocabulário do paciente
+
+c) ESCUTA ATIVA (máx 20 pontos):
+   - Parafrasear o paciente
+   - Fazer perguntas abertas
+   - Silêncios de escuta (permitir que paciente complete pensamentos)
+
+d) EQUILÍBRIO DE TURNOS (máx 15 pontos):
+   - Paciente fala 30-50% do tempo = ótimo (15 pts)
+   - Paciente fala 20-30% ou 50-60% = bom (10 pts)
+   - Paciente fala <20% ou >70% = ruim (5 pts ou menos)
+
+e) AUSÊNCIA DE INTERRUPÇÕES (máx 10 pontos):
+   - Dentista NÃO interrompe frases do paciente
+   - Permite conclusão de pensamentos
+
+AJUSTES POR PERFIL NEUROLÓGICO:
+- Se Reptiliano: +10% se menciona segurança/garantia, -15% se pressiona decisão rápida
+- Se Límbico: +15% se usa histórias/casos similares, -10% se foca só em dados técnicos
+- Se Neocórtex: +10% se apresenta estudos/evidências, -10% se apela só para emoção
+
+Forneça:
+- Pontuação total (0-100)
+- Breakdown de cada critério
+- Justificativa em 1 frase citando o critério de maior impacto
+- 1 sugestão prática de melhoria
 
 Responda em JSON estruturado.`;
 
@@ -1243,11 +1275,25 @@ Responda em JSON estruturado.`;
                   rapport: {
                     type: "object",
                     properties: {
-                      nivel: { type: "number" },
+                      nivel: { type: "number", description: "Pontuação total de 0-100" },
+                      breakdown: {
+                        type: "object",
+                        properties: {
+                          validacaoEmocional: { type: "number", description: "0-30 pontos" },
+                          espelhamentoLinguistico: { type: "number", description: "0-25 pontos" },
+                          escutaAtiva: { type: "number", description: "0-20 pontos" },
+                          equilibrioTurnos: { type: "number", description: "0-15 pontos" },
+                          ausenciaInterrupcoes: { type: "number", description: "0-10 pontos" }
+                        },
+                        required: ["validacaoEmocional", "espelhamentoLinguistico", "escutaAtiva", "equilibrioTurnos", "ausenciaInterrupcoes"],
+                        additionalProperties: false
+                      },
+                      justificativa: { type: "string", description: "1 frase citando o critério de maior impacto" },
+                      melhoria: { type: "string", description: "1 sugestão prática de melhoria" },
                       pontosFortesRelacionamento: { type: "array", items: { type: "string" } },
                       acoesParaMelhorar: { type: "array", items: { type: "string" } }
                     },
-                    required: ["nivel", "pontosFortesRelacionamento", "acoesParaMelhorar"],
+                    required: ["nivel", "breakdown", "justificativa", "melhoria", "pontosFortesRelacionamento", "acoesParaMelhorar"],
                     additionalProperties: false
                   },
                   resumoExecutivo: { type: "string" }

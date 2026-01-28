@@ -277,6 +277,15 @@ export interface NeurovendasAnalysis {
   };
   rapport: {
     nivel: number;
+    breakdown: {
+      validacaoEmocional: number;
+      espelhamentoLinguistico: number;
+      escutaAtiva: number;
+      equilibrioTurnos: number;
+      ausenciaInterrupcoes: number;
+    };
+    justificativa: string;
+    melhoria: string;
     pontosFortesRelacionamento: string[];
     acoesParaMelhorar: string[];
   };

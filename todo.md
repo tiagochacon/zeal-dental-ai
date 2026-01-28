@@ -246,3 +246,11 @@
 - [x] Renderizar todos os 3 blocos simultaneamente (Rapport + Objeções + Script)
 - [x] Garantir que estado persiste ao trocar de aba e voltar
 - [x] Criar testes de auto-load e persistência (11 testes passando)
+
+## Refinamento Algoritmo Rapport com Neurociência (v26)
+- [x] Atualizar schema/interface de Rapport com breakdown dos 5 critérios
+- [x] Atualizar prompt da IA para calcular Rapport com pesos definidos
+- [x] Adicionar ajuste por perfil neurológico (Reptiliano/Límbico/Neocórtex)
+- [x] Adicionar tooltip com breakdown ao hover na porcentagem
+- [x] Adicionar insight card com justificativa e melhoria
+- [x] Testar com cenários de validação (19 testes passando)

@@ -267,6 +267,10 @@ export function AdaptiveNegotiationTab({
             label="Rapport" 
             color={config.color as 'green' | 'blue' | 'purple'} 
             size="md"
+            breakdown={neurovendasAnalysis?.rapport?.breakdown}
+            justificativa={neurovendasAnalysis?.rapport?.justificativa}
+            melhoria={neurovendasAnalysis?.rapport?.melhoria}
+            showInsights={false}
           />
         </div>
         
@@ -274,6 +278,45 @@ export function AdaptiveNegotiationTab({
         <p className="mt-4 text-gray-300 text-sm leading-relaxed">
           {config.description}
         </p>
+        
+        {/* Insight Cards de Rapport */}
+        {neurovendasAnalysis?.rapport && (neurovendasAnalysis.rapport.justificativa || neurovendasAnalysis.rapport.melhoria) && (
+          <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-3">
+            {neurovendasAnalysis.rapport.justificativa && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.5 }}
+                className={`p-3 rounded-lg border ${config.borderColor} bg-${config.color}-500/10`}
+              >
+                <div className="flex items-start gap-2">
+                  <TrendingUp className={`w-4 h-4 mt-0.5 flex-shrink-0 ${config.accentColor}`} />
+                  <div>
+                    <p className="text-xs font-medium text-gray-300 mb-1">Análise Principal</p>
+                    <p className="text-sm text-gray-400">{neurovendasAnalysis.rapport.justificativa}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+            
+            {neurovendasAnalysis.rapport.melhoria && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.6 }}
+                className="p-3 rounded-lg border border-yellow-500/30 bg-yellow-500/10"
+              >
+                <div className="flex items-start gap-2">
+                  <Lightbulb className="w-4 h-4 mt-0.5 flex-shrink-0 text-yellow-500" />
+                  <div>
+                    <p className="text-xs font-medium text-gray-300 mb-1">Sugestão de Melhoria</p>
+                    <p className="text-sm text-gray-400">{neurovendasAnalysis.rapport.melhoria}</p>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </div>
+        )}
       </div>
       
       {/* Grid de conteúdo */}
