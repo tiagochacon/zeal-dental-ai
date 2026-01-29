@@ -21,6 +21,7 @@ import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import type { SOAPNote, TreatmentPlan } from "../../../drizzle/schema";
 import { AdaptiveNegotiationTab } from "@/components/negotiation";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import type { PatientProfile, NeurovendasAnalysis } from "../../../drizzle/schema";
 
 export default function ConsultationDetail() {
@@ -44,11 +45,25 @@ export default function ConsultationDetail() {
     warningsText: "",
   });
   const [activeTab, setActiveTab] = useState("soap");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
     { id: consultationId! },
     { enabled: !!user && !!consultationId }
   );
+
+  // Check if user has access to Negotiation tab
+  const hasNegotiationAccess = user?.role === 'admin' || 
+    user?.subscriptionTier === 'trial' || 
+    user?.subscriptionTier === 'pro' || 
+    user?.subscriptionTier === 'unlimited' ||
+    user?.priceId === 'unlimited';
+  
+  // Check if this is an old consultation with existing neurovendas data (allow read access)
+  const hasExistingNeurovendasData = !!consultation?.neurovendasAnalysis;
+  
+  // Allow access if user has subscription access OR if consultation already has neurovendas data
+  const canAccessNegotiation = hasNegotiationAccess || hasExistingNeurovendasData;
 
   const { data: existingFeedback } = trpc.feedbacks.getByConsultation.useQuery(
     { consultationId: consultationId! },
@@ -503,9 +518,22 @@ export default function ConsultationDetail() {
                 <ClipboardList className="mr-1 sm:mr-2 h-4 w-4" />
                 Plano
               </TabsTrigger>
-              <TabsTrigger value="neurovendas" className="text-xs sm:text-sm">
+              <TabsTrigger 
+                value="neurovendas" 
+                className="text-xs sm:text-sm relative"
+                disabled={!canAccessNegotiation && !hasExistingNeurovendasData}
+                onClick={(e) => {
+                  if (!canAccessNegotiation && !hasExistingNeurovendasData) {
+                    e.preventDefault();
+                    setShowUpgradeModal(true);
+                  }
+                }}
+              >
                 <TrendingUp className="mr-1 sm:mr-2 h-4 w-4" />
                 Negociação
+                {!hasNegotiationAccess && !hasExistingNeurovendasData && (
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-500 text-white rounded-full">PRO</span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="transcript" className="text-xs sm:text-sm">
                 <AudioLines className="mr-1 sm:mr-2 h-4 w-4" />
@@ -907,6 +935,13 @@ export default function ConsultationDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal for Basic users */}
+      <UpgradeModal 
+        open={showUpgradeModal} 
+        onOpenChange={setShowUpgradeModal}
+        feature="Negociação"
+      />
     </div>
   );
 }

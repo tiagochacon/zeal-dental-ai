@@ -1,6 +1,6 @@
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, consultationLimitProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, consultationLimitProcedure, negotiationAccessProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   createPatient,
@@ -1076,7 +1076,8 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
   // Neurovendas Analysis Router
   neurovendas: router({
     // Analyze consultation transcript for sales intelligence
-    analyzeConsultation: protectedProcedure
+    // Gate: Only PRO, Trial, and Unlimited users can access Negotiation analysis
+    analyzeConsultation: negotiationAccessProcedure
       .input(z.object({
         consultationId: z.number(),
       }))

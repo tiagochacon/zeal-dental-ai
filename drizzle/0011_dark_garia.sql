@@ -1,0 +1,1 @@
+ALTER TABLE `users` ADD `subscriptionTier` enum('trial','basic','pro','unlimited') DEFAULT 'trial' NOT NULL;

@@ -254,3 +254,14 @@
 - [x] Adicionar tooltip com breakdown ao hover na porcentagem
 - [x] Adicionar insight card com justificativa e melhoria
 - [x] Testar com cenários de validação (19 testes passando)
+
+## Gates de Funcionalidade por Plano de Assinatura (v27)
+- [x] Verificar/atualizar schema com campos subscriptionTier e limites
+- [x] Implementar verificação de trial expirado (7 dias ou 7 consultas)
+- [x] Implementar contagem de consultas mensais por plano
+- [x] Bloquear aba Negociação no backend para plano basic
+- [x] Criar UpgradeModal no frontend para plano basic
+- [x] Desabilitar aba Negociação visualmente para plano basic (com badge PRO)
+- [x] Manter acesso a consultas antigas com Negociação após downgrade
+- [x] Implementar admin override (ignorar restrições)
+- [x] Testar cenários de validação (29 testes passando)

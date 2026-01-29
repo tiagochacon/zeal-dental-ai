@@ -21,6 +21,8 @@ export const users = mysqlTable("users", {
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
   subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "past_due", "canceled", "trialing"]).default("inactive").notNull(),
   priceId: varchar("priceId", { length: 255 }),
+  // Subscription tier for feature gating
+  subscriptionTier: mysqlEnum("subscriptionTier", ["trial", "basic", "pro", "unlimited"]).default("trial").notNull(),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
   // Trial fields
   trialStartedAt: timestamp("trialStartedAt"),
