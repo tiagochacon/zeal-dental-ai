@@ -265,3 +265,16 @@
 - [x] Manter acesso a consultas antigas com Negociação após downgrade
 - [x] Implementar admin override (ignorar restrições)
 - [x] Testar cenários de validação (29 testes passando)
+
+## Bug Fix - Trial Expirado Bloqueando Usuário (v28)
+- [ ] Analisar lógica de verificação de trial no middleware
+- [ ] Corrigir comparação de datas de trial
+- [ ] Testar com usuário toscc@cin.ufpe.br
+
+## Tela de Upgrade Intuitiva (v29)
+- [x] Atualizar LimitReachedModal com lógica de planos dinâmica
+- [x] Trial expirado: mostrar planos Básico e Pro
+- [x] Básico no limite: mostrar apenas plano Pro
+- [x] Criar UI interativa com cards de planos e benefícios
+- [x] Adicionar CTAs claros para cada plano
+- [x] Testar cenários de upgrade (194 testes passando)
