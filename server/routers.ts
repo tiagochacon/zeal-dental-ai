@@ -963,6 +963,14 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
   }),
 
   billing: router({
+    // Get current plan info for frontend
+    getPlanInfo: protectedProcedure.query(async ({ ctx }) => {
+      const { getUserPlanInfo } = await import('./billing');
+      const user = await getUserById(ctx.user.id);
+      if (!user) throw new Error("Usuário não encontrado");
+      return getUserPlanInfo(user);
+    }),
+
     // Start free trial
     startTrial: protectedProcedure.mutation(async ({ ctx }) => {
       const { startUserTrial } = await import('./db');

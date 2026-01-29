@@ -287,3 +287,12 @@
 - [x] Implementar UpgradeBanner dinâmico (trial->basic/pro, basic->pro)
 - [x] Verificar lógica de reset mensal alinhada com ciclo Stripe (webhook invoice.paid)
 - [x] Tratar erro FORBIDDEN no frontend com modal de upgrade
+
+## Reimplementação de Modais de Upsell (v31)
+- [x] Step 1: Analisar LimitReachedModal existente e criar UpgradeModal persuasivo
+- [x] Step 2: Implementar detecção de limites com hook useUsageLimit
+- [x] Step 3: Integrar modal em NewConsultation, TranscriptionReview e ConsultationDetail
+- [x] Step 4: Criar copywriting persuasivo com frases de impacto
+- [x] Step 5: Adicionar código de erro LIMIT_EXCEEDED no backend
+- [x] Step 6: Testar fluxos de trigger (trial, basic, feature_gate)
+- [x] Step 7: Criar testes automatizados para modais de upsell (27 testes passando)

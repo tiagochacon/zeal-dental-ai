@@ -122,11 +122,11 @@ const enforceConsultationLimit = t.middleware(async opts => {
 
   // VERIFICAR LIMITE ESTRITAMENTE ANTES de executar qualquer lógica
   if (hasReachedConsultationLimit(ctx.user)) {
-    const remaining = getRemainingConsultations(ctx.user);
-    const limit = ctx.user.consultationCount;
+    const used = ctx.user.consultationCount;
+    const tier = getUserTier(ctx.user);
     throw new TRPCError({ 
       code: "FORBIDDEN", 
-      message: `Limite de consultas atingido para o seu plano. Você usou ${limit} consultas. Faça upgrade para continuar.`,
+      message: `LIMIT_EXCEEDED:${tier}:${used}:Limite de consultas atingido para o seu plano. Faça upgrade para continuar.`,
     });
   }
 

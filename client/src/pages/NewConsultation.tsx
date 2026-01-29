@@ -9,6 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
 import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText, LayoutDashboard, Users, Menu, X, UserCircle } from "lucide-react";
+import { UpgradeModal, type UpgradeModalTrigger } from "@/components/UpgradeModal";
+import { useUsageLimit, getTriggerFromError } from "@/hooks/useUsageLimit";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -25,6 +27,11 @@ export default function NewConsultation() {
   const [inputMode, setInputMode] = useState<"audio" | "text">("audio");
   const [consultationText, setConsultationText] = useState("");
   
+  // Upgrade modal state
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeModalTrigger>("trial_limit");
+  const usageLimit = useUsageLimit();
+
   // Recording state
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -321,14 +328,16 @@ export default function NewConsultation() {
     } catch (error: any) {
       console.error('Error creating consultation:', error);
       
-      // Check if it's a limit exceeded error (FORBIDDEN)
-      if (error?.data?.code === 'FORBIDDEN' || error?.message?.includes('Limite')) {
-        toast.error('Limite de consultas atingido. Faça upgrade para continuar.', {
-          action: {
-            label: 'Ver Planos',
-            onClick: () => setLocation('/pricing'),
-          },
-        });
+      // Check if it's a limit exceeded error (FORBIDDEN or LIMIT_EXCEEDED)
+      if (error?.data?.code === 'FORBIDDEN' || 
+          error?.message?.includes('LIMIT_EXCEEDED') || 
+          error?.message?.includes('Limite')) {
+        // Parse trigger from backend error message or use current plan info
+        const trigger = error?.message?.includes('LIMIT_EXCEEDED') 
+          ? getTriggerFromError(error.message)
+          : usageLimit.getUpgradeTrigger() || 'trial_limit';
+        setUpgradeTrigger(trigger);
+        setShowUpgradeModal(true);
         return;
       }
       
@@ -735,6 +744,16 @@ Dentista: Há quanto tempo sente essa dor?
           </Button>
         </div>
       </main>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        trigger={upgradeTrigger}
+        currentPlan={usageLimit.currentPlan}
+        consultationsUsed={usageLimit.consultationsUsed}
+        consultationsLimit={usageLimit.consultationsLimit}
+      />
     </div>
   );
 }

@@ -940,6 +940,8 @@ export default function ConsultationDetail() {
       <UpgradeModal 
         open={showUpgradeModal} 
         onOpenChange={setShowUpgradeModal}
+        trigger="feature_gate"
+        currentPlan={user?.subscriptionTier as "trial" | "basic" | "pro" | "unlimited" || "basic"}
         feature="Negociação"
       />
     </div>
