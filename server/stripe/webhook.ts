@@ -291,7 +291,24 @@ async function handleCheckoutCompleted(eventId: string, session: Stripe.Checkout
   const userId = session.metadata?.user_id || session.client_reference_id;
   const customerId = session.customer as string;
   const subscriptionId = session.subscription as string;
-  const customerEmail = session.customer_email || session.metadata?.customer_email;
+  
+  // Try to get email from multiple sources
+  let customerEmail = session.customer_email || session.metadata?.customer_email;
+  
+  // If no email in session, fetch from Stripe Customer object
+  if (!customerEmail && customerId && stripe) {
+    try {
+      const customer = await stripe.customers.retrieve(customerId);
+      if (customer && !customer.deleted && 'email' in customer) {
+        customerEmail = customer.email || undefined;
+        console.log(`[Webhook] Retrieved email from Stripe customer: ${customerEmail}`);
+      }
+    } catch (err) {
+      console.error(`[Webhook] Failed to retrieve customer: ${err}`);
+    }
+  }
+  
+  console.log(`[Webhook] Final customer email: ${customerEmail}`);
 
   // Determine which plan was purchased
   const subscriptionTier = determineTierFromCheckout(session);
