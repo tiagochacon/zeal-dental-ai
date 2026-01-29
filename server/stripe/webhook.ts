@@ -21,20 +21,38 @@ router.post(
     }
 
     const sig = req.headers["stripe-signature"] as string;
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+    
+    // Try multiple webhook secrets (primary and backup)
+    const webhookSecrets = [
+      process.env.STRIPE_WEBHOOK_SECRET,
+      process.env.STRIPE_WEBHOOKS,
+      process.env.SRTIPE_WEBHOOKS_2,
+      process.env.STRIPE_WEBHOOK_SECRET_2,
+    ].filter(Boolean) as string[];
 
-    if (!webhookSecret) {
-      console.error("[Webhook] STRIPE_WEBHOOK_SECRET not configured");
+    if (webhookSecrets.length === 0) {
+      console.error("[Webhook] No STRIPE_WEBHOOK_SECRET configured");
       return res.status(400).json({ error: "Webhook secret not configured" });
     }
 
-    let event: Stripe.Event;
+    let event: Stripe.Event | null = null;
+    let lastError: Error | null = null;
 
-    try {
-      event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      console.error(`[Webhook] Signature verification failed: ${message}`);
+    // Try each secret until one works
+    for (const secret of webhookSecrets) {
+      try {
+        event = stripe.webhooks.constructEvent(req.body, sig, secret);
+        console.log(`[Webhook] Signature verified successfully`);
+        break;
+      } catch (err) {
+        lastError = err instanceof Error ? err : new Error("Unknown error");
+        // Continue to try next secret
+      }
+    }
+
+    if (!event) {
+      const message = lastError?.message || "Unknown error";
+      console.error(`[Webhook] Signature verification failed with all secrets: ${message}`);
       return res.status(400).json({ error: `Webhook Error: ${message}` });
     }
 
