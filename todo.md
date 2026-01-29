@@ -322,3 +322,8 @@
 - [x] Criar página de gerenciamento de assinatura (ver status, cancelar, upgrade)
 - [x] Implementar pop-up de upgrade para usuários Basic/Trial em funcionalidades Pro (Negociação)
 - [x] Página de assinatura já acessível via sidebar
+
+## Correção de Bugs - Menu e Pop-up (v36)
+- [ ] Adicionar link "Assinatura" no menu lateral do dashboard
+- [ ] Corrigir pop-up de upgrade nas funções Pro (não está aparecendo)
+- [ ] Testar fluxo completo após correções
