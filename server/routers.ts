@@ -34,7 +34,7 @@ import { invokeLLM } from "./_core/llm";
 import { SOAPNote, TreatmentPlan } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
-import { STRIPE_PRODUCTS } from "./stripe/products";
+import { PLAN_CONFIGS, PlanTier } from "./stripe/products";
 import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId, incrementConsultationCount } from "./db";
 import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
 import { sdk } from "./_core/sdk";
@@ -1001,15 +1001,18 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         subscriptionStatus: user.subscriptionStatus,
         priceId: user.priceId,
         subscriptionEndDate: user.subscriptionEndDate,
-        plans: Object.entries(STRIPE_PRODUCTS).map(([key, plan]) => ({
-          key,
-          name: plan.name,
-          description: plan.description,
-          price: plan.price,
-          currency: plan.currency,
-          interval: plan.interval,
-          features: plan.features,
-        })),
+        plans: Object.entries(PLAN_CONFIGS)
+          .filter(([_, config]) => config.priceId !== null) // Only show paid plans
+          .map(([tier, config]) => ({
+            key: tier,
+            name: config.name,
+            description: config.description,
+            price: config.price,
+            currency: config.currency,
+            interval: "month" as const,
+            features: config.features,
+            priceId: config.priceId,
+          })),
       };
     }),
 

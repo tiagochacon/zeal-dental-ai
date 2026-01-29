@@ -142,9 +142,9 @@ export default function Subscription() {
             {subscriptionInfo?.plans.map((plan) => (
               <Card 
                 key={plan.key} 
-                className={`relative ${plan.interval === "year" ? "border-primary shadow-lg shadow-primary/20" : ""}`}
+                className={`relative ${plan.key === "pro" ? "border-primary shadow-lg shadow-primary/20" : ""}`}
               >
-                {plan.interval === "year" && (
+                {plan.key === "pro" && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                     <Badge className="bg-primary text-primary-foreground">
                       Mais Popular
@@ -153,7 +153,7 @@ export default function Subscription() {
                 )}
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Crown className={`h-5 w-5 ${plan.interval === "year" ? "text-yellow-500" : "text-muted-foreground"}`} />
+                    <Crown className={`h-5 w-5 ${plan.key === "pro" ? "text-yellow-500" : "text-muted-foreground"}`} />
                     {plan.name}
                   </CardTitle>
                   <CardDescription>{plan.description}</CardDescription>
@@ -164,7 +164,7 @@ export default function Subscription() {
                       {formatPrice(plan.price, plan.currency)}
                     </span>
                     <span className="text-muted-foreground">
-                      /{plan.interval === "month" ? "mês" : "ano"}
+                      /mês
                     </span>
                   </div>
                   
@@ -180,9 +180,9 @@ export default function Subscription() {
                 <CardFooter>
                   <Button 
                     className="w-full" 
-                    variant={plan.interval === "year" ? "default" : "outline"}
-                    onClick={() => handleSubscribe(plan.key === "MONTHLY" ? "price_monthly_placeholder" : "price_annual_placeholder")}
-                    disabled={createCheckout.isPending}
+                    variant={plan.key === "pro" ? "default" : "outline"}
+                    onClick={() => plan.priceId && handleSubscribe(plan.priceId)}
+                    disabled={createCheckout.isPending || !plan.priceId}
                   >
                     {createCheckout.isPending ? (
                       <Loader2 className="h-4 w-4 mr-2 animate-spin" />

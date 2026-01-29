@@ -79,6 +79,15 @@ export function getUserTier(user: User): SubscriptionTier {
     if (priceId === "unlimited") {
       return "unlimited";
     }
+    // Check for Pro price ID
+    if (priceId === "price_1SuYhvJBQOFbtGZhu5hcAhqH") {
+      return "pro";
+    }
+    // Check for Basic price ID
+    if (priceId === "price_1SuYhvJBQOFbtGZhL4AVyGqb") {
+      return "basic";
+    }
+    // Legacy price ID check
     if (priceId?.includes("price_1SqJOTJRQSBgWkb1BFgs9QoP")) {
       return "pro";
     }

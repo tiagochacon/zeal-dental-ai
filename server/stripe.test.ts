@@ -38,29 +38,50 @@ import {
   updateUserByStripeCustomerId 
 } from "./db";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
-import { STRIPE_PRODUCTS } from "./stripe/products";
+import { 
+  PLAN_CONFIGS, 
+  STRIPE_PRICE_IDS, 
+  STRIPE_PRODUCT_IDS,
+  getTierFromPriceId,
+  getTierFromProductId,
+  getTierFromAmount,
+  hasNeurovendasAccess,
+  getConsultationLimit
+} from "./stripe/products";
 
 describe("Stripe Products Configuration", () => {
-  it("should have MONTHLY plan configured", () => {
-    expect(STRIPE_PRODUCTS.MONTHLY).toBeDefined();
-    expect(STRIPE_PRODUCTS.MONTHLY.name).toBe("ZEAL Pro Mensal");
-    expect(STRIPE_PRODUCTS.MONTHLY.interval).toBe("month");
-    expect(STRIPE_PRODUCTS.MONTHLY.price).toBe(99.90);
-    expect(STRIPE_PRODUCTS.MONTHLY.currency).toBe("BRL");
+  it("should have correct Basic price ID", () => {
+    expect(STRIPE_PRICE_IDS.BASIC).toBe("price_1SuYhvJBQOFbtGZhL4AVyGqb");
   });
 
-  it("should have ANNUAL plan configured", () => {
-    expect(STRIPE_PRODUCTS.ANNUAL).toBeDefined();
-    expect(STRIPE_PRODUCTS.ANNUAL.name).toBe("ZEAL Pro Anual");
-    expect(STRIPE_PRODUCTS.ANNUAL.interval).toBe("year");
-    expect(STRIPE_PRODUCTS.ANNUAL.price).toBe(999.00);
-    expect(STRIPE_PRODUCTS.ANNUAL.currency).toBe("BRL");
+  it("should have correct Pro price ID", () => {
+    expect(STRIPE_PRICE_IDS.PRO).toBe("price_1SuYhvJBQOFbtGZhu5hcAhqH");
   });
 
-  it("should have features listed for each plan", () => {
-    expect(STRIPE_PRODUCTS.MONTHLY.features.length).toBeGreaterThan(0);
-    expect(STRIPE_PRODUCTS.ANNUAL.features.length).toBeGreaterThan(0);
-    expect(STRIPE_PRODUCTS.ANNUAL.features).toContain("Tudo do plano mensal");
+  it("should have correct Basic product ID", () => {
+    expect(STRIPE_PRODUCT_IDS.BASIC).toBe("prod_TsJKWnhkerrtD3");
+  });
+
+  it("should have correct Pro product ID", () => {
+    expect(STRIPE_PRODUCT_IDS.PRO).toBe("prod_TsJKKhldI5j5h6");
+  });
+
+  it("should have basic plan with 20 consultations at R$ 99.90", () => {
+    expect(PLAN_CONFIGS.basic.consultationLimit).toBe(20);
+    expect(PLAN_CONFIGS.basic.price).toBe(99.90);
+    expect(PLAN_CONFIGS.basic.priceId).toBe(STRIPE_PRICE_IDS.BASIC);
+  });
+
+  it("should have pro plan with 50 consultations at R$ 199.90", () => {
+    expect(PLAN_CONFIGS.pro.consultationLimit).toBe(50);
+    expect(PLAN_CONFIGS.pro.price).toBe(199.90);
+    expect(PLAN_CONFIGS.pro.priceId).toBe(STRIPE_PRICE_IDS.PRO);
+  });
+
+  it("should restrict neurovendas for basic users", () => {
+    expect(hasNeurovendasAccess("trial")).toBe(false);
+    expect(hasNeurovendasAccess("basic")).toBe(false);
+    expect(hasNeurovendasAccess("pro")).toBe(true);
   });
 });
 

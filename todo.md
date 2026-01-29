@@ -306,3 +306,13 @@
 - [x] Validar segurança com STRIPE_WEBHOOK_SECRET
 - [x] Criar testes automatizados (30 testes passando)
 - [ ] Usuário deve configurar webhook no painel do Stripe
+
+## Reconstrução Robusta da Integração Stripe (v34)
+- [x] Auditar schema do banco (stripe_customer_id, plan_type, subscription_status)
+- [x] Criar tabela payment_logs para auditoria de webhooks
+- [x] Configurar mapeamento de Price IDs (Basic: price_1SuYhvJBQOFbtGZhL4AVyGqb, Pro: price_1SuYhvJBQOFbtGZhu5hcAhqH)
+- [x] Configurar mapeamento de Product IDs (Basic: prod_TsJKWnhkerrtD3, Pro: prod_TsJKKhldI5j5h6)
+- [x] Reconstruir webhook handler com lógica robusta e idempotente
+- [x] Implementar feature gating: Basic sem Neurovendas, Pro com acesso completo
+- [x] Criar testes end-to-end do fluxo de pagamento (281 testes passando)
+- [x] Validar fluxo completo: webhook → DB → UI
