@@ -1,0 +1,32 @@
+{
+  "query": "SELECT id, name, email, subscriptionStatus, subscriptionTier, stripeCustomerId, stripeSubscriptionId, consultationCount, priceId FROM users WHERE email LIKE '%victor%' OR name LIKE '%Victor%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, name, email, subscriptionStatus, subscriptionTier, stripeCustomerId, stripeSubscriptionId, consultationCount, priceId FROM users WHERE email LIKE '%victor%' OR name LIKE '%Victor%';",
+  "rows": [
+    {
+      "id": "3570007",
+      "name": "Victor Hugo",
+      "email": "victorodriguez2611@gmail.com",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "trial",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "consultationCount": "0",
+      "priceId": "NULL"
+    },
+    {
+      "id": "3870063",
+      "name": "Victor hugo ",
+      "email": "vititovictorhugo@gmail.com",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial",
+      "stripeCustomerId": "NULL",
+      "stripeSubscriptionId": "NULL",
+      "consultationCount": "7",
+      "priceId": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tsubscriptionStatus\tsubscriptionTier\tstripeCustomerId\tstripeSubscriptionId\tconsultationCount\tpriceId\n3570007\tVictor Hugo\tvictorodriguez2611@gmail.com\tactive\ttrial\tNULL\tNULL\t0\tNULL\n3870063\tVictor hugo \tvititovictorhugo@gmail.com\tinactive\ttrial\tNULL\tNULL\t7\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

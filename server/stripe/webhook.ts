@@ -169,7 +169,7 @@ function determineTierFromSubscription(subscription: Stripe.Subscription): PlanT
 // WEBHOOK ENDPOINT
 // ============================================
 router.post(
-  "/api/stripe/webhook",
+  "/",
   async (req: Request, res: Response) => {
     if (!stripe || !isStripeConfigured()) {
       console.log("[Webhook] Stripe not configured, ignoring webhook");
