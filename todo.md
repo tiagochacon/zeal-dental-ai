@@ -296,3 +296,13 @@
 - [x] Step 5: Adicionar código de erro LIMIT_EXCEEDED no backend
 - [x] Step 6: Testar fluxos de trigger (trial, basic, feature_gate)
 - [x] Step 7: Criar testes automatizados para modais de upsell (27 testes passando)
+
+## Automação de Liberação de Acesso via Stripe Webhooks (v33)
+- [x] Verificar implementação atual do webhook do Stripe
+- [x] Configurar chaves de produção do Stripe (via Settings > Payment)
+- [x] Garantir tratamento de checkout.session.completed para ativar planos (Basic/Pro)
+- [x] Implementar customer.subscription.deleted para revogar acesso (rebaixa para trial)
+- [x] Implementar invoice.payment_failed para marcar como past_due
+- [x] Validar segurança com STRIPE_WEBHOOK_SECRET
+- [x] Criar testes automatizados (30 testes passando)
+- [ ] Usuário deve configurar webhook no painel do Stripe
