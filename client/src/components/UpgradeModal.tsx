@@ -26,8 +26,8 @@ import { useLocation } from "wouter";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/test_4gM9AUaW8c0m94YbFk0Jq01",
-  pro: "https://buy.stripe.com/test_4gMcN65BO6G22GAaBg0Jq00",
+  basic: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
+  pro: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
 };
 
 export type UpgradeModalTrigger = 
