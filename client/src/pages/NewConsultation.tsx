@@ -318,8 +318,20 @@ export default function NewConsultation() {
         toast.success('Consulta criada com sucesso!');
         setLocation(`/consultation/${consultationResult.consultationId}/review`);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating consultation:', error);
+      
+      // Check if it's a limit exceeded error (FORBIDDEN)
+      if (error?.data?.code === 'FORBIDDEN' || error?.message?.includes('Limite')) {
+        toast.error('Limite de consultas atingido. Faça upgrade para continuar.', {
+          action: {
+            label: 'Ver Planos',
+            onClick: () => setLocation('/pricing'),
+          },
+        });
+        return;
+      }
+      
       toast.error('Erro ao criar consulta. Tente novamente.');
     }
   };

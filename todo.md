@@ -278,3 +278,12 @@
 - [x] Criar UI interativa com cards de planos e benefícios
 - [x] Adicionar CTAs claros para cada plano
 - [x] Testar cenários de upgrade (194 testes passando)
+
+## Enforcement Estrito de Limites e Upsell (v30)
+- [x] Refatorar middleware para verificar limites ANTES de executar lógica de IA/DB
+- [x] Retornar TRPC_ERROR FORBIDDEN quando limite atingido
+- [x] Criar testes automatizados: trial bloqueado na 8ª, basic na 21ª, pro na 51ª (26 testes passando)
+- [x] Testar que admins nunca são bloqueados (por role e por email)
+- [x] Implementar UpgradeBanner dinâmico (trial->basic/pro, basic->pro)
+- [x] Verificar lógica de reset mensal alinhada com ciclo Stripe (webhook invoice.paid)
+- [x] Tratar erro FORBIDDEN no frontend com modal de upgrade

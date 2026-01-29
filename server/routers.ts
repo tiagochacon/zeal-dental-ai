@@ -556,7 +556,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    transcribe: protectedSubscriptionProcedure
+    transcribe: consultationLimitProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);
@@ -871,8 +871,14 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         });
 
         // Increment consultation count for billing tracking
-        // Only increment for non-admin users
-        if (ctx.user.role !== 'admin') {
+        // Only increment for non-admin users (check both role and email)
+        const ADMIN_EMAILS = [
+          'tiagosennachacon@gmail.com',
+          'zealtecnologia@gmail.com',
+          'victorodriguez2611@gmail.com',
+        ];
+        const isAdmin = ctx.user.role === 'admin' || ADMIN_EMAILS.includes(ctx.user.email || '');
+        if (!isAdmin) {
           await incrementConsultationCount(ctx.user.id);
         }
 
