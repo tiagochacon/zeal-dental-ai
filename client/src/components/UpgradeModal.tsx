@@ -143,7 +143,7 @@ export function UpgradeModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${showBasicPlan ? 'sm:max-w-2xl' : 'sm:max-w-lg'} bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-0 overflow-hidden`}>
+      <DialogContent className={`${showBasicPlan ? 'sm:max-w-2xl' : 'sm:max-w-lg'} max-h-[90vh] bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-0 overflow-y-auto`}>
         {/* Header with gradient */}
         <div className={`bg-gradient-to-r ${copy.gradient} p-6 border-b border-slate-800`}>
           <DialogHeader>

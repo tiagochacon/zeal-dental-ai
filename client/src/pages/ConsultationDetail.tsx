@@ -53,8 +53,9 @@ export default function ConsultationDetail() {
   );
 
   // Check if user has access to Negotiation tab
+  // Only Pro, Unlimited and Admin have access to Negotiation tab
+  // Trial and Basic users should see upgrade modal
   const hasNegotiationAccess = user?.role === 'admin' || 
-    user?.subscriptionTier === 'trial' || 
     user?.subscriptionTier === 'pro' || 
     user?.subscriptionTier === 'unlimited' ||
     user?.priceId === 'unlimited';

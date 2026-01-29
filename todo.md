@@ -316,3 +316,9 @@
 - [x] Implementar feature gating: Basic sem Neurovendas, Pro com acesso completo
 - [x] Criar testes end-to-end do fluxo de pagamento (281 testes passando)
 - [x] Validar fluxo completo: webhook → DB → UI
+
+## Gerenciamento de Assinatura e Correções (v35)
+- [x] Corrigir tamanho do modal de upgrade para caber na tela (max-h-[90vh] com scroll)
+- [x] Criar página de gerenciamento de assinatura (ver status, cancelar, upgrade)
+- [x] Implementar pop-up de upgrade para usuários Basic/Trial em funcionalidades Pro (Negociação)
+- [x] Página de assinatura já acessível via sidebar

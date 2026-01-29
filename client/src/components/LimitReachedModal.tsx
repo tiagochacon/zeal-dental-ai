@@ -85,7 +85,7 @@ export function LimitReachedModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className={`${isTrialUser ? 'sm:max-w-2xl' : 'sm:max-w-md'} bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-0 overflow-hidden`}>
+      <DialogContent className={`${isTrialUser ? 'sm:max-w-2xl' : 'sm:max-w-md'} max-h-[90vh] bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-0 overflow-y-auto`}>
         {/* Header with gradient */}
         <div className="bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-red-500/20 p-6 border-b border-slate-800">
           <DialogHeader>
