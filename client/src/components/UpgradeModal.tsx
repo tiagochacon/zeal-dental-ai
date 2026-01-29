@@ -23,12 +23,21 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
   basic: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
   pro: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
 };
+
+// Helper to add email to Stripe payment link
+function getPaymentLinkWithEmail(baseUrl: string, email?: string | null): string {
+  if (!email) return baseUrl;
+  const url = new URL(baseUrl);
+  url.searchParams.set('prefilled_email', email);
+  return url.toString();
+}
 
 export type UpgradeModalTrigger = 
   | "trial_limit"      // Trial atingiu 7 consultas ou 7 dias
@@ -119,6 +128,7 @@ export function UpgradeModal({
   feature = "Negociação",
 }: UpgradeModalProps) {
   const [, setLocation] = useLocation();
+  const { user } = useAuth();
   const copy = COPY_BY_TRIGGER[trigger];
   const IconComponent = copy.icon;
   
@@ -234,7 +244,7 @@ export function UpgradeModal({
 
                     <Button
                       className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all"
-                      onClick={() => window.open(PAYMENT_LINKS.basic, "_blank")}
+                      onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
                     >
                       Começar com Básico
                       <ArrowRight className="h-4 w-4 ml-2" />
@@ -324,7 +334,7 @@ export function UpgradeModal({
 
                     <Button
                       className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-500/25 group-hover:shadow-purple-500/40 transition-all"
-                      onClick={() => window.open(PAYMENT_LINKS.pro, "_blank")}
+                      onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
                     >
                       <Crown className="h-4 w-4 mr-2" />
                       Fazer Upgrade para Pro

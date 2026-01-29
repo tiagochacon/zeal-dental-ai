@@ -20,6 +20,14 @@ const PAYMENT_LINKS = {
   pro: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
 };
 
+// Helper to add email to Stripe payment link
+function getPaymentLinkWithEmail(baseUrl: string, email?: string | null): string {
+  if (!email) return baseUrl;
+  const url = new URL(baseUrl);
+  url.searchParams.set('prefilled_email', email);
+  return url.toString();
+}
+
 type UserPlan = "none" | "trial" | "basic" | "pro" | "unlimited" | "admin";
 
 interface UpgradeBannerProps {
@@ -154,7 +162,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
             <Button
               size="sm"
               className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-              onClick={() => window.open(PAYMENT_LINKS.pro, "_blank")}
+              onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
             >
               <Sparkles className="h-4 w-4 mr-1" />
               Upgrade Pro
@@ -249,7 +257,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
               size="sm"
               variant="outline"
               className="flex-1 border-blue-500/50 text-blue-300 hover:bg-blue-500/20"
-              onClick={() => window.open(PAYMENT_LINKS.basic, "_blank")}
+              onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
             >
               Básico R$ 99,90
               <ExternalLink className="h-3 w-3 ml-1" />
@@ -257,7 +265,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
             <Button
               size="sm"
               className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
-              onClick={() => window.open(PAYMENT_LINKS.pro, "_blank")}
+              onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
             >
               <Sparkles className="h-4 w-4 mr-1" />
               Pro R$ 199,90

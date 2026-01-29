@@ -1,0 +1,24 @@
+{
+  "query": "SELECT id, name, email, subscriptionStatus, subscriptionTier FROM users WHERE email LIKE '%testepagamento%' OR email LIKE '%teste%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, name, email, subscriptionStatus, subscriptionTier FROM users WHERE email LIKE '%testepagamento%' OR email LIKE '%teste%';",
+  "rows": [
+    {
+      "id": "2760029",
+      "name": "teste ",
+      "email": "teste@gmail.com",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "4110066",
+      "name": "teste pagamento",
+      "email": "testepagamento@gmail.com",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "basic"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tsubscriptionStatus\tsubscriptionTier\n2760029\tteste \tteste@gmail.com\tinactive\ttrial\n4110066\tteste pagamento\ttestepagamento@gmail.com\tactive\tbasic\n",
+  "stderr": "",
+  "execution_time_ms": 49
+}

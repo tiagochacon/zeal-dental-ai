@@ -19,12 +19,21 @@ import {
   Mic
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
   basic: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
   pro: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
 };
+
+// Helper to add email to Stripe payment link
+function getPaymentLinkWithEmail(baseUrl: string, email?: string | null): string {
+  if (!email) return baseUrl;
+  const url = new URL(baseUrl);
+  url.searchParams.set('prefilled_email', email);
+  return url.toString();
+}
 
 interface LimitReachedModalProps {
   open: boolean;
@@ -39,6 +48,8 @@ export function LimitReachedModal({
   currentPlan = "trial",
   consultationsUsed = 0,
 }: LimitReachedModalProps) {
+  const { user } = useAuth();
+  
   const getPlanLimit = () => {
     switch (currentPlan) {
       case "trial":
@@ -148,7 +159,7 @@ export function LimitReachedModal({
 
                   <Button
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => window.open(PAYMENT_LINKS.basic, "_blank")}
+                    onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
                   >
                     Assinar Básico
                     <ExternalLink className="h-4 w-4 ml-2" />
@@ -203,7 +214,7 @@ export function LimitReachedModal({
 
                 <Button
                   className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-500/25"
-                  onClick={() => window.open(PAYMENT_LINKS.pro, "_blank")}
+                  onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
                 >
                   <Crown className="h-4 w-4 mr-2" />
                   Assinar Pro
