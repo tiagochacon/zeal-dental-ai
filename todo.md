@@ -386,3 +386,10 @@
 - [x] Organizar: Dados Paciente > Histórico > Plano Detalhado > Recomendações > Assinatura
 - [x] Alinhar cabeçalho com logo ZEAL e informações da clínica
 - [x] Testar e validar PDF gerado
+
+## Correção Layout PDF (v45)
+- [x] Corrigir overflow de texto na caixa de Alertas (ajustar altura dinâmica)
+- [x] Remover círculos numerados redundantes da Sequência de Tratamento
+- [x] Usar hierarquia de texto limpa (Fase X: Título em negrito)
+- [x] Garantir espaçamento uniforme entre as fases
+- [x] Testar e validar PDF corrigido

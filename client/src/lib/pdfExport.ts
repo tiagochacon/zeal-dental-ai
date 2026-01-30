@@ -702,28 +702,24 @@ export function exportTreatmentPlanToPDF(data: TreatmentPlanExportData): void {
         yPos = 25;
       }
       
-      // Número da etapa em círculo
-      doc.setFillColor(99, 102, 241);
-      doc.circle(margin + 10, yPos + 2, 8, 'F');
-      doc.setTextColor(255, 255, 255);
-      doc.setFontSize(10);
+      // Título da fase com hierarquia de texto limpa (sem círculos)
+      doc.setTextColor(59, 130, 246); // Azul para "Fase X:"
+      doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
-      doc.text(`${index + 1}`, margin + 10, yPos + 5, { align: 'center' });
+      doc.text(`Fase ${index + 1}:`, margin, yPos);
       
-      // Título da etapa
+      // Título da etapa na mesma linha
       doc.setTextColor(30, 41, 59);
-      doc.setFontSize(11);
-      doc.setFont('helvetica', 'bold');
-      doc.text(step.title, margin + 25, yPos + 4);
-      yPos += 12;
+      doc.text(step.title, margin + 22, yPos);
+      yPos += 10;
       
       // Descrição
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(51, 65, 85);
-      const descLines = doc.splitTextToSize(step.description, pageWidth - 2 * margin - 30);
+      const descLines = doc.splitTextToSize(step.description, pageWidth - 2 * margin);
       descLines.forEach((line: string) => {
-        doc.text(line, margin + 25, yPos);
+        doc.text(line, margin, yPos);
         yPos += 5.5;
       });
       yPos += 4;
@@ -736,28 +732,28 @@ export function exportTreatmentPlanToPDF(data: TreatmentPlanExportData): void {
       if (metaItems.length > 0) {
         doc.setFontSize(9);
         doc.setTextColor(100, 116, 139);
-        doc.text(metaItems.join('  •  '), margin + 25, yPos);
-        yPos += 5;
+        doc.text(metaItems.join('  •  '), margin, yPos);
+        yPos += 6;
       }
       
       if (step.notes) {
         doc.setFontSize(9);
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(100, 116, 139);
-        const noteLines = doc.splitTextToSize(`Obs: ${step.notes}`, pageWidth - 2 * margin - 30);
+        const noteLines = doc.splitTextToSize(`Obs: ${step.notes}`, pageWidth - 2 * margin);
         noteLines.forEach((line: string) => {
-          doc.text(line, margin + 25, yPos);
+          doc.text(line, margin, yPos);
           yPos += 4.5;
         });
       }
       
-      yPos += ITEM_SPACING + 4;
+      yPos += ITEM_SPACING + 6;
       
       // Linha divisória sutil entre etapas (exceto última)
       if (index < plan.steps.length - 1) {
         doc.setDrawColor(229, 231, 235);
         doc.setLineWidth(0.3);
-        doc.line(margin + 25, yPos - 4, pageWidth - margin, yPos - 4);
+        doc.line(margin, yPos - 4, pageWidth - margin, yPos - 4);
       }
     });
     
@@ -842,13 +838,25 @@ export function exportTreatmentPlanToPDF(data: TreatmentPlanExportData): void {
   // ============================================
   
   if (plan.warnings && plan.warnings.length > 0) {
-    if (yPos > 220) {
+    // Calcular altura dinâmica baseada no conteúdo real
+    // Primeiro, calcular quantas linhas cada warning vai ocupar
+    let totalWarningLines = 0;
+    const warningTextWidth = pageWidth - 2 * margin - 25;
+    plan.warnings.forEach(warning => {
+      const lines = doc.splitTextToSize(`• ${warning}`, warningTextWidth);
+      totalWarningLines += lines.length;
+    });
+    
+    // Altura = título (22) + linhas de texto (5.5 cada) + espaçamento entre items (2 * número de warnings) + padding
+    const warningBoxHeight = 26 + (totalWarningLines * 5.5) + (plan.warnings.length * 3) + 10;
+    
+    // Verificar se precisa de nova página
+    if (yPos + warningBoxHeight > pageHeight - 30) {
       doc.addPage();
       yPos = 25;
     }
     
     // Box de alerta com destaque
-    const warningBoxHeight = 18 + plan.warnings.length * 8;
     doc.setFillColor(254, 242, 242); // Light red background
     doc.setDrawColor(220, 38, 38);
     doc.setLineWidth(0.8);
@@ -858,27 +866,27 @@ export function exportTreatmentPlanToPDF(data: TreatmentPlanExportData): void {
     doc.setFillColor(220, 38, 38);
     doc.roundedRect(margin, yPos, 6, warningBoxHeight, 4, 4, 'F');
     
-    yPos += 12;
+    yPos += 14;
     
     // Título
     doc.setTextColor(153, 27, 27);
-    doc.setFontSize(12);
+    doc.setFontSize(11);
     doc.setFont('helvetica', 'bold');
-    doc.text('⚠ Alertas e Cuidados Importantes', margin + 14, yPos);
-    yPos += 10;
+    doc.text('Alertas e Cuidados Importantes', margin + 14, yPos);
+    yPos += 12;
     
     // Lista de alertas
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(127, 29, 29);
     
     plan.warnings.forEach(warning => {
-      const lines = doc.splitTextToSize(`• ${warning}`, pageWidth - 2 * margin - 25);
+      const lines = doc.splitTextToSize(`• ${warning}`, warningTextWidth);
       lines.forEach((line: string) => {
         doc.text(line, margin + 14, yPos);
         yPos += 5.5;
       });
-      yPos += 2;
+      yPos += 3;
     });
     
     yPos += SECTION_SPACING;
