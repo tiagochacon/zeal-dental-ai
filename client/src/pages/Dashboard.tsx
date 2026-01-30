@@ -3,14 +3,16 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut, UserCircle } from "lucide-react";
+import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut, UserCircle, Sparkles, Crown, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
+import { UpgradeModal } from "@/components/UpgradeModal";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   const { data: consultations, isLoading } = trpc.consultations.list.useQuery(
     undefined,
@@ -21,6 +23,12 @@ export default function Dashboard() {
     undefined,
     { enabled: !!user }
   );
+
+  // Get subscription info to show upgrade CTA
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
+  const isPro = planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
+  const isBasic = planInfo?.tier === 'basic';
+  const isTrial = planInfo?.tier === 'trial';
 
   if (authLoading) {
     return (
@@ -52,6 +60,13 @@ export default function Dashboard() {
     transcribed: "bg-blue-500/20 text-blue-400",
     reviewed: "bg-purple-500/20 text-purple-400",
     finalized: "bg-green-500/20 text-green-400",
+  };
+
+  // Determine upgrade trigger type
+  const getUpgradeTrigger = () => {
+    if (isTrial) return "trial_limit";
+    if (isBasic) return "basic_limit";
+    return "feature_gate";
   };
 
   return (
@@ -125,6 +140,53 @@ export default function Dashboard() {
               </button>
             </li>
           </ul>
+
+          {/* Upgrade CTA Button - Only show for non-Pro users */}
+          {!isPro && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="
+                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                  bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                  hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
+                  shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                  transition-all duration-300 transform hover:scale-[1.02]
+                  border border-indigo-400/30
+                  group
+                "
+              >
+                <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                <div className="flex flex-col items-start min-w-0">
+                  <span className="text-sm font-semibold text-white truncate">
+                    {isBasic ? 'Upgrade para PRO' : 'Fazer Upgrade'}
+                  </span>
+                  <span className="text-xs text-indigo-200 truncate">
+                    {isBasic ? 'Desbloqueie Neurovendas' : 'Desbloqueie o PRO'}
+                  </span>
+                </div>
+                <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
+              </button>
+            </div>
+          )}
+
+          {/* Pro Badge - Show for Pro users */}
+          {isPro && (
+            <div className="mt-6">
+              <div className="
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                bg-gradient-to-r from-emerald-600/20 to-teal-600/20
+                border border-emerald-500/30
+              ">
+                <Crown className="h-5 w-5 text-emerald-400 shrink-0" />
+                <span className="text-sm font-medium text-emerald-400 truncate">
+                  Plano PRO Ativo
+                </span>
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* User Profile */}
@@ -279,6 +341,16 @@ export default function Dashboard() {
           </Card>
         </div>
       </main>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        trigger={getUpgradeTrigger()}
+        currentPlan={planInfo?.tier || "trial"}
+        consultationsUsed={planInfo?.used || 0}
+        consultationsLimit={planInfo?.limit || 7}
+      />
     </div>
   );
 }

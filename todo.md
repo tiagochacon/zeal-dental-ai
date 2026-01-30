@@ -324,6 +324,13 @@
 - [x] Página de assinatura já acessível via sidebar
 
 ## Correção de Bugs - Menu e Pop-up (v36)
-- [ ] Adicionar link "Assinatura" no menu lateral do dashboard
-- [ ] Corrigir pop-up de upgrade nas funções Pro (não está aparecendo)
-- [ ] Testar fluxo completo após correções
+- [x] Adicionar link "Assinatura" no menu lateral do dashboard
+- [x] Corrigir pop-up de upgrade nas funções Pro (não está aparecendo)
+- [x] Testar fluxo completo após correções
+
+## Otimização UI/UX de Conversão (v37)
+- [x] Substituir aba 'Assinatura' por botão CTA atrativo na sidebar (gradient Deep Blue to Cyan, ícone Crown)
+- [x] Otimizar modal de upgrade: max-width 500px, grid 2 colunas, animação suave
+- [x] Reescrever copywriting dos benefícios por plano (Trial, Basic, Pro)
+- [x] Manter lógica de restrição: Basic não acessa Negociação
+- [x] Garantir responsividade e estética dark mode

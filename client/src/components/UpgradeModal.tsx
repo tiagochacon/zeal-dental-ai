@@ -18,7 +18,6 @@ import {
   Mic,
   Lock,
   Rocket,
-  Target,
   ArrowRight
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -52,7 +51,7 @@ interface UpgradeModalProps {
   currentPlan?: "trial" | "basic" | "pro" | "unlimited";
   consultationsUsed?: number;
   consultationsLimit?: number;
-  feature?: string; // Backward compatibility
+  feature?: string;
 }
 
 // Copywriting persuasivo por trigger
@@ -61,61 +60,71 @@ const COPY_BY_TRIGGER = {
     title: "Seu período de teste acabou!",
     subtitle: "Não pare sua evolução agora.",
     description: "Você experimentou o poder da IA no seu consultório. Agora é hora de desbloquear todo o potencial do ZEAL.",
-    cta: "Sua produtividade não pode esperar. Faça o upgrade agora.",
     icon: Rocket,
-    gradient: "from-amber-500/20 via-orange-500/20 to-red-500/20",
-    iconBg: "bg-amber-500/30",
+    gradient: "from-amber-500/20 to-orange-500/20",
     iconColor: "text-amber-400",
   },
   basic_limit: {
-    title: "Você atingiu o limite do seu plano!",
+    title: "Limite de consultas atingido!",
     subtitle: "Seu consultório está crescendo.",
-    description: "20 consultas não são suficientes para acompanhar sua demanda. Libere a Inteligência em Neurovendas e feche mais tratamentos.",
-    cta: "Desbloqueie o poder completo do ZEAL Pro.",
+    description: "Libere a Inteligência em Neurovendas e feche mais tratamentos.",
     icon: TrendingUp,
-    gradient: "from-blue-500/20 via-indigo-500/20 to-purple-500/20",
-    iconBg: "bg-blue-500/30",
+    gradient: "from-blue-500/20 to-indigo-500/20",
     iconColor: "text-blue-400",
   },
   feature_gate: {
-    title: "Recurso exclusivo do ZEAL Pro",
+    title: "Recurso exclusivo PRO",
     subtitle: "Análise de Neurovendas bloqueada.",
-    description: "A aba de Negociação utiliza inteligência artificial avançada para analisar o perfil psicográfico do paciente e aumentar sua taxa de fechamento.",
-    cta: "Libere a Inteligência em Neurovendas e feche mais tratamentos.",
+    description: "Desbloqueie inteligência artificial avançada para aumentar sua taxa de fechamento.",
     icon: Lock,
-    gradient: "from-purple-500/20 via-indigo-500/20 to-blue-500/20",
-    iconBg: "bg-purple-500/30",
+    gradient: "from-purple-500/20 to-indigo-500/20",
     iconColor: "text-purple-400",
   },
   pro_limit: {
     title: "Limite mensal atingido",
     subtitle: "Você está no plano mais completo.",
-    description: "Seu limite de 50 consultas será renovado no próximo ciclo de cobrança. Continue aproveitando todos os recursos do ZEAL Pro.",
-    cta: "Aguarde a renovação do seu ciclo.",
+    description: "Seu limite será renovado no próximo ciclo de cobrança.",
     icon: Crown,
-    gradient: "from-emerald-500/20 via-teal-500/20 to-cyan-500/20",
-    iconBg: "bg-emerald-500/30",
+    gradient: "from-emerald-500/20 to-teal-500/20",
     iconColor: "text-emerald-400",
   },
 };
 
-// Features por plano
+// Features organizados em grid 2 colunas - copywriting focado em benefícios
 const PLAN_FEATURES = {
-  basic: [
-    { icon: Mic, text: "20 consultas/mês", highlight: false },
-    { icon: FileText, text: "Transcrição automática com IA", highlight: false },
-    { icon: FileText, text: "Notas SOAP inteligentes", highlight: false },
-    { icon: Target, text: "Odontograma automático", highlight: false },
-  ],
-  pro: [
-    { icon: Mic, text: "50 consultas/mês", highlight: true },
-    { icon: FileText, text: "Transcrição automática com IA", highlight: false },
-    { icon: FileText, text: "Notas SOAP inteligentes", highlight: false },
-    { icon: Target, text: "Odontograma automático", highlight: false },
-    { icon: Brain, text: "Análise de Neurovendas", highlight: true },
-    { icon: TrendingUp, text: "Perfil psicográfico do paciente", highlight: true },
-    { icon: Crown, text: "Script de fechamento PARE", highlight: true },
-  ],
+  trial: {
+    title: "Trial Gratuito",
+    subtitle: "7 Dias",
+    features: [
+      "7 Consultas completas",
+      "Transcrição de áudio IA",
+      "Notas SOAP automáticas",
+      "Acesso à Neurovendas",
+    ],
+  },
+  basic: {
+    title: "ZEAL Básico",
+    price: "R$ 99,90",
+    features: [
+      "20 Consultas/mês",
+      "Transcrição em segundos",
+      "Odontograma visual",
+      "Relatórios em PDF",
+    ],
+    footer: "Economize 2h por dia em documentação.",
+  },
+  pro: {
+    title: "ZEAL PRO",
+    price: "R$ 199,90",
+    features: [
+      "50 Consultas/mês",
+      "Neurovendas com IA",
+      "Perfil comportamental",
+      "Scripts de fechamento",
+      "Suporte VIP 24h",
+    ],
+    footer: "Aumente sua taxa de fechamento em até 40%.",
+  },
 };
 
 export function UpgradeModal({
@@ -125,7 +134,6 @@ export function UpgradeModal({
   currentPlan = "trial",
   consultationsUsed = 0,
   consultationsLimit = 7,
-  feature = "Negociação",
 }: UpgradeModalProps) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -143,202 +151,152 @@ export function UpgradeModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className={`${showBasicPlan ? 'sm:max-w-2xl' : 'sm:max-w-lg'} max-h-[90vh] bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-0 overflow-y-auto`}>
-        {/* Header with gradient */}
-        <div className={`bg-gradient-to-r ${copy.gradient} p-6 border-b border-slate-800`}>
+      <DialogContent className="sm:max-w-[500px] max-h-[85vh] bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 p-0 overflow-hidden">
+        {/* Compact Header */}
+        <div className={`bg-gradient-to-r ${copy.gradient} px-5 py-4 border-b border-slate-800`}>
           <DialogHeader>
-            <div className="flex items-center gap-4 mb-2">
+            <div className="flex items-center gap-3">
               <motion.div 
-                className={`p-3 rounded-full ${copy.iconBg}`}
-                animate={{ scale: [1, 1.1, 1] }}
+                className="p-2 rounded-full bg-white/10"
+                animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
               >
-                <IconComponent className={`h-6 w-6 ${copy.iconColor}`} />
+                <IconComponent className={`h-5 w-5 ${copy.iconColor}`} />
               </motion.div>
               <div>
-                <DialogTitle className="text-xl text-white">
+                <DialogTitle className="text-lg text-white">
                   {copy.title}
                 </DialogTitle>
-                <DialogDescription className="text-slate-300 mt-1 font-medium">
+                <DialogDescription className="text-slate-300 text-sm">
                   {copy.subtitle}
                 </DialogDescription>
               </div>
             </div>
             
-            {/* Usage indicator */}
+            {/* Compact Usage Bar */}
             {trigger !== "feature_gate" && (
-              <div className="mt-4 p-3 rounded-lg bg-slate-800/50 border border-slate-700">
-                <div className="flex justify-between items-center mb-2">
-                  <span className="text-sm text-slate-400">Consultas utilizadas</span>
-                  <span className="text-sm font-semibold text-white">
-                    {consultationsUsed} / {consultationsLimit}
-                  </span>
-                </div>
-                <div className="w-full bg-slate-700 rounded-full h-2">
+              <div className="mt-3 flex items-center gap-3">
+                <div className="flex-1 bg-slate-700 rounded-full h-1.5">
                   <motion.div 
-                    className={`h-2 rounded-full ${
-                      consultationsUsed >= consultationsLimit 
-                        ? 'bg-red-500' 
-                        : consultationsUsed >= consultationsLimit * 0.8 
-                          ? 'bg-amber-500' 
-                          : 'bg-emerald-500'
+                    className={`h-1.5 rounded-full ${
+                      consultationsUsed >= consultationsLimit ? 'bg-red-500' : 'bg-emerald-500'
                     }`}
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, (consultationsUsed / consultationsLimit) * 100)}%` }}
-                    transition={{ duration: 0.8, ease: "easeOut" }}
                   />
                 </div>
+                <span className="text-xs text-slate-400 whitespace-nowrap">
+                  {consultationsUsed}/{consultationsLimit}
+                </span>
               </div>
             )}
           </DialogHeader>
         </div>
 
-        <div className="p-6">
+        {/* Content with scroll */}
+        <div className="p-5 overflow-y-auto max-h-[calc(85vh-120px)]">
           {/* Motivational message */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-6"
-          >
-            <p className="text-slate-300 text-sm mb-2">
-              {copy.description}
-            </p>
-            <p className="text-white font-semibold text-base">
-              {copy.cta}
-            </p>
-          </motion.div>
+          <p className="text-slate-300 text-sm text-center mb-4">
+            {copy.description}
+          </p>
 
-          {/* Plans Grid */}
+          {/* Plans */}
           {!isProLimitReached && (
             <AnimatePresence>
-              <div className={`grid gap-4 ${showBasicPlan ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+              <div className={`grid gap-3 ${showBasicPlan ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 
-                {/* Basic Plan - Only show for trial users */}
+                {/* Basic Plan Card */}
                 {showBasicPlan && (
                   <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="relative p-5 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition-all group"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition-all"
                   >
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 rounded-lg bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
-                        <Zap className="h-5 w-5 text-blue-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-white">ZEAL Básico</h3>
-                        <p className="text-2xl font-bold text-blue-400">
-                          R$ 99,90<span className="text-sm font-normal text-slate-400">/mês</span>
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="h-4 w-4 text-blue-400" />
+                      <span className="font-semibold text-white text-sm">{PLAN_FEATURES.basic.title}</span>
+                    </div>
+                    <p className="text-xl font-bold text-blue-400 mb-3">
+                      {PLAN_FEATURES.basic.price}<span className="text-xs text-slate-400">/mês</span>
+                    </p>
+
+                    {/* Features in 2 columns */}
+                    <div className="grid grid-cols-1 gap-1.5 mb-3">
+                      {PLAN_FEATURES.basic.features.map((feat, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-slate-300">
+                          <Check className="h-3 w-3 text-blue-400 shrink-0" />
+                          <span>{feat}</span>
+                        </div>
+                      ))}
                     </div>
 
-                    <ul className="space-y-2 mb-5">
-                      {PLAN_FEATURES.basic.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-sm text-slate-300">
-                          <Check className="h-4 w-4 text-blue-400 shrink-0" />
-                          {feature.text}
-                        </li>
-                      ))}
-                    </ul>
-
                     <Button
-                      className="w-full bg-blue-600 hover:bg-blue-700 text-white group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all"
+                      size="sm"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white text-xs"
                       onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
                     >
                       Começar com Básico
-                      <ArrowRight className="h-4 w-4 ml-2" />
+                      <ArrowRight className="h-3 w-3 ml-1" />
                     </Button>
                   </motion.div>
                 )}
 
-                {/* Pro Plan */}
+                {/* Pro Plan Card */}
                 {showProPlan && (
                   <motion.div
-                    initial={{ opacity: 0, x: showBasicPlan ? 20 : 0 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="relative p-5 rounded-xl border-2 border-purple-500/50 bg-gradient-to-b from-purple-500/10 to-indigo-500/10 hover:from-purple-500/15 hover:to-indigo-500/15 transition-all group"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="relative p-4 rounded-xl border-2 border-purple-500/50 bg-gradient-to-b from-purple-500/10 to-indigo-500/10"
                   >
-                    {/* Recommended badge */}
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                      <motion.span 
-                        className="px-3 py-1 text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-lg"
-                        animate={{ scale: [1, 1.05, 1] }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
+                    {/* Popular badge */}
+                    <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
+                      <span className="px-2 py-0.5 text-[10px] font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full">
                         ⭐ MAIS POPULAR
-                      </motion.span>
+                      </span>
                     </div>
 
-                    <div className="flex items-center gap-3 mb-4 mt-2">
-                      <div className="p-2 rounded-lg bg-purple-500/20 group-hover:bg-purple-500/30 transition-colors">
-                        <Sparkles className="h-5 w-5 text-purple-400" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-white">ZEAL Pro</h3>
-                        <p className="text-2xl font-bold text-purple-400">
-                          R$ 199,90<span className="text-sm font-normal text-slate-400">/mês</span>
-                        </p>
-                      </div>
+                    <div className="flex items-center gap-2 mb-3 mt-1">
+                      <Sparkles className="h-4 w-4 text-purple-400" />
+                      <span className="font-semibold text-white text-sm">{PLAN_FEATURES.pro.title}</span>
                     </div>
+                    <p className="text-xl font-bold text-purple-400 mb-3">
+                      {PLAN_FEATURES.pro.price}<span className="text-xs text-slate-400">/mês</span>
+                    </p>
 
-                    <ul className="space-y-2 mb-5">
-                      {PLAN_FEATURES.pro.map((feat, index) => (
-                        <li 
-                          key={index} 
-                          className={`flex items-center gap-2 text-sm ${
-                            feat.highlight ? 'text-purple-300 font-medium' : 'text-slate-300'
-                          }`}
-                        >
-                          <Check className={`h-4 w-4 shrink-0 ${
-                            feat.highlight ? 'text-purple-400' : 'text-purple-400/70'
-                          }`} />
-                          {feat.text}
-                          {feat.highlight && (
-                            <span className="ml-auto text-xs bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded">
+                    {/* Features */}
+                    <div className="grid grid-cols-1 gap-1.5 mb-3">
+                      {PLAN_FEATURES.pro.features.map((feat, i) => (
+                        <div key={i} className="flex items-center gap-1.5 text-xs text-slate-300">
+                          <Check className="h-3 w-3 text-purple-400 shrink-0" />
+                          <span>{feat}</span>
+                          {i >= 1 && i <= 3 && (
+                            <span className="ml-auto text-[9px] bg-purple-500/30 text-purple-300 px-1 rounded">
                               PRO
                             </span>
                           )}
-                        </li>
+                        </div>
                       ))}
-                    </ul>
+                    </div>
 
                     {/* Feature gate highlight */}
                     {trigger === "feature_gate" && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="mb-4 p-3 rounded-lg bg-purple-500/20 border border-purple-500/30"
-                      >
-                        <p className="text-xs text-purple-300 text-center">
-                          <Brain className="h-4 w-4 inline mr-1" />
-                          Desbloqueie a <strong>Análise de Neurovendas</strong> e aumente sua taxa de aceitação de tratamentos!
+                      <div className="mb-3 p-2 rounded-lg bg-purple-500/20 border border-purple-500/30">
+                        <p className="text-[10px] text-purple-300 text-center">
+                          <Brain className="h-3 w-3 inline mr-1" />
+                          Desbloqueie <strong>Neurovendas</strong> agora!
                         </p>
-                      </motion.div>
-                    )}
-
-                    {/* Basic limit highlight */}
-                    {trigger === "basic_limit" && (
-                      <motion.div 
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        className="mb-4 p-3 rounded-lg bg-purple-500/20 border border-purple-500/30"
-                      >
-                        <p className="text-xs text-purple-300 text-center">
-                          <TrendingUp className="h-4 w-4 inline mr-1" />
-                          <strong>+150% de consultas</strong> e recursos avançados de Neurovendas
-                        </p>
-                      </motion.div>
+                      </div>
                     )}
 
                     <Button
-                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-500/25 group-hover:shadow-purple-500/40 transition-all"
+                      size="sm"
+                      className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs shadow-lg shadow-purple-500/25"
                       onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
                     >
-                      <Crown className="h-4 w-4 mr-2" />
-                      Fazer Upgrade para Pro
-                      <ExternalLink className="h-4 w-4 ml-2" />
+                      <Crown className="h-3 w-3 mr-1" />
+                      Upgrade para Pro
+                      <ExternalLink className="h-3 w-3 ml-1" />
                     </Button>
                   </motion.div>
                 )}
@@ -348,33 +306,27 @@ export function UpgradeModal({
 
           {/* Pro user message */}
           {isProLimitReached && (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-6 rounded-xl border border-emerald-500/30 bg-emerald-500/10"
-            >
-              <div className="text-center">
-                <Crown className="h-12 w-12 text-emerald-400 mx-auto mb-3" />
-                <h3 className="text-lg font-semibold text-white mb-2">
-                  Você está no plano mais completo!
-                </h3>
-                <p className="text-sm text-emerald-300">
-                  Seu limite de consultas será renovado automaticamente no próximo ciclo de cobrança.
-                </p>
-              </div>
-            </motion.div>
+            <div className="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-center">
+              <Crown className="h-8 w-8 text-emerald-400 mx-auto mb-2" />
+              <h3 className="text-sm font-semibold text-white mb-1">
+                Você está no plano mais completo!
+              </h3>
+              <p className="text-xs text-emerald-300">
+                Limite renovado automaticamente no próximo ciclo.
+              </p>
+            </div>
           )}
 
-          {/* Footer */}
-          <div className="flex items-center justify-between mt-6 pt-4 border-t border-slate-800">
-            <p className="text-xs text-slate-500">
-              Cancele a qualquer momento • Sem fidelidade
+          {/* Compact Footer */}
+          <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-800">
+            <p className="text-[10px] text-slate-500">
+              Cancele a qualquer momento
             </p>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={handleNavigateToPricing} className="text-slate-400 hover:text-white text-sm">
-                Ver todos os planos
+            <div className="flex gap-1">
+              <Button variant="ghost" size="sm" onClick={handleNavigateToPricing} className="text-slate-400 hover:text-white text-xs h-7 px-2">
+                Ver planos
               </Button>
-              <Button variant="ghost" onClick={() => onOpenChange(false)} className="text-slate-400 hover:text-white">
+              <Button variant="ghost" size="sm" onClick={() => onOpenChange(false)} className="text-slate-400 hover:text-white text-xs h-7 px-2">
                 Fechar
               </Button>
             </div>
