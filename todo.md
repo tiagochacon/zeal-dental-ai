@@ -435,3 +435,12 @@
 - [x] Implementar lógica de cancelamento que esgota trial (consultationCount = 7)
 - [x] Garantir que usuário com trial esgotado precise assinar para usar novamente
 - [x] Testar fluxo completo: compra Basic, compra PRO, cancelamento
+
+## Integração Enterprise Stripe (v51)
+- [x] Configurar 3 contas Admin (zealtecnologia@gmail.com, tiagosennachacon@gmail.com, victorodriguez2611@gmail.com)
+- [x] Verificar Product IDs do Stripe (Basic: prod_TsJKWnhkerrtD3, PRO: prod_TsJKKhldI5j5h6)
+- [x] Refatorar webhook para identificar plano por Product ID (não pelo valor pago)
+- [x] Implementar lógica de cancelamento que esgota trial (consultationCount = 7)
+- [x] Implementar middleware de controle de acesso (Basic não acessa Negociação)
+- [x] Garantir que consultas do Trial não sejam descontadas do plano pago
+- [x] Testar cenários: PRO com cupom 100%, cancelamento, login Admin

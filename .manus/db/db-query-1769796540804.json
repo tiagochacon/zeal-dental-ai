@@ -1,0 +1,9 @@
+{
+  "query": "UPDATE users SET role = 'admin', subscriptionTier = 'unlimited', subscriptionStatus = 'active' WHERE email IN ('zealtecnologia@gmail.com', 'tiagosennachacon@gmail.com', 'victorodriguez2611@gmail.com');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute UPDATE users SET role = 'admin', subscriptionTier = 'unlimited', subscriptionStatus = 'active' WHERE email IN ('zealtecnologia@gmail.com', 'tiagosennachacon@gmail.com', 'victorodriguez2611@gmail.com');",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 66
+}

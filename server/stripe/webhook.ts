@@ -92,76 +92,79 @@ async function logPaymentEvent(
 // ============================================
 function determineTierFromCheckout(session: Stripe.Checkout.Session): PlanTier {
   console.log(`[Webhook] Determining tier from checkout session...`);
+  console.log(`[Webhook] IMPORTANT: Using Product ID as primary identifier (supports coupons/discounts)`);
   
-  // 1. Check metadata first (most reliable if set during checkout)
+  // 1. PRIORITY: Check Product ID from line items (most reliable, works with any discount)
+  const lineItems = (session as any).line_items?.data;
+  if (lineItems && lineItems.length > 0) {
+    // First try Product ID (MOST RELIABLE - works with 100% coupons)
+    const productId = lineItems[0].price?.product;
+    if (productId) {
+      const tierFromProduct = getTierFromProductId(productId);
+      if (tierFromProduct) {
+        console.log(`[Webhook] ✅ Tier from PRODUCT ID (${productId}): ${tierFromProduct.toUpperCase()}`);
+        return tierFromProduct;
+      }
+    }
+    
+    // Then try Price ID
+    const priceId = lineItems[0].price?.id;
+    if (priceId) {
+      const tierFromPrice = getTierFromPriceId(priceId);
+      if (tierFromPrice) {
+        console.log(`[Webhook] ✅ Tier from PRICE ID (${priceId}): ${tierFromPrice.toUpperCase()}`);
+        return tierFromPrice;
+      }
+    }
+  }
+
+  // 2. Check metadata as secondary source
   const tierFromMetadata = session.metadata?.plan_tier || session.metadata?.tier;
   if (tierFromMetadata === "basic" || tierFromMetadata === "pro") {
     console.log(`[Webhook] Tier from metadata: ${tierFromMetadata}`);
     return tierFromMetadata;
   }
 
-  // 2. Check line items for Price ID
-  const lineItems = (session as any).line_items?.data;
-  if (lineItems && lineItems.length > 0) {
-    const priceId = lineItems[0].price?.id;
-    if (priceId) {
-      const tierFromPrice = getTierFromPriceId(priceId);
-      if (tierFromPrice) {
-        console.log(`[Webhook] Tier from price ID (${priceId}): ${tierFromPrice}`);
-        return tierFromPrice;
-      }
-      
-      // Check product ID from price
-      const productId = lineItems[0].price?.product;
-      if (productId) {
-        const tierFromProduct = getTierFromProductId(productId);
-        if (tierFromProduct) {
-          console.log(`[Webhook] Tier from product ID (${productId}): ${tierFromProduct}`);
-          return tierFromProduct;
-        }
-      }
-    }
-  }
-
-  // 3. Check amount as fallback
-  const amountTotal = session.amount_total || 0;
-  const tierFromAmount = getTierFromAmount(amountTotal);
-  console.log(`[Webhook] Tier from amount (${amountTotal} cents): ${tierFromAmount}`);
-  return tierFromAmount;
+  // 3. NEVER use amount as fallback - it fails with coupons
+  // Instead, log a warning and default to basic
+  console.warn(`[Webhook] ⚠️ Could not determine tier from Product/Price ID. Defaulting to BASIC.`);
+  console.warn(`[Webhook] Session ID: ${session.id}, Amount: ${session.amount_total} cents`);
+  return "basic";
 }
 
 function determineTierFromSubscription(subscription: Stripe.Subscription): PlanTier {
   console.log(`[Webhook] Determining tier from subscription...`);
+  console.log(`[Webhook] IMPORTANT: Using Product ID as primary identifier (supports coupons/discounts)`);
   
-  // 1. Check price ID from subscription items
-  const priceId = subscription.items.data[0]?.price?.id;
-  if (priceId) {
-    const tierFromPrice = getTierFromPriceId(priceId);
-    if (tierFromPrice) {
-      console.log(`[Webhook] Tier from subscription price ID (${priceId}): ${tierFromPrice}`);
-      return tierFromPrice;
-    }
-  }
-
-  // 2. Check product ID
+  // 1. PRIORITY: Check Product ID from subscription items (MOST RELIABLE)
   const productId = subscription.items.data[0]?.price?.product as string;
   if (productId) {
     const tierFromProduct = getTierFromProductId(productId);
     if (tierFromProduct) {
-      console.log(`[Webhook] Tier from subscription product ID (${productId}): ${tierFromProduct}`);
+      console.log(`[Webhook] ✅ Tier from PRODUCT ID (${productId}): ${tierFromProduct.toUpperCase()}`);
       return tierFromProduct;
     }
   }
 
-  // 3. Check metadata
+  // 2. Check Price ID as secondary source
+  const priceId = subscription.items.data[0]?.price?.id;
+  if (priceId) {
+    const tierFromPrice = getTierFromPriceId(priceId);
+    if (tierFromPrice) {
+      console.log(`[Webhook] ✅ Tier from PRICE ID (${priceId}): ${tierFromPrice.toUpperCase()}`);
+      return tierFromPrice;
+    }
+  }
+
+  // 3. Check metadata as tertiary source
   const tierFromMetadata = subscription.metadata?.plan_tier || subscription.metadata?.tier;
   if (tierFromMetadata === "basic" || tierFromMetadata === "pro") {
     console.log(`[Webhook] Tier from subscription metadata: ${tierFromMetadata}`);
     return tierFromMetadata;
   }
 
-  // 4. Default to basic
-  console.log(`[Webhook] Could not determine tier, defaulting to basic`);
+  // 4. Default to basic (never use amount)
+  console.warn(`[Webhook] ⚠️ Could not determine tier from Product/Price ID. Defaulting to BASIC.`);
   return "basic";
 }
 
