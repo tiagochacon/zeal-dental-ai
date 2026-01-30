@@ -398,3 +398,20 @@
 - [x] Remover duplicação "Fase X: Fase X:" - exibir apenas "Fase X:" seguido do título sem repetir
 - [x] Aumentar espaçamento entre texto e linha divisória entre fases
 - [x] Testar e validar PDF corrigido
+
+## UI Adaptativa por Plano (v47)
+- [ ] Implementar badge de status (ADMIN gold, PRO gradient azul, BASIC slate, TRIAL verde) próximo à logo
+- [ ] Ajustar lógica do botão de upgrade: ocultar para Admin/Pro, mostrar para Basic/Trial
+- [ ] Basic: botão "Upgrade para PRO" | Trial: botão "Assinar Plano PRO"
+- [ ] Garantir integração com AuthContext e subscriptionTier do usuário
+- [ ] Aplicar estilos Tailwind com cantos arredondados e harmonia dark mode
+- [ ] Testar e validar para todos os níveis de usuário
+
+## UI Adaptativa por Plano (v47) - CONCLUÍDO
+- [x] Adicionar badge de status do plano na sidebar próximo à logo (ADMIN, PRO, BASIC, TRIAL)
+- [x] Admin: badge âmbar, sem botão de upgrade, badge "Acesso Admin" no lugar do CTA
+- [x] Pro: badge gradiente azul/cyan, badge "Plano PRO Ativo" no lugar do CTA
+- [x] Basic: badge cinza, botão "Upgrade para PRO" com texto "Desbloqueie Neurovendas"
+- [x] Trial: badge verde, botão "Assinar Plano PRO" com texto "Desbloqueie todo o potencial"
+- [x] Aplicar mudanças em todas as páginas (Dashboard, Patients, Consultations, Profile)
+- [x] Testar e validar lógica condicional

@@ -109,10 +109,29 @@ export default function Consultations() {
         transform transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
+        {/* Logo with Plan Badge */}
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
             <span className="text-xl font-bold text-foreground">Zeal</span>
+            {/* Plan Status Badge */}
+            {user?.role === 'admin' ? (
+              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500 text-white">
+                ADMIN
+              </span>
+            ) : isPro ? (
+              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
+                PRO
+              </span>
+            ) : isBasic ? (
+              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-slate-500 text-white">
+                BASIC
+              </span>
+            ) : (
+              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500 text-white">
+                TRIAL
+              </span>
+            )}
           </div>
           <button
             onClick={() => setSidebarOpen(false)}
@@ -162,8 +181,8 @@ export default function Consultations() {
             </li>
           </ul>
 
-          {/* Upgrade CTA Button - Only show for non-Pro users */}
-          {!isPro && (
+          {/* Upgrade CTA Button - Only show for Basic and Trial users (not Admin or Pro) */}
+          {user?.role !== 'admin' && !isPro && (
             <div className="mt-6">
               <button
                 onClick={() => setShowUpgradeModal(true)}
@@ -182,10 +201,10 @@ export default function Consultations() {
                 </div>
                 <div className="flex flex-col items-start min-w-0">
                   <span className="text-sm font-semibold text-white truncate">
-                    {isBasic ? 'Upgrade para PRO' : 'Fazer Upgrade'}
+                    {isBasic ? 'Upgrade para PRO' : 'Assinar Plano PRO'}
                   </span>
                   <span className="text-xs text-indigo-200 truncate">
-                    {isBasic ? 'Desbloqueie Neurovendas' : 'Desbloqueie o PRO'}
+                    {isBasic ? 'Desbloqueie Neurovendas' : 'Desbloqueie todo o potencial'}
                   </span>
                 </div>
                 <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
@@ -193,17 +212,19 @@ export default function Consultations() {
             </div>
           )}
 
-          {/* Pro Badge - Show for Pro users */}
-          {isPro && (
+          {/* Pro/Admin Badge - Show for Pro users or Admin */}
+          {(isPro || user?.role === 'admin') && (
             <div className="mt-6">
-              <div className="
+              <div className={`
                 w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                bg-gradient-to-r from-emerald-600/20 to-teal-600/20
-                border border-emerald-500/30
-              ">
-                <Crown className="h-5 w-5 text-emerald-400 shrink-0" />
-                <span className="text-sm font-medium text-emerald-400 truncate">
-                  Plano PRO Ativo
+                ${user?.role === 'admin' 
+                  ? 'bg-gradient-to-r from-amber-600/20 to-yellow-600/20 border border-amber-500/30' 
+                  : 'bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30'
+                }
+              `}>
+                <Crown className={`h-5 w-5 shrink-0 ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`} />
+                <span className={`text-sm font-medium truncate ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {user?.role === 'admin' ? 'Acesso Admin' : 'Plano PRO Ativo'}
                 </span>
               </div>
             </div>
