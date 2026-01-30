@@ -444,3 +444,10 @@
 - [x] Implementar middleware de controle de acesso (Basic não acessa Negociação)
 - [x] Garantir que consultas do Trial não sejam descontadas do plano pago
 - [x] Testar cenários: PRO com cupom 100%, cancelamento, login Admin
+
+## Correção Crítica Stripe PRO→Basic (v52)
+- [x] Analisar logs e identificar onde a identificação de plano está falhando
+- [x] Corrigir webhook para expandir line_items com Stripe API e obter Product ID
+- [x] Implementar reset de consultationCount = 0 ao iniciar novo plano
+- [x] Garantir que PRO seja identificado corretamente pelo Product ID prod_TsJKKhldI5j5h6
+- [x] Testar fluxo completo de compra PRO

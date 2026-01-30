@@ -90,45 +90,70 @@ async function logPaymentEvent(
 // ============================================
 // PLAN DETECTION: Robust tier identification
 // ============================================
-function determineTierFromCheckout(session: Stripe.Checkout.Session): PlanTier {
-  console.log(`[Webhook] Determining tier from checkout session...`);
-  console.log(`[Webhook] IMPORTANT: Using Product ID as primary identifier (supports coupons/discounts)`);
+/**
+ * Determine tier from checkout session by fetching line_items from Stripe API.
+ * IMPORTANT: Stripe does NOT include line_items in webhook payload by default.
+ * We MUST fetch them via API to get the Product ID.
+ */
+async function determineTierFromCheckoutAsync(sessionId: string): Promise<PlanTier> {
+  console.log(`[Webhook] Determining tier from checkout session ${sessionId}...`);
+  console.log(`[Webhook] IMPORTANT: Fetching line_items from Stripe API (not included in webhook)`);
   
-  // 1. PRIORITY: Check Product ID from line items (most reliable, works with any discount)
-  const lineItems = (session as any).line_items?.data;
-  if (lineItems && lineItems.length > 0) {
-    // First try Product ID (MOST RELIABLE - works with 100% coupons)
-    const productId = lineItems[0].price?.product;
-    if (productId) {
-      const tierFromProduct = getTierFromProductId(productId);
-      if (tierFromProduct) {
-        console.log(`[Webhook] ✅ Tier from PRODUCT ID (${productId}): ${tierFromProduct.toUpperCase()}`);
-        return tierFromProduct;
-      }
-    }
+  if (!stripe) {
+    console.error(`[Webhook] Stripe not initialized`);
+    return "basic";
+  }
+
+  try {
+    // CRITICAL: Fetch session with line_items expanded from Stripe API
+    const sessionWithLineItems = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['line_items', 'line_items.data.price.product'],
+    });
+
+    console.log(`[Webhook] Retrieved session with line_items`);
     
-    // Then try Price ID
-    const priceId = lineItems[0].price?.id;
-    if (priceId) {
-      const tierFromPrice = getTierFromPriceId(priceId);
-      if (tierFromPrice) {
-        console.log(`[Webhook] ✅ Tier from PRICE ID (${priceId}): ${tierFromPrice.toUpperCase()}`);
-        return tierFromPrice;
+    const lineItems = sessionWithLineItems.line_items?.data;
+    if (lineItems && lineItems.length > 0) {
+      const lineItem = lineItems[0];
+      
+      // Get Product ID (MOST RELIABLE - works with 100% coupons)
+      const product = lineItem.price?.product;
+      const productId = typeof product === 'string' ? product : product?.id;
+      
+      if (productId) {
+        console.log(`[Webhook] Found Product ID: ${productId}`);
+        const tierFromProduct = getTierFromProductId(productId);
+        if (tierFromProduct) {
+          console.log(`[Webhook] ✅ TIER IDENTIFIED FROM PRODUCT ID: ${tierFromProduct.toUpperCase()}`);
+          return tierFromProduct;
+        }
+      }
+      
+      // Fallback: Get Price ID
+      const priceId = lineItem.price?.id;
+      if (priceId) {
+        console.log(`[Webhook] Found Price ID: ${priceId}`);
+        const tierFromPrice = getTierFromPriceId(priceId);
+        if (tierFromPrice) {
+          console.log(`[Webhook] ✅ TIER IDENTIFIED FROM PRICE ID: ${tierFromPrice.toUpperCase()}`);
+          return tierFromPrice;
+        }
       }
     }
+
+    // Check metadata as secondary source
+    const tierFromMetadata = sessionWithLineItems.metadata?.plan_tier || sessionWithLineItems.metadata?.tier;
+    if (tierFromMetadata === "basic" || tierFromMetadata === "pro") {
+      console.log(`[Webhook] Tier from metadata: ${tierFromMetadata}`);
+      return tierFromMetadata;
+    }
+
+  } catch (error) {
+    console.error(`[Webhook] Error fetching session line_items:`, error);
   }
 
-  // 2. Check metadata as secondary source
-  const tierFromMetadata = session.metadata?.plan_tier || session.metadata?.tier;
-  if (tierFromMetadata === "basic" || tierFromMetadata === "pro") {
-    console.log(`[Webhook] Tier from metadata: ${tierFromMetadata}`);
-    return tierFromMetadata;
-  }
-
-  // 3. NEVER use amount as fallback - it fails with coupons
-  // Instead, log a warning and default to basic
-  console.warn(`[Webhook] ⚠️ Could not determine tier from Product/Price ID. Defaulting to BASIC.`);
-  console.warn(`[Webhook] Session ID: ${session.id}, Amount: ${session.amount_total} cents`);
+  // NEVER use amount as fallback - it fails with coupons
+  console.warn(`[Webhook] ⚠️ Could not determine tier. Defaulting to BASIC.`);
   return "basic";
 }
 
@@ -313,9 +338,9 @@ async function handleCheckoutCompleted(eventId: string, session: Stripe.Checkout
   
   console.log(`[Webhook] Final customer email: ${customerEmail}`);
 
-  // Determine which plan was purchased
-  const subscriptionTier = determineTierFromCheckout(session);
-  console.log(`[Webhook] ✅ Determined tier: ${subscriptionTier.toUpperCase()}`);
+  // Determine which plan was purchased (MUST fetch line_items from Stripe API)
+  const subscriptionTier = await determineTierFromCheckoutAsync(session.id);
+  console.log(`[Webhook] ✅ FINAL TIER: ${subscriptionTier.toUpperCase()}`);
 
   let targetUserId: number | null = null;
 
@@ -344,16 +369,17 @@ async function handleCheckoutCompleted(eventId: string, session: Stripe.Checkout
   }
 
   if (targetUserId) {
-    // Update user subscription
+    // Update user subscription AND reset consultation count to 0
     await updateUserSubscription(targetUserId, {
       stripeCustomerId: customerId,
       stripeSubscriptionId: subscriptionId,
       subscriptionStatus: "active",
       subscriptionTier: subscriptionTier,
-      // Note: consultation count will be reset via resetConsultationCount
+      consultationCount: 0, // CRITICAL: Reset consultation count when activating new subscription
     });
 
     console.log(`[Webhook] ✅ User ${targetUserId} activated with tier: ${subscriptionTier.toUpperCase()}`);
+    console.log(`[Webhook] ✅ Consultation count RESET to 0 for new subscription`);
     console.log(`[Webhook] ==========================================`);
 
     // Log success

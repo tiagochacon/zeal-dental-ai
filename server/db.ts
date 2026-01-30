@@ -365,6 +365,7 @@ export async function updateUserSubscription(userId: number, data: {
   subscriptionTier?: "trial" | "basic" | "pro" | "unlimited";
   priceId?: string | null;
   subscriptionEndDate?: Date | null;
+  consultationCount?: number; // Reset consultation count when activating subscription
 }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
