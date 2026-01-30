@@ -497,6 +497,13 @@ export function AdaptiveNegotiationTab({
           </div>
         </motion.div>
       )}
+      
+      {/* Atribuição de Metodologia */}
+      <div className="px-6 py-3 border-t border-gray-800 flex justify-end">
+        <p className="text-xs text-gray-500 italic">
+          Metodologia: Dr. Carlos Rodriguez
+        </p>
+      </div>
     </motion.div>
   );
 }

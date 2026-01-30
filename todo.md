@@ -334,3 +334,9 @@
 - [x] Reescrever copywriting dos benefícios por plano (Trial, Basic, Pro)
 - [x] Manter lógica de restrição: Basic não acessa Negociação
 - [x] Garantir responsividade e estética dark mode
+
+## Refinamentos de UX e Integridade do Sistema (v38)
+- [x] Adicionar atribuição "Metodologia: Dr. Carlos Rodriguez" na aba Negociação (texto discreto, canto inferior direito)
+- [x] Padronizar sidebar globalmente - garantir que "Consultas" apareça em todas as páginas (incluindo Meu Perfil)
+- [x] Corrigir edição de perfil para permitir múltiplas edições (não apenas uma vez)
+- [x] Testar fluxo completo após correções
