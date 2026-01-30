@@ -64,19 +64,19 @@ export default function Profile() {
             <span className="text-xl font-bold text-foreground">Zeal</span>
             {/* Plan Status Badge */}
             {user?.role === 'admin' ? (
-              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-amber-500 text-white">
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white mt-0.5">
                 ADMIN
               </span>
             ) : isPro ? (
-              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white">
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white mt-0.5">
                 PRO
               </span>
             ) : isBasic ? (
-              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-slate-500 text-white">
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white mt-0.5">
                 BASIC
               </span>
             ) : (
-              <span className="px-2 py-0.5 text-xs font-bold rounded-full bg-emerald-500 text-white">
+              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500 text-white mt-0.5">
                 TRIAL
               </span>
             )}

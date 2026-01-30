@@ -415,3 +415,8 @@
 - [x] Trial: badge verde, botão "Assinar Plano PRO" com texto "Desbloqueie todo o potencial"
 - [x] Aplicar mudanças em todas as páginas (Dashboard, Patients, Consultations, Profile)
 - [x] Testar e validar lógica condicional
+
+## Ajuste Visual Badge do Plano (v48)
+- [x] Diminuir tamanho do badge do plano (text-[10px] menor)
+- [x] Alinhar badge com a logo (mt-0.5 para descer um pouco)
+- [x] Aplicar mudanças em todas as páginas (Dashboard, Patients, Consultations, Profile)
