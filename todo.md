@@ -376,3 +376,13 @@
 - [x] Trocar "O ZEAL" por "A ZEAL" em todas as ocorrências
 - [x] Colocar "com Inteligência Artificial" na mesma linha do headline
 - [x] Aplicar mudanças nas páginas de Login e Register
+
+## Otimização PDF Plano de Tratamento (v44)
+- [x] Analisar lógica atual de geração do PDF
+- [x] Aumentar espaçamento entre linhas (line-height 1.5-1.6)
+- [x] Melhorar hierarquia tipográfica (Bold para títulos, Regular para corpo)
+- [x] Garantir margens equilibradas (mínimo 22mm)
+- [x] Adicionar espaçamento entre itens de tratamento e recomendações
+- [x] Organizar: Dados Paciente > Histórico > Plano Detalhado > Recomendações > Assinatura
+- [x] Alinhar cabeçalho com logo ZEAL e informações da clínica
+- [x] Testar e validar PDF gerado

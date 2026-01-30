@@ -251,12 +251,17 @@ export default function ConsultationDetail() {
       return;
     }
     try {
+      // Extract patient info from SOAP note if available
+      const soapNote = consultation.soapNote as SOAPNote | null;
+      const patientHistory = soapNote?.subjective?.historico_medico?.join(', ') || '';
+      
       exportTreatmentPlanToPDF({
         patientName: consultation.patientName,
         createdAt: consultation.createdAt,
         treatmentPlan,
         dentistName: dentistProfile?.name,
         dentistCRO: dentistProfile?.croNumber,
+        patientMedicalHistory: patientHistory || undefined,
       });
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
