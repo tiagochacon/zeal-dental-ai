@@ -702,15 +702,17 @@ export function exportTreatmentPlanToPDF(data: TreatmentPlanExportData): void {
         yPos = 25;
       }
       
-      // Título da fase com hierarquia de texto limpa (sem círculos)
+      // Título da fase - apenas "Fase X:" em azul, seguido do título do step (sem duplicar "Fase")
       doc.setTextColor(59, 130, 246); // Azul para "Fase X:"
       doc.setFontSize(12);
       doc.setFont('helvetica', 'bold');
       doc.text(`Fase ${index + 1}:`, margin, yPos);
       
-      // Título da etapa na mesma linha
+      // Título da etapa na mesma linha - remover "Fase X:" se já estiver no título
       doc.setTextColor(30, 41, 59);
-      doc.text(step.title, margin + 22, yPos);
+      // Remover possível duplicação de "Fase X:" no título
+      let cleanTitle = step.title.replace(/^Fase\s*\d+\s*[:\-]?\s*/i, '').trim();
+      doc.text(cleanTitle, margin + 22, yPos);
       yPos += 10;
       
       // Descrição
@@ -747,13 +749,15 @@ export function exportTreatmentPlanToPDF(data: TreatmentPlanExportData): void {
         });
       }
       
-      yPos += ITEM_SPACING + 6;
+      // Espaçamento maior antes da linha divisória
+      yPos += ITEM_SPACING + 12;
       
-      // Linha divisória sutil entre etapas (exceto última)
+      // Linha divisória sutil entre etapas (exceto última) - com mais espaço
       if (index < plan.steps.length - 1) {
         doc.setDrawColor(229, 231, 235);
         doc.setLineWidth(0.3);
-        doc.line(margin, yPos - 4, pageWidth - margin, yPos - 4);
+        doc.line(margin, yPos - 6, pageWidth - margin, yPos - 6);
+        yPos += 4; // Espaço após a linha
       }
     });
     

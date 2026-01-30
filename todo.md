@@ -393,3 +393,8 @@
 - [x] Usar hierarquia de texto limpa (Fase X: Título em negrito)
 - [x] Garantir espaçamento uniforme entre as fases
 - [x] Testar e validar PDF corrigido
+
+## Ajustes Finais PDF (v46)
+- [x] Remover duplicação "Fase X: Fase X:" - exibir apenas "Fase X:" seguido do título sem repetir
+- [x] Aumentar espaçamento entre texto e linha divisória entre fases
+- [x] Testar e validar PDF corrigido
