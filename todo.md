@@ -427,3 +427,11 @@
 - [x] Corrigir lógica de determinação de plano no frontend - priorizar assinatura ativa sobre trial
 - [x] Garantir que usuário PRO veja badge PRO (não TRIAL) e não veja botão de upgrade
 - [x] Testar e validar correções
+
+## Correção Integração Stripe - Plano Correto (v50)
+- [x] Analisar produtos/preços configurados no Stripe (Basic vs PRO price_ids)
+- [x] Corrigir webhook para identificar plano correto baseado no price_id
+- [x] Atualizar subscriptionTier para 'basic' ou 'pro' conforme o plano comprado
+- [x] Implementar lógica de cancelamento que esgota trial (consultationCount = 7)
+- [x] Garantir que usuário com trial esgotado precise assinar para usar novamente
+- [x] Testar fluxo completo: compra Basic, compra PRO, cancelamento

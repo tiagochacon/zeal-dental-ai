@@ -16,7 +16,7 @@ import {
   PlanTier
 } from "./products";
 import { getDb } from "../db";
-import { paymentLogs } from "../../drizzle/schema";
+import { paymentLogs, users } from "../../drizzle/schema";
 import { eq } from "drizzle-orm";
 import Stripe from "stripe";
 
@@ -447,16 +447,26 @@ async function handleSubscriptionDeleted(eventId: string, subscription: Stripe.S
     return;
   }
 
-  // Revoke access: set status to canceled and tier back to trial
+  // Revoke access: set status to canceled, tier back to trial, and EXHAUST trial
+  // This forces the user to subscribe again to use the system
+  // Set consultationCount to 7 (trial limit) so they can't use free trial anymore
   await updateUserSubscription(user.id, {
     stripeSubscriptionId: null,
     subscriptionStatus: "canceled",
-    subscriptionTier: "trial", // Downgrade to trial
+    subscriptionTier: "trial",
     priceId: null,
     subscriptionEndDate: null,
   });
+  
+  // Also exhaust trial by setting consultation count to max
+  const db = await getDb();
+  if (db) {
+    await db.update(users).set({
+      consultationCount: 7, // Trial limit is 7, so this exhausts the trial
+    }).where(eq(users.id, user.id));
+  }
 
-  console.log(`[Webhook] User ${user.id} subscription canceled - downgraded to trial`);
+  console.log(`[Webhook] User ${user.id} subscription canceled - trial EXHAUSTED, must resubscribe`);
 
   await logPaymentEvent(eventId, "subscription.deleted", "success", {
     userId: user.id,
