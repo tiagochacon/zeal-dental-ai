@@ -70,13 +70,13 @@ export default function Login() {
           </div>
           
           <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
-            Assistente de IA<br />
-            <span className="text-blue-400">Odontológico</span>
+            Sua Clínica no Próximo Nível com<br />
+            <span className="text-blue-400">Inteligência Artificial</span>
           </h1>
           
           <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-            Transforme suas consultas com inteligência artificial. 
-            Transcrições automáticas, notas SOAP precisas e odontogramas detalhados.
+            Recupere seu tempo e eleve o faturamento do seu consultório. 
+            O ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
           </p>
           
           <div className="space-y-4">
@@ -86,7 +86,7 @@ export default function Login() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Transcrição de áudio em tempo real</span>
+              <span className="text-gray-300">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
@@ -94,7 +94,7 @@ export default function Login() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Geração automática de notas clínicas</span>
+              <span className="text-gray-300">Documentação Impecável em Segundos: Notas SOAP automáticas e precisas</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
@@ -102,7 +102,15 @@ export default function Login() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Odontograma interativo e detalhado</span>
+              <span className="text-gray-300">Diagnóstico Visual de Alto Impacto: Odontogramas que facilitam o fechamento</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <span className="text-cyan-300 font-medium">Estratégia de Neurovendas: Scripts personalizados baseados em neurociência</span>
             </div>
           </div>
         </div>

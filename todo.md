@@ -354,3 +354,12 @@
 - [x] Unificar sidebar com botão de upgrade em todas as páginas (Dashboard, Pacientes, Consultas, Perfil)
 - [x] Garantir que o botão de upgrade mantenha mesmo estilo e posição em todas as telas
 - [x] Testar navegação completa e validar consistência visual
+
+## Copywriting Estratégico - Conversão (v41)
+- [x] Atualizar headline: "Sua Clínica no Próximo Nível com Inteligência Artificial"
+- [x] Atualizar subheadline com foco em tempo e faturamento
+- [x] Reescrever features com gatilhos psicológicos (Autoridade, Ganho de Tempo, Aumento de Lucro)
+- [x] Adicionar nova feature de Neurovendas
+- [x] Atualizar CTA: "Começar minha Revolução Clínica"
+- [x] Manter design system atual (cores, fontes, layout)
+- [x] Testar e validar mudanças
