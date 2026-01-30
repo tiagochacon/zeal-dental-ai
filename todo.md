@@ -340,3 +340,11 @@
 - [x] Padronizar sidebar globalmente - garantir que "Consultas" apareça em todas as páginas (incluindo Meu Perfil)
 - [x] Corrigir edição de perfil para permitir múltiplas edições (não apenas uma vez)
 - [x] Testar fluxo completo após correções
+
+## Reposicionamento Atribuição de Metodologia (v39)
+- [x] Mover atribuição "Metodologia: Dr. Carlos Rodriguez" do rodapé para o topo da aba Negociação
+- [x] Aumentar tamanho da fonte (text-xs para text-sm ou text-base)
+- [x] Aplicar font-weight medium/semi-bold para leitura clara
+- [x] Usar cor de destaque suave (azul claro da paleta ZEAL)
+- [x] Garantir balanceamento visual sem empurrar outros elementos
+- [x] Testar e validar mudanças

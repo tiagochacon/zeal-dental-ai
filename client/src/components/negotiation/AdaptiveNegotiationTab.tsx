@@ -236,6 +236,17 @@ export function AdaptiveNegotiationTab({
       animate={{ opacity: 1 }}
       className={`bg-gradient-to-br ${config.bgGradient} rounded-xl border ${config.borderColor} overflow-hidden`}
     >
+      {/* Atribuição de Metodologia - Topo */}
+      <div className="px-6 py-3 bg-gradient-to-r from-blue-950/30 to-transparent border-b border-blue-500/20 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-blue-400" />
+          <p className="text-sm font-medium text-blue-300">
+            Metodologia: <span className="text-blue-200">Dr. Carlos Rodriguez</span>
+          </p>
+        </div>
+        <span className="text-xs text-gray-500">Análise Neurocientífica de Vendas</span>
+      </div>
+      
       {/* Header do Perfil */}
       <div className={`p-6 border-b ${config.borderColor}`}>
         <div className="flex items-start justify-between">
@@ -498,12 +509,7 @@ export function AdaptiveNegotiationTab({
         </motion.div>
       )}
       
-      {/* Atribuição de Metodologia */}
-      <div className="px-6 py-3 border-t border-gray-800 flex justify-end">
-        <p className="text-xs text-gray-500 italic">
-          Metodologia: Dr. Carlos Rodriguez
-        </p>
-      </div>
+
     </motion.div>
   );
 }
