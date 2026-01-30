@@ -348,3 +348,9 @@
 - [x] Usar cor de destaque suave (azul claro da paleta ZEAL)
 - [x] Garantir balanceamento visual sem empurrar outros elementos
 - [x] Testar e validar mudanças
+
+## Sincronização Global da Sidebar (v40)
+- [x] Analisar componentes de sidebar e identificar inconsistências entre páginas
+- [x] Unificar sidebar com botão de upgrade em todas as páginas (Dashboard, Pacientes, Consultas, Perfil)
+- [x] Garantir que o botão de upgrade mantenha mesmo estilo e posição em todas as telas
+- [x] Testar navegação completa e validar consistência visual

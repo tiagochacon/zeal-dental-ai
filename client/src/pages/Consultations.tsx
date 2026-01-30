@@ -18,7 +18,10 @@ import {
   X,
   LogOut,
   UserCircle,
+  Sparkles,
+  Crown,
 } from "lucide-react";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -27,6 +30,7 @@ export default function Consultations() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [deleteId, setDeleteId] = useState<number | null>(null);
 
@@ -34,6 +38,12 @@ export default function Consultations() {
     undefined,
     { enabled: !!user }
   );
+
+  // Get subscription info to show upgrade CTA
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
+  const isPro = planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
+  const isBasic = planInfo?.tier === 'basic';
+  const isTrial = planInfo?.tier === 'trial';
 
   const deleteMutation = trpc.consultations.delete.useMutation({
     onSuccess: () => {
@@ -151,6 +161,53 @@ export default function Consultations() {
               </button>
             </li>
           </ul>
+
+          {/* Upgrade CTA Button - Only show for non-Pro users */}
+          {!isPro && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="
+                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                  bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                  hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
+                  shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                  transition-all duration-300 transform hover:scale-[1.02]
+                  border border-indigo-400/30
+                  group
+                "
+              >
+                <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                <div className="flex flex-col items-start min-w-0">
+                  <span className="text-sm font-semibold text-white truncate">
+                    {isBasic ? 'Upgrade para PRO' : 'Fazer Upgrade'}
+                  </span>
+                  <span className="text-xs text-indigo-200 truncate">
+                    {isBasic ? 'Desbloqueie Neurovendas' : 'Desbloqueie o PRO'}
+                  </span>
+                </div>
+                <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
+              </button>
+            </div>
+          )}
+
+          {/* Pro Badge - Show for Pro users */}
+          {isPro && (
+            <div className="mt-6">
+              <div className="
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                bg-gradient-to-r from-emerald-600/20 to-teal-600/20
+                border border-emerald-500/30
+              ">
+                <Crown className="h-5 w-5 text-emerald-400 shrink-0" />
+                <span className="text-sm font-medium text-emerald-400 truncate">
+                  Plano PRO Ativo
+                </span>
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
@@ -297,6 +354,13 @@ export default function Consultations() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        trigger={isTrial ? "trial_limit" : isBasic ? "basic_limit" : "feature_gate"}
+      />
     </div>
   );
 }
