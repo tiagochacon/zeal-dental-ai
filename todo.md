@@ -420,3 +420,10 @@
 - [x] Diminuir tamanho do badge do plano (text-[10px] menor)
 - [x] Alinhar badge com a logo (mt-0.5 para descer um pouco)
 - [x] Aplicar mudanças em todas as páginas (Dashboard, Patients, Consultations, Profile)
+
+## Correção Bug PRO identificado como TRIAL (v49)
+- [x] Auditar schema do banco - verificar campos plan, subscriptionStatus, subscriptionTier
+- [x] Verificar lógica do webhook Stripe - garantir que checkout.session.completed atualize plan corretamente
+- [x] Corrigir lógica de determinação de plano no frontend - priorizar assinatura ativa sobre trial
+- [x] Garantir que usuário PRO veja badge PRO (não TRIAL) e não veja botão de upgrade
+- [x] Testar e validar correções

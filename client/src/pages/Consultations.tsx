@@ -41,9 +41,11 @@ export default function Consultations() {
 
   // Get subscription info to show upgrade CTA
   const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
-  const isPro = planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
-  const isBasic = planInfo?.tier === 'basic';
-  const isTrial = planInfo?.tier === 'trial';
+  // Admin users are always treated as unlimited/PRO
+  const isAdmin = user?.role === 'admin';
+  const isPro = isAdmin || planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
+  const isBasic = !isAdmin && planInfo?.tier === 'basic';
+  const isTrial = !isAdmin && !isPro && !isBasic && planInfo?.tier === 'trial';
 
   const deleteMutation = trpc.consultations.delete.useMutation({
     onSuccess: () => {

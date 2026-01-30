@@ -62,19 +62,28 @@ export const PLANS = {
 
 /**
  * Get user's subscription tier
+ * PRIORITY ORDER (highest to lowest):
+ * 1. Admin role -> unlimited
+ * 2. Active subscription with subscriptionTier set -> use subscriptionTier
+ * 3. Active subscription without tier -> derive from priceId
+ * 4. Active trial -> trial
+ * 5. Default -> trial
  */
 export function getUserTier(user: User): SubscriptionTier {
-  // Check if user has explicit subscriptionTier set
-  if (user.subscriptionTier) {
-    return user.subscriptionTier as SubscriptionTier;
+  // PRIORITY 1: Admin users always get unlimited access
+  if (user.role === 'admin') {
+    return "unlimited";
   }
   
-  // Fallback: determine tier from priceId and subscription status
-  if (isTrialActive(user)) {
-    return "trial";
-  }
-  
+  // PRIORITY 2: Active subscription takes precedence over trial
+  // This ensures PRO users are never shown as TRIAL
   if (isSubscriptionActive(user)) {
+    // If subscriptionTier is explicitly set, use it
+    if (user.subscriptionTier && user.subscriptionTier !== 'trial') {
+      return user.subscriptionTier as SubscriptionTier;
+    }
+    
+    // Derive tier from priceId
     const priceId = user.priceId;
     if (priceId === "unlimited") {
       return "unlimited";
@@ -93,6 +102,16 @@ export function getUserTier(user: User): SubscriptionTier {
     }
     // Default to basic for any other active subscription
     return "basic";
+  }
+  
+  // PRIORITY 3: Check if user has explicit subscriptionTier set (for non-active subscriptions)
+  if (user.subscriptionTier && user.subscriptionTier !== 'trial') {
+    return user.subscriptionTier as SubscriptionTier;
+  }
+  
+  // PRIORITY 4: Active trial
+  if (isTrialActive(user)) {
+    return "trial";
   }
   
   return "trial"; // Default for new users
