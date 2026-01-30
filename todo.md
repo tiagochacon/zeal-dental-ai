@@ -371,3 +371,8 @@
 - [x] Ajustar espaçamento vertical (gap) para manter equilíbrio visual
 - [x] Aplicar mesmas mudanças na página de Register
 - [x] Testar e validar mudanças
+
+## Ajustes de Copywriting (v43)
+- [x] Trocar "O ZEAL" por "A ZEAL" em todas as ocorrências
+- [x] Colocar "com Inteligência Artificial" na mesma linha do headline
+- [x] Aplicar mudanças nas páginas de Login e Register

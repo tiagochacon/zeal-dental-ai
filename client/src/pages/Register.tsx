@@ -95,7 +95,7 @@ export default function Register() {
           
           <p className="text-xl text-gray-300 mb-8 leading-relaxed">
             Recupere seu tempo e eleve o faturamento do seu consultório. 
-            O ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
+            A ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
           </p>
           
           <div className="space-y-5">

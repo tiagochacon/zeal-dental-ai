@@ -70,13 +70,12 @@ export default function Login() {
           </div>
           
           <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
-            Sua Clínica no Próximo Nível com<br />
-            <span className="text-blue-400">Inteligência Artificial</span>
+            Sua Clínica no Próximo Nível com <span className="text-blue-400">Inteligência Artificial</span>
           </h1>
           
           <p className="text-xl text-gray-300 mb-8 leading-relaxed">
             Recupere seu tempo e eleve o faturamento do seu consultório. 
-            O ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
+            A ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
           </p>
           
           <div className="space-y-5">
