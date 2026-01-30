@@ -98,30 +98,24 @@ export default function Register() {
             O ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
           </p>
           
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-green-600/20 flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-gray-300">Teste grátis por 7 dias — sem compromisso</span>
+              <span className="text-gray-300 leading-relaxed">Teste grátis por 7 dias — sem cartão de crédito necessário.</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-green-600/20 flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-gray-300">Sem cartão de crédito necessário</span>
+              <span className="text-gray-300 leading-relaxed">Economize 2h por dia em burocracia clínica com documentação automática.</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-green-600/20 flex items-center justify-center">
-                <CheckCircle className="w-5 h-5 text-green-400" />
-              </div>
-              <span className="text-gray-300">Economize 2h por dia em burocracia clínica</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-cyan-600/20 flex items-center justify-center flex-shrink-0">
                 <CheckCircle className="w-5 h-5 text-cyan-400" />
               </div>
-              <span className="text-cyan-300 font-medium">Aumente sua taxa de fechamento em até 40%</span>
+              <span className="text-cyan-300 font-medium leading-relaxed">Aumente sua taxa de fechamento em até 40% com Neurovendas.</span>
             </div>
           </div>
         </div>

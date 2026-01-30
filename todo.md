@@ -363,3 +363,11 @@
 - [x] Atualizar CTA: "Começar minha Revolução Clínica"
 - [x] Manter design system atual (cores, fontes, layout)
 - [x] Testar e validar mudanças
+
+## Simplificação Copywriting Minimalista (v42)
+- [x] Remover item do odontograma da lista de benefícios
+- [x] Substituir "Nota SOAP" por "Documentação clínica" ou "Diagnósticos e Tratamentos"
+- [x] Reduzir para 3 tópicos principais (Transcrição, Documentação, Neurovendas)
+- [x] Ajustar espaçamento vertical (gap) para manter equilíbrio visual
+- [x] Aplicar mesmas mudanças na página de Register
+- [x] Testar e validar mudanças

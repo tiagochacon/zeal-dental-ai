@@ -79,38 +79,30 @@ export default function Login() {
             O ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
           </p>
           
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais</span>
+              <span className="text-gray-300 leading-relaxed">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais durante a consulta.</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Documentação Impecável em Segundos: Notas SOAP automáticas e precisas</span>
+              <span className="text-gray-300 leading-relaxed">Diagnósticos e Tratamentos Precisos: Documentação clínica gerada automaticamente a partir do áudio da sua consulta.</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="text-gray-300">Diagnóstico Visual de Alto Impacto: Odontogramas que facilitam o fechamento</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-cyan-600/20 flex items-center justify-center">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-cyan-600/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-cyan-300 font-medium">Estratégia de Neurovendas: Scripts personalizados baseados em neurociência</span>
+              <span className="text-cyan-300 font-medium leading-relaxed">Estratégia de Neurovendas: Scripts e gatilhos personalizados para aumentar o fechamento de tratamentos.</span>
             </div>
           </div>
         </div>
