@@ -213,8 +213,8 @@ export function UpgradeModal({
                     className="p-4 rounded-xl border border-blue-500/30 bg-blue-500/5 hover:bg-blue-500/10 transition-all"
                   >
                     <div className="flex items-center gap-2 mb-3">
-                      <Zap className="h-4 w-4 text-blue-400" />
-                      <span className="font-semibold text-white text-sm">{PLAN_FEATURES.basic.title}</span>
+                      <Zap className="h-4 w-4 text-blue-300" />
+                      <span className="font-bold text-blue-100 text-sm drop-shadow-sm">{PLAN_FEATURES.basic.title}</span>
                     </div>
                     <p className="text-xl font-bold text-blue-400 mb-3">
                       {PLAN_FEATURES.basic.price}<span className="text-xs text-slate-400">/mês</span>
@@ -257,8 +257,8 @@ export function UpgradeModal({
                     </div>
 
                     <div className="flex items-center gap-2 mb-3 mt-1">
-                      <Sparkles className="h-4 w-4 text-purple-400" />
-                      <span className="font-semibold text-white text-sm">{PLAN_FEATURES.pro.title}</span>
+                      <Sparkles className="h-4 w-4 text-purple-300" />
+                      <span className="font-bold text-purple-100 text-sm drop-shadow-sm">{PLAN_FEATURES.pro.title}</span>
                     </div>
                     <p className="text-xl font-bold text-purple-400 mb-3">
                       {PLAN_FEATURES.pro.price}<span className="text-xs text-slate-400">/mês</span>

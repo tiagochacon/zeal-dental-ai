@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Check, Crown, CreditCard, Loader2, UserPlus, Zap } from "lucide-react";
+import { Link } from "wouter";
 import { toast } from "sonner";
 
 // Stripe Payment Links
@@ -97,11 +98,11 @@ export default function Pricing() {
   }, [refresh, setLocation]);
 
   const startTrial = trpc.billing.startTrial.useMutation({
-    onSuccess: () => {
+    onSuccess: async () => {
       toast.success("Trial iniciado! Você tem 7 dias para testar o ZEAL Pro.");
-      refresh().then(() => {
-        setLocation("/");
-      });
+      await refresh();
+      // Force navigation to dashboard
+      window.location.href = "/";
     },
     onError: (error: any) => {
       toast.error(error.message || "Erro ao iniciar trial");
@@ -149,14 +150,18 @@ export default function Pricing() {
             Escolha o plano perfeito para sua clínica odontológica. Sem taxas ocultas, cancele quando quiser.
           </p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <Button variant="outline" onClick={() => setLocation("/login")}>
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Voltar para Login
-            </Button>
-            <Button variant="outline" onClick={() => setLocation("/register")}>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Criar Nova Conta
-            </Button>
+            <Link href="/login">
+              <Button variant="outline" className="w-full sm:w-auto">
+                <ArrowLeft className="h-4 w-4 mr-2" />
+                Voltar para Login
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button variant="outline" className="w-full sm:w-auto">
+                <UserPlus className="h-4 w-4 mr-2" />
+                Criar Nova Conta
+              </Button>
+            </Link>
           </div>
         </div>
 

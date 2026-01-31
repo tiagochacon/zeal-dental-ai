@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, FileText, Menu, X, LogOut, UserCircle, Sparkles, Crown } from "lucide-react";
 import { UpgradeModal } from "@/components/UpgradeModal";
+import { UsageCounterModal } from "@/components/UsageCounterModal";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -170,6 +171,7 @@ export default function Patients() {
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<number | null>(null);
   const [formData, setFormData] = useState<PatientFormData>(initialFormData);
+  const [showUsageModal, setShowUsageModal] = useState(false);
 
   const utils = trpc.useUtils();
 
@@ -180,6 +182,12 @@ export default function Patients() {
   const isPro = isAdmin || planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
   const isBasic = !isAdmin && planInfo?.tier === 'basic';
   const isTrial = !isAdmin && !isPro && !isBasic && planInfo?.tier === 'trial';
+
+  // Get usage info for counter modal
+  const consultationsUsed = planInfo?.consultationsUsed || 0;
+  const consultationsLimit = planInfo?.consultationsLimit || 7;
+  const daysRemaining = planInfo?.trialDaysRemaining;
+  const currentTier = isAdmin ? 'admin' : (planInfo?.tier || 'trial') as 'trial' | 'basic' | 'pro' | 'unlimited' | 'admin';
 
   const { data: patients, isLoading } = trpc.patients.list.useQuery(
     undefined,
@@ -321,24 +329,30 @@ export default function Patients() {
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
             <span className="text-xl font-bold text-foreground">Zeal</span>
-            {/* Plan Status Badge */}
-            {user?.role === 'admin' ? (
-              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white mt-0.5">
-                ADMIN
-              </span>
-            ) : isPro ? (
-              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white mt-0.5">
-                PRO
-              </span>
-            ) : isBasic ? (
-              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white mt-0.5">
-                BASIC
-              </span>
-            ) : (
-              <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500 text-white mt-0.5">
-                TRIAL
-              </span>
-            )}
+            {/* Plan Status Badge - Clickable */}
+            <button
+              onClick={() => setShowUsageModal(true)}
+              className="group"
+              title="Ver uso de consultas"
+            >
+              {user?.role === 'admin' ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white mt-0.5 group-hover:bg-amber-400 transition-colors cursor-pointer">
+                  ADMIN
+                </span>
+              ) : isPro ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white mt-0.5 group-hover:from-blue-500 group-hover:to-cyan-400 transition-colors cursor-pointer">
+                  PRO
+                </span>
+              ) : isBasic ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white mt-0.5 group-hover:bg-slate-400 transition-colors cursor-pointer">
+                  BASIC
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500 text-white mt-0.5 group-hover:bg-emerald-400 transition-colors cursor-pointer">
+                  TRIAL
+                </span>
+              )}
+            </button>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)}
@@ -630,6 +644,16 @@ export default function Patients() {
         open={showUpgradeModal}
         onOpenChange={setShowUpgradeModal}
         trigger={isTrial ? "trial_limit" : isBasic ? "basic_limit" : "feature_gate"}
+      />
+
+      {/* Usage Counter Modal */}
+      <UsageCounterModal
+        open={showUsageModal}
+        onOpenChange={setShowUsageModal}
+        tier={currentTier}
+        consultationsUsed={consultationsUsed}
+        consultationsLimit={consultationsLimit}
+        daysRemaining={daysRemaining}
       />
     </div>
   );

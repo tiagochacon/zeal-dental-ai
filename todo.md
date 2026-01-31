@@ -451,3 +451,18 @@
 - [x] Implementar reset de consultationCount = 0 ao iniciar novo plano
 - [x] Garantir que PRO seja identificado corretamente pelo Product ID prod_TsJKKhldI5j5h6
 - [x] Testar fluxo completo de compra PRO
+
+## Correções de UX v53
+- [ ] Corrigir botão "Voltar para Login" que não está funcionando
+- [ ] Corrigir redirecionamento após iniciar Trial (deve ir para dashboard, não ficar no pricing)
+- [ ] Ajustar cores dos nomes dos planos nos cards (texto "ZEAL" cortado/escuro)
+- [ ] Criar contador de consultas ao clicar no badge do plano (X/Y consultas usadas)
+
+## Correções de UX v54
+- [x] Corrigir botão Voltar para Login na página de Pricing (usar Link do wouter)
+- [x] Corrigir redirecionamento após iniciar Trial (usar window.location.href para forçar navegação)
+- [x] Ajustar cores dos nomes dos planos nos cards do UpgradeModal (ZEAL PRO, ZEAL Básico)
+- [x] Criar componente UsageCounterModal para mostrar contador de consultas
+- [x] Tornar badge do plano clicável no Dashboard para abrir contador
+- [x] Tornar badge do plano clicável no Patients para abrir contador
+- [x] Tornar badge do plano clicável no Consultations para abrir contador
