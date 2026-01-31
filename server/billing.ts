@@ -263,6 +263,15 @@ export function getUserPlanInfo(user: User) {
   const tier = getUserTier(user);
   const config = PLAN_CONFIG[tier];
   const remaining = getRemainingConsultations(user);
+  const limit = config.limit === null ? Infinity : config.limit;
+  
+  // Calculate trial days remaining
+  let trialDaysRemaining: number | undefined;
+  if (tier === 'trial' && user.trialEndsAt) {
+    const now = new Date();
+    const diff = user.trialEndsAt.getTime() - now.getTime();
+    trialDaysRemaining = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
+  }
   
   return {
     tier,
@@ -270,6 +279,10 @@ export function getUserPlanInfo(user: User) {
     limit: config.limit,
     used: user.consultationCount,
     remaining: remaining === Infinity ? null : remaining,
+    // Frontend-friendly field names
+    consultationsUsed: user.consultationCount,
+    consultationsLimit: limit === Infinity ? 999 : limit,
+    trialDaysRemaining,
     hasNegotiationAccess: config.hasNegotiationAccess,
     lockedTabs: config.lockedTabs,
     isTrialActive: isTrialActive(user),

@@ -466,3 +466,9 @@
 - [x] Tornar badge do plano clicável no Dashboard para abrir contador
 - [x] Tornar badge do plano clicável no Patients para abrir contador
 - [x] Tornar badge do plano clicável no Consultations para abrir contador
+
+## Correção do Contador de Consultas v55
+- [x] Analisar billing.getPlanInfo para verificar cálculo de consultationsUsed e consultationsLimit
+- [x] Corrigir lógica de contagem baseada no plano do usuário (adicionado consultationsUsed, consultationsLimit, trialDaysRemaining)
+- [x] Garantir que consultation_count incrementa ao finalizar consulta (já implementado em generateSOAP)
+- [x] Testar contador com diferentes planos (trial, basic, pro, admin)

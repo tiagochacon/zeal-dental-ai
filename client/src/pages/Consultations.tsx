@@ -49,9 +49,9 @@ export default function Consultations() {
   const isBasic = !isAdmin && planInfo?.tier === 'basic';
   const isTrial = !isAdmin && !isPro && !isBasic && planInfo?.tier === 'trial';
 
-  // Get usage info for counter modal
-  const consultationsUsed = planInfo?.consultationsUsed || 0;
-  const consultationsLimit = planInfo?.consultationsLimit || 7;
+  // Get usage info for counter modal - use correct field names from backend
+  const consultationsUsed = planInfo?.consultationsUsed ?? planInfo?.used ?? 0;
+  const consultationsLimit = planInfo?.consultationsLimit ?? planInfo?.limit ?? 7;
   const daysRemaining = planInfo?.trialDaysRemaining;
   const currentTier = isAdmin ? 'admin' : (planInfo?.tier || 'trial') as 'trial' | 'basic' | 'pro' | 'unlimited' | 'admin';
 
