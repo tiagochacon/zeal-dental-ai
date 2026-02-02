@@ -53,12 +53,14 @@ export default function ConsultationDetail() {
   );
 
   // Check if user has access to Negotiation tab
-  // Only Pro, Unlimited and Admin have access to Negotiation tab
-  // Trial and Basic users should see upgrade modal
+  // Trial, Pro, Unlimited and Admin have access to Negotiation tab
+  // Only Basic users should see upgrade modal
+  const isTrialActive = user?.trialEndsAt && new Date(user.trialEndsAt) > new Date();
   const hasNegotiationAccess = user?.role === 'admin' || 
     user?.subscriptionTier === 'pro' || 
     user?.subscriptionTier === 'unlimited' ||
-    user?.priceId === 'unlimited';
+    user?.priceId === 'unlimited' ||
+    isTrialActive;
   
   // Check if this is an old consultation with existing neurovendas data (allow read access)
   const hasExistingNeurovendasData = !!consultation?.neurovendasAnalysis;

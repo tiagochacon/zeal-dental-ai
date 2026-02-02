@@ -44,9 +44,9 @@ export function UsageIndicator() {
           <span className="text-sm font-medium">Sem plano ativo</span>
         </div>
         <Link href="/pricing">
-          <Button size="sm" className="w-full">
-            <Crown className="h-4 w-4 mr-2" />
-            Ver Planos
+          <Button size="sm" className="w-full flex items-center justify-center gap-2">
+            <Crown className="h-4 w-4 shrink-0" />
+            <span>Ver Planos</span>
           </Button>
         </Link>
       </div>
@@ -93,10 +93,10 @@ export function UsageIndicator() {
           <Button 
             size="sm" 
             variant={isAtLimit ? "default" : "outline"} 
-            className="w-full mt-3"
+            className="w-full mt-3 flex items-center justify-center gap-2"
           >
-            <Crown className="h-4 w-4 mr-2" />
-            {isAtLimit ? "Fazer Upgrade" : "Ver Planos"}
+            <Crown className="h-4 w-4 shrink-0" />
+            <span>{isAtLimit ? "Fazer Upgrade" : "Ver Planos"}</span>
           </Button>
         </Link>
       )}

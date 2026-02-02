@@ -213,32 +213,32 @@ export function UsageCounterModal({
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     size="sm"
-                    className="bg-blue-600 hover:bg-blue-700 text-white text-xs"
+                    className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs"
                     onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic), "_blank")}
                   >
-                    Básico
-                    <ArrowRight className="h-3 w-3 ml-1" />
+                    <span>Básico</span>
+                    <ArrowRight className="h-3 w-3 shrink-0" />
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs"
+                    className="flex items-center justify-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs"
                     onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro), "_blank")}
                   >
-                    <Crown className="h-3 w-3 mr-1" />
-                    PRO
-                    <ExternalLink className="h-3 w-3 ml-1" />
+                    <Crown className="h-3 w-3 shrink-0" />
+                    <span>PRO</span>
+                    <ExternalLink className="h-3 w-3 shrink-0" />
                   </Button>
                 </div>
               )}
 
               {tier === 'basic' && (
                 <Button
-                  className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                  className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
                   onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro), "_blank")}
                 >
-                  <Crown className="h-4 w-4 mr-2" />
-                  Upgrade para PRO
-                  <ExternalLink className="h-4 w-4 ml-2" />
+                  <Crown className="h-4 w-4 shrink-0" />
+                  <span>Upgrade para PRO</span>
+                  <ExternalLink className="h-4 w-4 shrink-0" />
                 </Button>
               )}
             </div>
@@ -246,16 +246,49 @@ export function UsageCounterModal({
 
           {/* Pro/Admin message */}
           {(tier === 'pro' || tier === 'unlimited' || tier === 'admin') && (
-            <div className={`p-4 rounded-lg bg-gradient-to-r ${config.bgGradient} border ${config.borderColor} text-center`}>
-              <Crown className={`h-6 w-6 mx-auto mb-2 ${tier === 'admin' ? 'text-amber-400' : 'text-purple-400'}`} />
-              <p className="text-sm text-white font-medium">
-                {tier === 'admin' ? 'Acesso ilimitado como Admin' : 'Você está no plano mais completo!'}
-              </p>
-              {tier === 'pro' && (
-                <p className="text-xs text-slate-400 mt-1">
-                  Limite renovado automaticamente todo mês
+            <div className="space-y-4">
+              <div className={`p-4 rounded-lg bg-gradient-to-r ${config.bgGradient} border ${config.borderColor} text-center`}>
+                <Crown className={`h-6 w-6 mx-auto mb-2 ${tier === 'admin' ? 'text-amber-400' : 'text-purple-400'}`} />
+                <p className="text-sm text-white font-medium">
+                  {tier === 'admin' ? 'Acesso ilimitado como Admin' : 'Você está no plano mais completo!'}
                 </p>
-              )}
+                {tier === 'pro' && (
+                  <p className="text-xs text-slate-400 mt-1">
+                    Limite renovado automaticamente todo mês
+                  </p>
+                )}
+              </div>
+              
+              {/* Lista de recursos disponíveis */}
+              <div className="p-3 rounded-lg bg-slate-800/50 border border-slate-700">
+                <p className="text-xs text-slate-400 mb-2 font-medium">Recursos disponíveis:</p>
+                <ul className="space-y-1 text-xs text-slate-300">
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    {tier === 'admin' ? 'Consultas ilimitadas' : '50 consultas mensais'}
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Transcrição de áudio
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Notas SOAP automáticas
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Odontograma inteligente
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Análise de Neurovendas
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Exportação PDF profissional
+                  </li>
+                </ul>
+              </div>
             </div>
           )}
 

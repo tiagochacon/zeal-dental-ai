@@ -472,3 +472,9 @@
 - [x] Corrigir lógica de contagem baseada no plano do usuário (adicionado consultationsUsed, consultationsLimit, trialDaysRemaining)
 - [x] Garantir que consultation_count incrementa ao finalizar consulta (já implementado em generateSOAP)
 - [x] Testar contador com diferentes planos (trial, basic, pro, admin)
+
+## Ajustes Críticos no Sistema de Planos v56
+- [x] REQ1: Permitir acesso à aba Negociação para usuários Trial (backend + frontend)
+- [x] REQ2: Corrigir alinhamento do botão de upgrade (Crown icon + texto)
+- [x] REQ3: Melhorar modal de detalhes de uso - PRO não deve ter botão de upgrade
+- [x] Testar todos os cenários de planos (trial, basic, pro, admin)
