@@ -478,3 +478,8 @@
 - [x] REQ2: Corrigir alinhamento do botão de upgrade (Crown icon + texto)
 - [x] REQ3: Melhorar modal de detalhes de uso - PRO não deve ter botão de upgrade
 - [x] Testar todos os cenários de planos (trial, basic, pro, admin)
+
+## Correção Respostas Sugeridas Neurovendas v57
+- [x] Analisar prompt de análise de Neurovendas no backend (routers.ts)
+- [x] Corrigir prompt para gerar respostas sugeridas completas e personalizadas (não apenas "LAER")
+- [x] Testar com consulta real para validar as respostas

@@ -1128,8 +1128,15 @@ Com base na transcrição, analise:
 - Avalie o nível de ansiedade/receptividade (1-10)
 
 2. OBJEÇÕES IDENTIFICADAS:
-- Liste objeções verdadeiras detectadas
-- Liste possíveis objeções ocultas/falsas
+- Liste objeções verdadeiras detectadas na transcrição
+- Para CADA objeção verdadeira, forneça uma RESPOSTA SUGERIDA COMPLETA usando a técnica LAER:
+  * L (Listen/Ouvir): Reconheça a preocupação do paciente
+  * A (Acknowledge/Aceitar): Valide o sentimento
+  * E (Explore/Explorar): Faça perguntas para entender melhor
+  * R (Respond/Responder): Ofereça uma solução personalizada
+- A resposta sugerida deve ser um SCRIPT COMPLETO que o dentista pode usar, não apenas o nome da técnica
+- Exemplo de resposta sugerida para objeção financeira: "Entendo sua preocupação com o valor. É normal querer entender bem o investimento. Me conta, o que especificamente te preocupa mais: o valor total ou a forma de pagamento? Temos opções de parcelamento que podem ajudar."
+- Liste possíveis objeções ocultas/falsas com perguntas reveladoras
 - Classifique cada objeção (financeira, medo, tempo, confiança)
 
 3. SINAIS DE LINGUAGEM:
@@ -1148,8 +1155,9 @@ Com base na transcrição, analise:
 - Engajamento: Como criar compromisso
 
 6. TÉCNICA RECOMENDADA PARA OBJEÇÕES:
-- Se objeção verdadeira: Aplique técnica LAER
+- Se objeção verdadeira: Aplique técnica LAER (Listen, Acknowledge, Explore, Respond)
 - Se objeção falsa: Aplique técnica de Redirecionamento
+- IMPORTANTE: No campo 'tecnicaSugerida' de cada objeção, forneça um SCRIPT COMPLETO de resposta, não apenas o nome da técnica
 
 7. NÍVEL DE RAPPORT (0-100) - ANÁLISE DETALHADA:
 Calcule o Rapport usando os seguintes critérios com pesos específicos:
@@ -1222,9 +1230,9 @@ Responda em JSON estruturado.`;
                         items: {
                           type: "object",
                           properties: {
-                            texto: { type: "string" },
-                            categoria: { type: "string", enum: ["financeira", "medo", "tempo", "confianca", "outra"] },
-                            tecnicaSugerida: { type: "string" }
+                            texto: { type: "string", description: "A objeção exata do paciente" },
+                            categoria: { type: "string", enum: ["financeira", "medo", "tempo", "confianca", "outra"], description: "Categoria da objeção" },
+                            tecnicaSugerida: { type: "string", description: "SCRIPT COMPLETO de resposta usando técnica LAER. Deve ser uma frase completa que o dentista pode usar diretamente, não apenas o nome da técnica. Exemplo: 'Entendo sua preocupação com o valor. É normal querer entender bem o investimento. Me conta, o que especificamente te preocupa mais: o valor total ou a forma de pagamento? Temos opções de parcelamento que podem ajudar.'" }
                           },
                           required: ["texto", "categoria", "tecnicaSugerida"],
                           additionalProperties: false
