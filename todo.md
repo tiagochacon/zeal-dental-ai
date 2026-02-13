@@ -483,3 +483,13 @@
 - [x] Analisar prompt de análise de Neurovendas no backend (routers.ts)
 - [x] Corrigir prompt para gerar respostas sugeridas completas e personalizadas (não apenas "LAER")
 - [x] Testar com consulta real para validar as respostas
+
+## Atualização Informações de Planos v58
+- [x] Analisar configuração real dos planos no backend (products.ts, billing.ts)
+- [x] Mapear todas as telas que exibem info de planos (6 telas + 4 sidebars)
+- [x] Atualizar Pricing.tsx com permissões reais (features com ✓ e ✗)
+- [x] Atualizar UpgradeModal.tsx com permissões reais
+- [x] Atualizar UsageCounterModal.tsx com permissões reais
+- [x] Atualizar LimitReachedModal.tsx com permissões reais
+- [x] Atualizar Subscription.tsx (PLAN_DETAILS + inline lists)
+- [x] Atualizar sidebars (Dashboard, Patients, Consultations, Profile)

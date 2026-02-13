@@ -265,27 +265,39 @@ export function UsageCounterModal({
                 <ul className="space-y-1 text-xs text-slate-300">
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
-                    {tier === 'admin' ? 'Consultas ilimitadas' : '50 consultas mensais'}
+                    {tier === 'admin' || tier === 'unlimited' ? 'Consultas ilimitadas' : '50 consultas mensais'}
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
-                    Transcrição de áudio
+                    Transcrição automática de áudio
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
-                    Notas SOAP automáticas
+                    Notas SOAP com IA
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
-                    Odontograma inteligente
+                    Odontograma automático
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
-                    Análise de Neurovendas
+                    Exportação de PDF
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
-                    Exportação PDF profissional
+                    Análise de Negociação/Neurovendas
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Perfil psicográfico do paciente
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Script de fechamento PARE
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="text-emerald-400">✓</span>
+                    Suporte prioritário
                   </li>
                 </ul>
               </div>

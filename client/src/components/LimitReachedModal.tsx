@@ -67,20 +67,22 @@ export function LimitReachedModal({
   const isTrialUser = currentPlan === "trial";
   const isBasicUser = currentPlan === "basic";
 
-  // Features for each plan
+  // Features para cada plano - alinhados com permissões reais
   const basicFeatures = [
     { icon: Mic, text: "20 consultas/mês" },
-    { icon: FileText, text: "Transcrição automática" },
+    { icon: FileText, text: "Transcrição automática de áudio" },
     { icon: FileText, text: "Notas SOAP com IA" },
+    { icon: FileText, text: "Odontograma automático" },
+    { icon: FileText, text: "Exportação de PDF" },
   ];
 
   const proFeatures = [
     { icon: Mic, text: "50 consultas/mês" },
-    { icon: FileText, text: "Transcrição automática" },
-    { icon: FileText, text: "Notas SOAP com IA" },
-    { icon: Brain, text: "Análise de Neurovendas" },
+    { icon: FileText, text: "Tudo do Básico +" },
+    { icon: Brain, text: "Análise de Negociação/Neurovendas" },
     { icon: TrendingUp, text: "Perfil psicográfico do paciente" },
     { icon: Crown, text: "Script de fechamento PARE" },
+    { icon: Crown, text: "Suporte prioritário" },
   ];
 
   return (
@@ -120,7 +122,7 @@ export function LimitReachedModal({
             <p className="text-slate-300 text-sm">
               {isTrialUser 
                 ? "Continue transformando suas consultas com a inteligência artificial do ZEAL. Escolha o plano ideal para você:" 
-                : "Faça upgrade para o plano Pro e desbloqueie recursos avançados de Neurovendas:"}
+                : "Faça upgrade para o plano Pro e desbloqueie Análise de Negociação, Perfil Psicográfico e Script PARE:"}
             </p>
           </motion.div>
 
@@ -207,7 +209,7 @@ export function LimitReachedModal({
                   <div className="mb-4 p-3 rounded-lg bg-purple-500/20 border border-purple-500/30">
                     <p className="text-xs text-purple-300 text-center">
                       <Brain className="h-4 w-4 inline mr-1" />
-                      Desbloqueie a <strong>Análise de Neurovendas</strong> e aumente sua taxa de aceitação de tratamentos!
+                      Desbloqueie a <strong>Análise de Negociação/Neurovendas</strong> e aumente sua taxa de aceitação de tratamentos!
                     </p>
                   </div>
                 )}

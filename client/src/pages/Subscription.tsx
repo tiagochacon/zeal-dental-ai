@@ -31,7 +31,8 @@ import {
   Clock,
   FileText,
   Mic,
-  Brain
+  Brain,
+  TrendingUp
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -50,9 +51,10 @@ const PLAN_DETAILS = {
     limit: 7,
     features: [
       "7 consultas de teste",
-      "Transcrição automática",
+      "Transcrição automática de áudio",
       "Notas SOAP com IA",
       "Odontograma automático",
+      "Análise de Negociação/Neurovendas",
     ],
   },
   basic: {
@@ -63,9 +65,10 @@ const PLAN_DETAILS = {
     limit: 20,
     features: [
       "20 consultas/mês",
-      "Transcrição automática",
+      "Transcrição automática de áudio",
       "Notas SOAP com IA",
       "Odontograma automático",
+      "Exportação de PDF",
     ],
   },
   pro: {
@@ -76,12 +79,14 @@ const PLAN_DETAILS = {
     limit: 50,
     features: [
       "50 consultas/mês",
-      "Transcrição automática",
+      "Transcrição automática de áudio",
       "Notas SOAP com IA",
       "Odontograma automático",
-      "Análise de Neurovendas",
-      "Perfil psicográfico",
+      "Exportação de PDF",
+      "Análise de Negociação/Neurovendas",
+      "Perfil psicográfico do paciente",
       "Script de fechamento PARE",
+      "Suporte prioritário",
     ],
   },
   unlimited: {
@@ -92,9 +97,8 @@ const PLAN_DETAILS = {
     limit: Infinity,
     features: [
       "Consultas ilimitadas",
-      "Todas as funcionalidades",
-      "Acesso prioritário",
-      "Suporte dedicado",
+      "Todos os recursos do PRO",
+      "Suporte VIP",
     ],
   },
 };
@@ -318,11 +322,15 @@ export default function Subscription() {
                         </li>
                         <li className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-blue-400" />
-                          Notas SOAP automáticas
+                          Notas SOAP com IA
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-green-500" />
                           Odontograma automático
+                        </li>
+                        <li className="flex items-center gap-2">
+                          <Check className="h-4 w-4 text-green-500" />
+                          Exportação de PDF
                         </li>
                       </ul>
                     </CardContent>
@@ -367,15 +375,23 @@ export default function Subscription() {
                       </li>
                       <li className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-purple-400" />
-                        Notas SOAP automáticas
+                        Tudo do Básico +
                       </li>
                       <li className="flex items-center gap-2">
                         <Brain className="h-4 w-4 text-purple-400" />
-                        Análise de Neurovendas
+                        Análise de Negociação/Neurovendas
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4 text-purple-400" />
+                        Perfil psicográfico do paciente
                       </li>
                       <li className="flex items-center gap-2">
                         <Shield className="h-4 w-4 text-purple-400" />
                         Script de fechamento PARE
+                      </li>
+                      <li className="flex items-center gap-2">
+                        <Crown className="h-4 w-4 text-purple-400" />
+                        Suporte prioritário
                       </li>
                     </ul>
                   </CardContent>

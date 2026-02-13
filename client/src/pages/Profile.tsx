@@ -155,7 +155,7 @@ export default function Profile() {
                     {isBasic ? 'Upgrade para PRO' : 'Assinar Plano PRO'}
                   </span>
                   <span className="text-xs text-indigo-200 truncate">
-                    {isBasic ? 'Desbloqueie Neurovendas' : 'Desbloqueie todo o potencial'}
+                    {isBasic ? 'Desbloqueie Negociação e mais' : 'Desbloqueie todo o potencial'}
                   </span>
                 </div>
                 <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />

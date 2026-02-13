@@ -67,15 +67,15 @@ const COPY_BY_TRIGGER = {
   basic_limit: {
     title: "Limite de consultas atingido!",
     subtitle: "Seu consultório está crescendo.",
-    description: "Libere a Inteligência em Neurovendas e feche mais tratamentos.",
+    description: "Faça upgrade e desbloqueie mais consultas, Exportação de PDF e outros recursos.",
     icon: TrendingUp,
     gradient: "from-blue-500/20 to-indigo-500/20",
     iconColor: "text-blue-400",
   },
   feature_gate: {
     title: "Recurso exclusivo PRO",
-    subtitle: "Análise de Neurovendas bloqueada.",
-    description: "Desbloqueie inteligência artificial avançada para aumentar sua taxa de fechamento.",
+    subtitle: "Análise de Negociação bloqueada.",
+    description: "Desbloqueie Análise de Negociação/Neurovendas, Perfil Psicográfico e Script PARE.",
     icon: Lock,
     gradient: "from-purple-500/20 to-indigo-500/20",
     iconColor: "text-purple-400",
@@ -90,16 +90,17 @@ const COPY_BY_TRIGGER = {
   },
 };
 
-// Features organizados em grid 2 colunas - copywriting focado em benefícios
+// Features organizados em grid 2 colunas - alinhados com permissões reais
 const PLAN_FEATURES = {
   trial: {
     title: "Trial Gratuito",
     subtitle: "7 Dias",
     features: [
       "7 Consultas completas",
-      "Transcrição de áudio IA",
-      "Notas SOAP automáticas",
-      "Acesso à Neurovendas",
+      "Transcrição automática de áudio",
+      "Notas SOAP com IA",
+      "Odontograma automático",
+      "Análise de Negociação",
     ],
   },
   basic: {
@@ -107,9 +108,10 @@ const PLAN_FEATURES = {
     price: "R$ 99,90",
     features: [
       "20 Consultas/mês",
-      "Transcrição em segundos",
-      "Odontograma visual",
-      "Relatórios em PDF",
+      "Transcrição automática de áudio",
+      "Notas SOAP com IA",
+      "Odontograma automático",
+      "Exportação de PDF",
     ],
     footer: "Economize 2h por dia em documentação.",
   },
@@ -118,10 +120,11 @@ const PLAN_FEATURES = {
     price: "R$ 199,90",
     features: [
       "50 Consultas/mês",
-      "Neurovendas com IA",
-      "Perfil comportamental",
-      "Scripts de fechamento",
-      "Suporte VIP 24h",
+      "Tudo do Básico +",
+      "Análise de Negociação/Neurovendas",
+      "Perfil psicográfico do paciente",
+      "Script de fechamento PARE",
+      "Suporte prioritário",
     ],
     footer: "Aumente sua taxa de fechamento em até 40%.",
   },
@@ -284,7 +287,7 @@ export function UpgradeModal({
                       <div className="mb-3 p-2 rounded-lg bg-purple-500/20 border border-purple-500/30">
                         <p className="text-[10px] text-purple-300 text-center">
                           <Brain className="h-3 w-3 inline mr-1" />
-                          Desbloqueie <strong>Neurovendas</strong> agora!
+                          Desbloqueie <strong>Negociação/Neurovendas</strong> agora!
                         </p>
                       </div>
                     )}
