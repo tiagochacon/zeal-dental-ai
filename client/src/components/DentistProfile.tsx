@@ -3,12 +3,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Loader2, Save, UserCircle } from "lucide-react";
+import { Loader2, Save, UserCircle, AlertCircle } from "lucide-react";
 
 export default function DentistProfile() {
   const [isEditing, setIsEditing] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     croNumber: "",
@@ -20,6 +22,7 @@ export default function DentistProfile() {
     onSuccess: () => {
       toast.success("Perfil atualizado com sucesso!");
       setIsEditing(false);
+      setIsDirty(false);
       refetch();
     },
     onError: (error) => {
@@ -27,23 +30,55 @@ export default function DentistProfile() {
     },
   });
 
+  // FIX: Só atualiza formData quando NÃO está editando
+  // Previne que refetch() sobrescreva mudanças em andamento
   useEffect(() => {
-    if (profile) {
+    if (profile && !isEditing) {
       setFormData({
         name: profile.name || "",
         croNumber: profile.croNumber || "",
       });
     }
-  }, [profile]);
+  }, [profile, isEditing]);
+
+  // Detecta mudanças não salvas para ativar estado "dirty"
+  useEffect(() => {
+    if (profile && isEditing) {
+      const hasChanges =
+        formData.name !== (profile.name || "") ||
+        formData.croNumber !== (profile.croNumber || "");
+      setIsDirty(hasChanges);
+    } else {
+      setIsDirty(false);
+    }
+  }, [formData, profile, isEditing]);
+
+  // Previne saída acidental com mudanças não salvas
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      if (isDirty) {
+        e.preventDefault();
+        e.returnValue = "";
+      }
+    };
+
+    if (isDirty) {
+      window.addEventListener("beforeunload", handleBeforeUnload);
+    }
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, [isDirty]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.name.trim()) {
       toast.error("Nome completo é obrigatório");
       return;
     }
-    
+
     if (!formData.croNumber.trim()) {
       toast.error("CRO é obrigatório");
       return;
@@ -60,6 +95,7 @@ export default function DentistProfile() {
       });
     }
     setIsEditing(false);
+    setIsDirty(false);
   };
 
   if (isLoading) {
@@ -73,16 +109,27 @@ export default function DentistProfile() {
   return (
     <Card className="border-border/50">
       <CardHeader>
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <UserCircle className="h-5 w-5 text-primary" />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <UserCircle className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle className="text-xl">Meu Perfil</CardTitle>
+              <CardDescription>
+                Gerencie suas informações profissionais
+              </CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-xl">Meu Perfil</CardTitle>
-            <CardDescription>
-              Gerencie suas informações profissionais
-            </CardDescription>
-          </div>
+          {isDirty && (
+            <Badge
+              variant="outline"
+              className="border-amber-500/50 text-amber-600 dark:text-amber-400 gap-1"
+            >
+              <AlertCircle className="h-3 w-3" />
+              Não salvo
+            </Badge>
+          )}
         </div>
       </CardHeader>
       <CardContent>
@@ -97,7 +144,9 @@ export default function DentistProfile() {
               type="text"
               placeholder="Dr. João Silva"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
               disabled={!isEditing}
               className={!isEditing ? "bg-muted/50" : ""}
             />
@@ -113,13 +162,13 @@ export default function DentistProfile() {
               type="text"
               placeholder="CRO-SP 12345"
               value={formData.croNumber}
-              onChange={(e) => setFormData({ ...formData, croNumber: e.target.value })}
+              onChange={(e) =>
+                setFormData({ ...formData, croNumber: e.target.value })
+              }
               disabled={!isEditing}
               className={!isEditing ? "bg-muted/50" : ""}
             />
           </div>
-
-
 
           {/* Botões de Ação */}
           <div className="flex gap-3 pt-4">
@@ -136,7 +185,7 @@ export default function DentistProfile() {
               <>
                 <Button
                   type="submit"
-                  disabled={updateProfileMutation.isPending}
+                  disabled={updateProfileMutation.isPending || !isDirty}
                   className="flex-1"
                 >
                   {updateProfileMutation.isPending ? (
@@ -147,7 +196,7 @@ export default function DentistProfile() {
                   ) : (
                     <>
                       <Save className="mr-2 h-4 w-4" />
-                      Salvar
+                      {isDirty ? "Salvar Alterações" : "Sem Alterações"}
                     </>
                   )}
                 </Button>
@@ -167,7 +216,8 @@ export default function DentistProfile() {
           {/* Info Message */}
           <div className="pt-2">
             <p className="text-xs text-muted-foreground">
-              <span className="text-destructive">*</span> Campos obrigatórios para assinatura no PDF
+              <span className="text-destructive">*</span> Campos obrigatórios
+              para assinatura no PDF
             </p>
           </div>
         </form>
@@ -175,4 +225,3 @@ export default function DentistProfile() {
     </Card>
   );
 }
-
