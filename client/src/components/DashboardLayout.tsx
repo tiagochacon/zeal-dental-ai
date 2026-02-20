@@ -21,18 +21,19 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Crown, FileText, LayoutDashboard, LogOut, PanelLeft, UserCircle, Users } from "lucide-react";
+import { Crown, FileText, LayoutDashboard, LogOut, PanelLeft, Sparkles, UserCircle, Users } from "lucide-react";
 import { CSSProperties, useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 import { UsageIndicator } from './UsageIndicator';
+import { trpc } from "@/lib/trpc";
 
+// Menu items - removido Assinatura pois será um botão CTA separado
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: FileText, label: "Consultas", path: "/consultations" },
   { icon: Users, label: "Pacientes", path: "/patients" },
-  { icon: Crown, label: "Assinatura", path: "/subscription" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
 ];
 
@@ -118,6 +119,10 @@ function DashboardLayoutContent({
   const sidebarRef = useRef<HTMLDivElement>(null);
   const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
+  
+  // Get subscription info to determine if user needs upgrade CTA
+  const { data: subscriptionInfo } = trpc.billing.getPlanInfo.useQuery();
+  const isPro = subscriptionInfo?.tier === 'pro' || subscriptionInfo?.tier === 'unlimited';
 
   useEffect(() => {
     if (isCollapsed) {
@@ -203,6 +208,63 @@ function DashboardLayoutContent({
                 );
               })}
             </SidebarMenu>
+            
+            {/* Upgrade CTA Button - Only show for non-Pro users */}
+            {!isPro && (
+              <div className="px-2 mt-4">
+                <button
+                  onClick={() => setLocation("/subscription")}
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-3 rounded-xl
+                    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                    hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
+                    shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                    transition-all duration-300 transform hover:scale-[1.02]
+                    border border-indigo-400/30
+                    group
+                    ${isCollapsed ? 'justify-center' : ''}
+                  `}
+                >
+                  <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
+                    <Sparkles className="h-4 w-4 text-white" />
+                  </div>
+                  {!isCollapsed && (
+                    <div className="flex flex-col items-start min-w-0">
+                      <span className="text-sm font-semibold text-white truncate">
+                        Fazer Upgrade
+                      </span>
+                      <span className="text-xs text-indigo-200 truncate">
+                        Desbloqueie o PRO
+                      </span>
+                    </div>
+                  )}
+                  {!isCollapsed && (
+                    <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
+                  )}
+                </button>
+              </div>
+            )}
+            
+            {/* Pro Badge - Show for Pro users */}
+            {isPro && (
+              <div className="px-2 mt-4">
+                <div
+                  className={`
+                    w-full flex items-center gap-3 px-3 py-2.5 rounded-xl
+                    bg-gradient-to-r from-emerald-600/20 to-teal-600/20
+                    border border-emerald-500/30
+                    ${isCollapsed ? 'justify-center' : ''}
+                  `}
+                >
+                  <Crown className="h-4 w-4 text-emerald-400 shrink-0" />
+                  {!isCollapsed && (
+                    <span className="text-sm font-medium text-emerald-400 truncate">
+                      Plano PRO Ativo
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
           </SidebarContent>
 
           <UsageIndicator />

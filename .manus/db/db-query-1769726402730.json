@@ -1,0 +1,65 @@
+{
+  "query": "SELECT id, eventId, eventType, status, userId, stripeCustomerId, planType, errorMessage, processedAt FROM payment_logs ORDER BY processedAt DESC LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, eventId, eventType, status, userId, stripeCustomerId, planType, errorMessage, processedAt FROM payment_logs ORDER BY processedAt DESC LIMIT 5;",
+  "rows": [
+    {
+      "id": "12",
+      "eventId": "evt_1Sv3OiJBQOFbtGZhkYeYZE86",
+      "eventType": "checkout.session.completed",
+      "status": "failed",
+      "userId": "NULL",
+      "stripeCustomerId": "cus_Tsp22FQo2wZUa3",
+      "planType": "trial",
+      "errorMessage": "No user found. Email: undefined",
+      "processedAt": "2026-01-29 22:39:08"
+    },
+    {
+      "id": "9",
+      "eventId": "evt_1Sv3r4JBQOFbtGZhXZ1IK9Gj",
+      "eventType": "invoice.finalized",
+      "status": "ignored",
+      "userId": "NULL",
+      "stripeCustomerId": "NULL",
+      "planType": "NULL",
+      "errorMessage": "NULL",
+      "processedAt": "2026-01-29 22:38:26"
+    },
+    {
+      "id": "7",
+      "eventId": "evt_1Sv3r3JBQOFbtGZhzJ9tLXDK",
+      "eventType": "checkout.session.completed",
+      "status": "failed",
+      "userId": "NULL",
+      "stripeCustomerId": "cus_TspWZzA7KdBpN8",
+      "planType": "trial",
+      "errorMessage": "No user found. Email: undefined",
+      "processedAt": "2026-01-29 22:38:26"
+    },
+    {
+      "id": "8",
+      "eventId": "evt_1Sv3r4JBQOFbtGZhuhCNoUid",
+      "eventType": "invoice.created",
+      "status": "ignored",
+      "userId": "NULL",
+      "stripeCustomerId": "NULL",
+      "planType": "NULL",
+      "errorMessage": "NULL",
+      "processedAt": "2026-01-29 22:38:26"
+    },
+    {
+      "id": "6",
+      "eventId": "evt_1Sv3r3JBQOFbtGZhxrz4E9f5",
+      "eventType": "subscription.updated",
+      "status": "failed",
+      "userId": "NULL",
+      "stripeCustomerId": "cus_TspWZzA7KdBpN8",
+      "planType": "NULL",
+      "errorMessage": "No user found for customer",
+      "processedAt": "2026-01-29 22:38:26"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\teventId\teventType\tstatus\tuserId\tstripeCustomerId\tplanType\terrorMessage\tprocessedAt\n12\tevt_1Sv3OiJBQOFbtGZhkYeYZE86\tcheckout.session.completed\tfailed\tNULL\tcus_Tsp22FQo2wZUa3\ttrial\tNo user found. Email: undefined\t2026-01-29 22:39:08\n9\tevt_1Sv3r4JBQOFbtGZhXZ1IK9Gj\tinvoice.finalized\tignored\tNULL\tNULL\tNULL\tNULL\t2026-01-29 22:38:26\n7\tevt_1Sv3r3JBQOFbtGZhzJ9tLXDK\tcheckout.session.completed\tfailed\tNULL\tcus_TspWZzA7KdBpN8\ttrial\tNo user found. Email: undefined\t2026-01-29 22:38:26\n8\tevt_1Sv3r4JBQOFbtGZhuhCNoUid\tinvoice.created\tignored\tNULL\tNULL\tNULL\tNULL\t2026-01-29 22:38:26\n6\tevt_1Sv3r3JBQOFbtGZhxrz4E9f5\tsubscription.updated\tfailed\tNULL\tcus_TspWZzA7KdBpN8\tNULL\tNo user found for customer\t2026-01-29 22:38:26\n",
+  "stderr": "",
+  "execution_time_ms": 55
+}

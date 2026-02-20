@@ -175,9 +175,10 @@ describe("Consultation Limits", () => {
     expect(getConsultationLimit(user)).toBe(PLANS.PRO.consultation_limit);
   });
 
-  it("should return 0 for no access", () => {
+  it("should fallback to trial limit for users without subscription", () => {
     const user = createMockUser();
-    expect(getConsultationLimit(user)).toBe(0);
+    // New behavior: fallback to trial tier limit (7) instead of 0
+    expect(getConsultationLimit(user)).toBe(TRIAL_CONSULTATION_LIMIT);
   });
 });
 
@@ -268,9 +269,10 @@ describe("User Plan Names", () => {
     expect(getUserPlanName(user)).toBe(PLANS.PRO.name);
   });
 
-  it("should return no plan name", () => {
+  it("should fallback to trial plan name for users without subscription", () => {
     const user = createMockUser();
-    expect(getUserPlanName(user)).toBe("Sem plano");
+    // New behavior: fallback to trial tier name
+    expect(getUserPlanName(user)).toBe("Trial de 7 dias");
   });
 });
 

@@ -1,6 +1,6 @@
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, consultationLimitProcedure, router } from "./_core/trpc";
+import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, consultationLimitProcedure, negotiationAccessProcedure, router } from "./_core/trpc";
 import { z } from "zod";
 import {
   createPatient,
@@ -34,7 +34,7 @@ import { invokeLLM } from "./_core/llm";
 import { SOAPNote, TreatmentPlan } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
-import { STRIPE_PRODUCTS } from "./stripe/products";
+import { PLAN_CONFIGS, PlanTier } from "./stripe/products";
 import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId, incrementConsultationCount } from "./db";
 import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
 import { sdk } from "./_core/sdk";
@@ -143,14 +143,18 @@ export const appRouter = router({
         return {
           name: user.name || '',
           croNumber: user.croNumber || '',
+          phone: user.phone || '',
+          specialty: user.specialty || '',
+          clinicAddress: user.clinicAddress || '',
         };
       }),
     updateProfile: protectedProcedure
       .input(z.object({
         name: z.string().min(1, "Nome é obrigatório"),
         croNumber: z.string().min(1, "CRO é obrigatório"),
-        birthDate: z.string().optional(),
-        clinicName: z.string().optional(),
+        phone: z.string().optional(),
+        specialty: z.string().optional(),
+        clinicAddress: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         await updateDentistProfile(ctx.user.id, input);
@@ -556,7 +560,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    transcribe: protectedSubscriptionProcedure
+    transcribe: consultationLimitProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);
@@ -871,8 +875,14 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         });
 
         // Increment consultation count for billing tracking
-        // Only increment for non-admin users
-        if (ctx.user.role !== 'admin') {
+        // Only increment for non-admin users (check both role and email)
+        const ADMIN_EMAILS = [
+          'tiagosennachacon@gmail.com',
+          'zealtecnologia@gmail.com',
+          'victorodriguez2611@gmail.com',
+        ];
+        const isAdmin = ctx.user.role === 'admin' || ADMIN_EMAILS.includes(ctx.user.email || '');
+        if (!isAdmin) {
           await incrementConsultationCount(ctx.user.id);
         }
 
@@ -957,6 +967,14 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
   }),
 
   billing: router({
+    // Get current plan info for frontend
+    getPlanInfo: protectedProcedure.query(async ({ ctx }) => {
+      const { getUserPlanInfo } = await import('./billing');
+      const user = await getUserById(ctx.user.id);
+      if (!user) throw new Error("Usuário não encontrado");
+      return getUserPlanInfo(user);
+    }),
+
     // Start free trial
     startTrial: protectedProcedure.mutation(async ({ ctx }) => {
       const { startUserTrial } = await import('./db');
@@ -987,15 +1005,18 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         subscriptionStatus: user.subscriptionStatus,
         priceId: user.priceId,
         subscriptionEndDate: user.subscriptionEndDate,
-        plans: Object.entries(STRIPE_PRODUCTS).map(([key, plan]) => ({
-          key,
-          name: plan.name,
-          description: plan.description,
-          price: plan.price,
-          currency: plan.currency,
-          interval: plan.interval,
-          features: plan.features,
-        })),
+        plans: Object.entries(PLAN_CONFIGS)
+          .filter(([_, config]) => config.priceId !== null) // Only show paid plans
+          .map(([tier, config]) => ({
+            key: tier,
+            name: config.name,
+            description: config.description,
+            price: config.price,
+            currency: config.currency,
+            interval: "month" as const,
+            features: config.features,
+            priceId: config.priceId,
+          })),
       };
     }),
 
@@ -1076,7 +1097,8 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
   // Neurovendas Analysis Router
   neurovendas: router({
     // Analyze consultation transcript for sales intelligence
-    analyzeConsultation: protectedProcedure
+    // Gate: Only PRO, Trial, and Unlimited users can access Negotiation analysis
+    analyzeConsultation: negotiationAccessProcedure
       .input(z.object({
         consultationId: z.number(),
       }))
@@ -1088,6 +1110,11 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
 
         if (!consultation.transcript) {
           throw new Error("Esta consulta não possui transcrição para análise");
+        }
+
+        // Se já existe análise, retornar a existente (não recalcular para manter Rapport persistente)
+        if (consultation.neurovendasAnalysis) {
+          return { success: true, analysis: consultation.neurovendasAnalysis, cached: true };
         }
 
         const prompt = `Você é um especialista em Neurovendas e Linguagem Corporal para Dentistas, baseado na metodologia do Dr. Carlos Rodriguez.
@@ -1105,8 +1132,15 @@ Com base na transcrição, analise:
 - Avalie o nível de ansiedade/receptividade (1-10)
 
 2. OBJEÇÕES IDENTIFICADAS:
-- Liste objeções verdadeiras detectadas
-- Liste possíveis objeções ocultas/falsas
+- Liste objeções verdadeiras detectadas na transcrição
+- Para CADA objeção verdadeira, forneça uma RESPOSTA SUGERIDA COMPLETA usando a técnica LAER:
+  * L (Listen/Ouvir): Reconheça a preocupação do paciente
+  * A (Acknowledge/Aceitar): Valide o sentimento
+  * E (Explore/Explorar): Faça perguntas para entender melhor
+  * R (Respond/Responder): Ofereça uma solução personalizada
+- A resposta sugerida deve ser um SCRIPT COMPLETO que o dentista pode usar, não apenas o nome da técnica
+- Exemplo de resposta sugerida para objeção financeira: "Entendo sua preocupação com o valor. É normal querer entender bem o investimento. Me conta, o que especificamente te preocupa mais: o valor total ou a forma de pagamento? Temos opções de parcelamento que podem ajudar."
+- Liste possíveis objeções ocultas/falsas com perguntas reveladoras
 - Classifique cada objeção (financeira, medo, tempo, confiança)
 
 3. SINAIS DE LINGUAGEM:
@@ -1125,12 +1159,45 @@ Com base na transcrição, analise:
 - Engajamento: Como criar compromisso
 
 6. TÉCNICA RECOMENDADA PARA OBJEÇÕES:
-- Se objeção verdadeira: Aplique técnica LAER
+- Se objeção verdadeira: Aplique técnica LAER (Listen, Acknowledge, Explore, Respond)
 - Se objeção falsa: Aplique técnica de Redirecionamento
+- IMPORTANTE: No campo 'tecnicaSugerida' de cada objeção, forneça um SCRIPT COMPLETO de resposta, não apenas o nome da técnica
 
-7. NÍVEL DE RAPPORT (1-10):
-- Avalie o rapport atual
-- Sugira ações para melhorar
+7. NÍVEL DE RAPPORT (0-100) - ANÁLISE DETALHADA:
+Calcule o Rapport usando os seguintes critérios com pesos específicos:
+
+a) VALIDAÇÃO EMOCIONAL (máx 30 pontos):
+   - Frases como 'entendo', 'faz sentido', 'é normal sentir', 'compreendo sua preocupação'
+   - Reconhecimento dos sentimentos do paciente
+
+b) ESPELHAMENTO LINGUÍSTICO (máx 25 pontos):
+   - Dentista repete palavras-chave do paciente (ex: se paciente diz 'dor', dentista usa 'dor' em vez de 'desconforto')
+   - Uso do vocabulário do paciente
+
+c) ESCUTA ATIVA (máx 20 pontos):
+   - Parafrasear o paciente
+   - Fazer perguntas abertas
+   - Silêncios de escuta (permitir que paciente complete pensamentos)
+
+d) EQUILÍBRIO DE TURNOS (máx 15 pontos):
+   - Paciente fala 30-50% do tempo = ótimo (15 pts)
+   - Paciente fala 20-30% ou 50-60% = bom (10 pts)
+   - Paciente fala <20% ou >70% = ruim (5 pts ou menos)
+
+e) AUSÊNCIA DE INTERRUPÇÕES (máx 10 pontos):
+   - Dentista NÃO interrompe frases do paciente
+   - Permite conclusão de pensamentos
+
+AJUSTES POR PERFIL NEUROLÓGICO:
+- Se Reptiliano: +10% se menciona segurança/garantia, -15% se pressiona decisão rápida
+- Se Límbico: +15% se usa histórias/casos similares, -10% se foca só em dados técnicos
+- Se Neocórtex: +10% se apresenta estudos/evidências, -10% se apela só para emoção
+
+Forneça:
+- Pontuação total (0-100)
+- Breakdown de cada critério
+- Justificativa em 1 frase citando o critério de maior impacto
+- 1 sugestão prática de melhoria
 
 Responda em JSON estruturado.`;
 
@@ -1167,9 +1234,9 @@ Responda em JSON estruturado.`;
                         items: {
                           type: "object",
                           properties: {
-                            texto: { type: "string" },
-                            categoria: { type: "string", enum: ["financeira", "medo", "tempo", "confianca", "outra"] },
-                            tecnicaSugerida: { type: "string" }
+                            texto: { type: "string", description: "A objeção exata do paciente" },
+                            categoria: { type: "string", enum: ["financeira", "medo", "tempo", "confianca", "outra"], description: "Categoria da objeção" },
+                            tecnicaSugerida: { type: "string", description: "SCRIPT COMPLETO de resposta usando técnica LAER. Deve ser uma frase completa que o dentista pode usar diretamente, não apenas o nome da técnica. Exemplo: 'Entendo sua preocupação com o valor. É normal querer entender bem o investimento. Me conta, o que especificamente te preocupa mais: o valor total ou a forma de pagamento? Temos opções de parcelamento que podem ajudar.'" }
                           },
                           required: ["texto", "categoria", "tecnicaSugerida"],
                           additionalProperties: false
@@ -1238,11 +1305,25 @@ Responda em JSON estruturado.`;
                   rapport: {
                     type: "object",
                     properties: {
-                      nivel: { type: "number" },
+                      nivel: { type: "number", description: "Pontuação total de 0-100" },
+                      breakdown: {
+                        type: "object",
+                        properties: {
+                          validacaoEmocional: { type: "number", description: "0-30 pontos" },
+                          espelhamentoLinguistico: { type: "number", description: "0-25 pontos" },
+                          escutaAtiva: { type: "number", description: "0-20 pontos" },
+                          equilibrioTurnos: { type: "number", description: "0-15 pontos" },
+                          ausenciaInterrupcoes: { type: "number", description: "0-10 pontos" }
+                        },
+                        required: ["validacaoEmocional", "espelhamentoLinguistico", "escutaAtiva", "equilibrioTurnos", "ausenciaInterrupcoes"],
+                        additionalProperties: false
+                      },
+                      justificativa: { type: "string", description: "1 frase citando o critério de maior impacto" },
+                      melhoria: { type: "string", description: "1 sugestão prática de melhoria" },
                       pontosFortesRelacionamento: { type: "array", items: { type: "string" } },
                       acoesParaMelhorar: { type: "array", items: { type: "string" } }
                     },
-                    required: ["nivel", "pontosFortesRelacionamento", "acoesParaMelhorar"],
+                    required: ["nivel", "breakdown", "justificativa", "melhoria", "pontosFortesRelacionamento", "acoesParaMelhorar"],
                     additionalProperties: false
                   },
                   resumoExecutivo: { type: "string" }

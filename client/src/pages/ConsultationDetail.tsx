@@ -21,6 +21,7 @@ import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import type { SOAPNote, TreatmentPlan } from "../../../drizzle/schema";
 import { AdaptiveNegotiationTab } from "@/components/negotiation";
+import { UpgradeModal } from "@/components/UpgradeModal";
 import type { PatientProfile, NeurovendasAnalysis } from "../../../drizzle/schema";
 
 export default function ConsultationDetail() {
@@ -43,11 +44,29 @@ export default function ConsultationDetail() {
     postOpText: "",
     warningsText: "",
   });
+  const [activeTab, setActiveTab] = useState("soap");
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
     { id: consultationId! },
     { enabled: !!user && !!consultationId }
   );
+
+  // Check if user has access to Negotiation tab
+  // Trial, Pro, Unlimited and Admin have access to Negotiation tab
+  // Only Basic users should see upgrade modal
+  const isTrialActive = user?.trialEndsAt && new Date(user.trialEndsAt) > new Date();
+  const hasNegotiationAccess = user?.role === 'admin' || 
+    user?.subscriptionTier === 'pro' || 
+    user?.subscriptionTier === 'unlimited' ||
+    user?.priceId === 'unlimited' ||
+    isTrialActive;
+  
+  // Check if this is an old consultation with existing neurovendas data (allow read access)
+  const hasExistingNeurovendasData = !!consultation?.neurovendasAnalysis;
+  
+  // Allow access if user has subscription access OR if consultation already has neurovendas data
+  const canAccessNegotiation = hasNegotiationAccess || hasExistingNeurovendasData;
 
   const { data: existingFeedback } = trpc.feedbacks.getByConsultation.useQuery(
     { consultationId: consultationId! },
@@ -63,12 +82,12 @@ export default function ConsultationDetail() {
 
   const updateSOAPMutation = trpc.consultations.updateSOAP.useMutation({
     onSuccess: () => {
-      toast.success("Nota SOAP atualizada!");
+      toast.success("Notas Clínicas atualizadas!");
       setIsEditing(false);
       refetch();
     },
     onError: () => {
-      toast.error("Erro ao atualizar nota SOAP");
+      toast.error("Erro ao atualizar Notas Clínicas");
     },
   });
 
@@ -146,7 +165,7 @@ export default function ConsultationDetail() {
 
   const handleExportPDF = () => {
     if (!consultation || !consultation.soapNote) {
-      toast.error("Nota SOAP não disponível para exportação");
+      toast.error("Notas Clínicas não disponíveis para exportação");
       return;
     }
     try {
@@ -234,12 +253,17 @@ export default function ConsultationDetail() {
       return;
     }
     try {
+      // Extract patient info from SOAP note if available
+      const soapNote = consultation.soapNote as SOAPNote | null;
+      const patientHistory = soapNote?.subjective?.historico_medico?.join(', ') || '';
+      
       exportTreatmentPlanToPDF({
         patientName: consultation.patientName,
         createdAt: consultation.createdAt,
         treatmentPlan,
         dentistName: dentistProfile?.name,
         dentistCRO: dentistProfile?.croNumber,
+        patientMedicalHistory: patientHistory || undefined,
       });
       toast.success("PDF exportado com sucesso!");
     } catch (error) {
@@ -486,7 +510,7 @@ export default function ConsultationDetail() {
         </header>
 
         <div className="p-4 lg:p-6 max-w-4xl mx-auto">
-          <Tabs defaultValue="soap" className="space-y-6">
+          <Tabs defaultValue="soap" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="soap" className="text-xs sm:text-sm">
                 <FileText className="mr-1 sm:mr-2 h-4 w-4" />
@@ -502,9 +526,22 @@ export default function ConsultationDetail() {
                 <ClipboardList className="mr-1 sm:mr-2 h-4 w-4" />
                 Plano
               </TabsTrigger>
-              <TabsTrigger value="neurovendas" className="text-xs sm:text-sm">
+              <TabsTrigger 
+                value="neurovendas" 
+                className="text-xs sm:text-sm relative"
+                disabled={!canAccessNegotiation && !hasExistingNeurovendasData}
+                onClick={(e) => {
+                  if (!canAccessNegotiation && !hasExistingNeurovendasData) {
+                    e.preventDefault();
+                    setShowUpgradeModal(true);
+                  }
+                }}
+              >
                 <TrendingUp className="mr-1 sm:mr-2 h-4 w-4" />
                 Negociação
+                {!hasNegotiationAccess && !hasExistingNeurovendasData && (
+                  <span className="ml-1 px-1.5 py-0.5 text-[10px] font-semibold bg-blue-500 text-white rounded-full">PRO</span>
+                )}
               </TabsTrigger>
               <TabsTrigger value="transcript" className="text-xs sm:text-sm">
                 <AudioLines className="mr-1 sm:mr-2 h-4 w-4" />
@@ -755,6 +792,7 @@ export default function ConsultationDetail() {
                 patientProfile={(consultation.soapNote as SOAPNote & { patientProfile?: PatientProfile })?.patientProfile}
                 neurovendasAnalysis={consultation.neurovendasAnalysis as NeurovendasAnalysis | null}
                 transcript={consultation.transcript}
+                isActive={activeTab === "neurovendas"}
               />
             </TabsContent>
           </Tabs>
@@ -905,6 +943,15 @@ export default function ConsultationDetail() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal for Basic users */}
+      <UpgradeModal 
+        open={showUpgradeModal} 
+        onOpenChange={setShowUpgradeModal}
+        trigger="feature_gate"
+        currentPlan={user?.subscriptionTier as "trial" | "basic" | "pro" | "unlimited" || "basic"}
+        feature="Negociação"
+      />
     </div>
   );
 }

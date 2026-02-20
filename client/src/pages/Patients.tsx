@@ -7,7 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, FileText, Menu, X, LogOut, UserCircle } from "lucide-react";
+import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, FileText, Menu, X, LogOut, UserCircle, Sparkles, Crown } from "lucide-react";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { UsageCounterModal } from "@/components/UsageCounterModal";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -163,13 +165,29 @@ export default function Patients() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<number | null>(null);
   const [formData, setFormData] = useState<PatientFormData>(initialFormData);
+  const [showUsageModal, setShowUsageModal] = useState(false);
 
   const utils = trpc.useUtils();
+
+  // Get subscription info to show upgrade CTA
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
+  // Admin users are always treated as unlimited/PRO
+  const isAdmin = user?.role === 'admin';
+  const isPro = isAdmin || planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
+  const isBasic = !isAdmin && planInfo?.tier === 'basic';
+  const isTrial = !isAdmin && !isPro && !isBasic && planInfo?.tier === 'trial';
+
+  // Get usage info for counter modal - use correct field names from backend
+  const consultationsUsed = planInfo?.consultationsUsed ?? planInfo?.used ?? 0;
+  const consultationsLimit = planInfo?.consultationsLimit ?? planInfo?.limit ?? 7;
+  const daysRemaining = planInfo?.trialDaysRemaining;
+  const currentTier = isAdmin ? 'admin' : (planInfo?.tier || 'trial') as 'trial' | 'basic' | 'pro' | 'unlimited' | 'admin';
 
   const { data: patients, isLoading } = trpc.patients.list.useQuery(
     undefined,
@@ -306,10 +324,35 @@ export default function Patients() {
         transform transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
+        {/* Logo with Plan Badge */}
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
             <span className="text-xl font-bold text-foreground">Zeal</span>
+            {/* Plan Status Badge - Clickable */}
+            <button
+              onClick={() => setShowUsageModal(true)}
+              className="group"
+              title="Ver uso de consultas"
+            >
+              {user?.role === 'admin' ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white mt-0.5 group-hover:bg-amber-400 transition-colors cursor-pointer">
+                  ADMIN
+                </span>
+              ) : isPro ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white mt-0.5 group-hover:from-blue-500 group-hover:to-cyan-400 transition-colors cursor-pointer">
+                  PRO
+                </span>
+              ) : isBasic ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white mt-0.5 group-hover:bg-slate-400 transition-colors cursor-pointer">
+                  BASIC
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500 text-white mt-0.5 group-hover:bg-emerald-400 transition-colors cursor-pointer">
+                  TRIAL
+                </span>
+              )}
+            </button>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)}
@@ -357,6 +400,55 @@ export default function Patients() {
               </button>
             </li>
           </ul>
+
+          {/* Upgrade CTA Button - Only show for Basic and Trial users (not Admin or Pro) */}
+          {user?.role !== 'admin' && !isPro && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="
+                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                  bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                  hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
+                  shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                  transition-all duration-300 transform hover:scale-[1.02]
+                  border border-indigo-400/30
+                  group
+                "
+              >
+                <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                <div className="flex flex-col items-start min-w-0">
+                  <span className="text-sm font-semibold text-white truncate">
+                    {isBasic ? 'Upgrade para PRO' : 'Assinar Plano PRO'}
+                  </span>
+                  <span className="text-xs text-indigo-200 truncate">
+                    {isBasic ? 'Desbloqueie Negociação e mais' : 'Desbloqueie todo o potencial'}
+                  </span>
+                </div>
+                <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
+              </button>
+            </div>
+          )}
+
+          {/* Pro/Admin Badge - Show for Pro users or Admin */}
+          {(isPro || user?.role === 'admin') && (
+            <div className="mt-6">
+              <div className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                ${user?.role === 'admin' 
+                  ? 'bg-gradient-to-r from-amber-600/20 to-yellow-600/20 border border-amber-500/30' 
+                  : 'bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30'
+                }
+              `}>
+                <Crown className={`h-5 w-5 shrink-0 ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`} />
+                <span className={`text-sm font-medium truncate ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {user?.role === 'admin' ? 'Acesso Admin' : 'Plano PRO Ativo'}
+                </span>
+              </div>
+            </div>
+          )}
         </nav>
 
         <div className="p-4 border-t border-sidebar-border">
@@ -546,6 +638,23 @@ export default function Patients() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        trigger={isTrial ? "trial_limit" : isBasic ? "basic_limit" : "feature_gate"}
+      />
+
+      {/* Usage Counter Modal */}
+      <UsageCounterModal
+        open={showUsageModal}
+        onOpenChange={setShowUsageModal}
+        tier={currentTier}
+        consultationsUsed={consultationsUsed}
+        consultationsLimit={consultationsLimit}
+        daysRemaining={daysRemaining}
+      />
     </div>
   );
 }

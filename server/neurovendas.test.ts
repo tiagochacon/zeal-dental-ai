@@ -116,7 +116,7 @@ describe("Neurovendas Analysis", () => {
             {
               texto: "Está muito caro",
               categoria: "financeira",
-              tecnicaSugerida: "Técnica LAER para objeção financeira",
+              tecnicaSugerida: "Entendo sua preocupação com o valor. É normal querer entender bem o investimento. Me conta, o que especificamente te preocupa mais: o valor total ou a forma de pagamento? Temos opções de parcelamento que podem ajudar.",
             },
           ],
           ocultas: [],

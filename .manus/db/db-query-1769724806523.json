@@ -1,0 +1,19 @@
+{
+  "query": "SELECT id, name, email, subscriptionStatus, subscriptionTier, stripeCustomerId, consultationCount FROM users WHERE email = 'vititovictorhugo@gmail.com';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, name, email, subscriptionStatus, subscriptionTier, stripeCustomerId, consultationCount FROM users WHERE email = 'vititovictorhugo@gmail.com';",
+  "rows": [
+    {
+      "id": "3870063",
+      "name": "Victor hugo ",
+      "email": "vititovictorhugo@gmail.com",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial",
+      "stripeCustomerId": "NULL",
+      "consultationCount": "7"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\tsubscriptionStatus\tsubscriptionTier\tstripeCustomerId\tconsultationCount\n3870063\tVictor hugo \tvititovictorhugo@gmail.com\tinactive\ttrial\tNULL\t7\n",
+  "stderr": "",
+  "execution_time_ms": 58
+}

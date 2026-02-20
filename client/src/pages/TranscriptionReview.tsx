@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { Loader2, ArrowLeft, Play, Pause, Check, Edit2, AudioLines, FileText, LayoutDashboard, Users, Menu, X } from "lucide-react";
-import { LimitReachedModal } from "@/components/LimitReachedModal";
+import { UpgradeModal, type UpgradeModalTrigger } from "@/components/UpgradeModal";
+import { useUsageLimit, getTriggerFromError } from "@/hooks/useUsageLimit";
 import { useLocation, useParams } from "wouter";
 import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
@@ -20,7 +21,9 @@ export default function TranscriptionReview() {
   const [isEditing, setIsEditing] = useState(false);
   const [editedTranscript, setEditedTranscript] = useState("");
   const [isPlaying, setIsPlaying] = useState(false);
-  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeModalTrigger>("trial_limit");
+  const usageLimit = useUsageLimit();
   const audioRef = useRef<HTMLAudioElement>(null);
 
   const { data: consultation, isLoading, refetch } = trpc.consultations.getById.useQuery(
@@ -51,15 +54,22 @@ export default function TranscriptionReview() {
 
   const generateSOAPMutation = trpc.consultations.analyzeAndGenerateSOAP.useMutation({
     onSuccess: () => {
-      toast.success("Nota SOAP gerada com sucesso!");
+      toast.success("Notas Clínicas geradas com sucesso!");
       setLocation(`/consultation/${consultationId}`);
     },
     onError: (error: any) => {
-      // Check if it's a limit reached error
-      if (error.data?.code === 'FORBIDDEN' && error.message?.includes('Limite')) {
-        setShowLimitModal(true);
+      // Check if it's a limit reached error (FORBIDDEN or LIMIT_EXCEEDED)
+      if (error.data?.code === 'FORBIDDEN' || 
+          error.message?.includes('LIMIT_EXCEEDED') || 
+          error.message?.includes('Limite')) {
+        // Parse trigger from backend error message or use current plan info
+        const trigger = error?.message?.includes('LIMIT_EXCEEDED') 
+          ? getTriggerFromError(error.message)
+          : usageLimit.getUpgradeTrigger() || 'trial_limit';
+        setUpgradeTrigger(trigger);
+        setShowUpgradeModal(true);
       } else {
-        toast.error(`Erro ao gerar nota SOAP: ${error.message}`);
+        toast.error(`Erro ao gerar Notas Clínicas: ${error.message}`);
       }
     },
   });
@@ -379,12 +389,12 @@ export default function TranscriptionReview() {
                 {generateSOAPMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Gerando Nota SOAP...
+                    Gerando Notas Clínicas...
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-1 lg:mr-2" />
-                    Confirmar e Gerar Nota SOAP
+                    Confirmar e Gerar Notas Clínicas
                   </>
                 )}
               </Button>
@@ -393,12 +403,14 @@ export default function TranscriptionReview() {
         </div>
       </main>
 
-      {/* Limit Reached Modal */}
-      <LimitReachedModal
-        open={showLimitModal}
-        onClose={() => setShowLimitModal(false)}
-        currentPlan={user?.subscriptionStatus === 'active' ? 'basic' : 'trial'}
-        consultationsUsed={user?.consultationCount || 0}
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        trigger={upgradeTrigger}
+        currentPlan={usageLimit.currentPlan}
+        consultationsUsed={usageLimit.consultationsUsed}
+        consultationsLimit={usageLimit.consultationsLimit}
       />
     </div>
   );

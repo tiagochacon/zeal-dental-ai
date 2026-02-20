@@ -109,6 +109,9 @@ export async function updateUserCRO(userId: number, croNumber: string) {
 export async function updateDentistProfile(userId: number, data: {
   name?: string;
   croNumber?: string;
+  phone?: string;
+  specialty?: string;
+  clinicAddress?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -362,13 +365,25 @@ export async function updateUserSubscription(userId: number, data: {
   stripeCustomerId?: string | null;
   stripeSubscriptionId?: string | null;
   subscriptionStatus?: "active" | "inactive" | "past_due" | "canceled" | "trialing";
+  subscriptionTier?: "trial" | "basic" | "pro" | "unlimited";
   priceId?: string | null;
   subscriptionEndDate?: Date | null;
+  consultationCount?: number; // Reset consultation count when activating subscription
 }): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
   await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+export async function getUserByEmail(email: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
 }
 
 export async function getUserByStripeCustomerId(stripeCustomerId: string) {

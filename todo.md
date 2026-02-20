@@ -238,3 +238,282 @@
 
 ## Restauração Visual Login (v24)
 - [x] Restaurar tela de login para visual anterior com tema Deep Blue
+
+## Correção de Bugs - Aba Negociação (v25)
+- [x] Corrigir persistência do Rapport no backend (não recalcular após primeira geração)
+- [x] Implementar auto-geração da análise ao entrar na aba Negociação
+- [x] Exibir Skeleton durante loading da análise
+- [x] Renderizar todos os 3 blocos simultaneamente (Rapport + Objeções + Script)
+- [x] Garantir que estado persiste ao trocar de aba e voltar
+- [x] Criar testes de auto-load e persistência (11 testes passando)
+
+## Refinamento Algoritmo Rapport com Neurociência (v26)
+- [x] Atualizar schema/interface de Rapport com breakdown dos 5 critérios
+- [x] Atualizar prompt da IA para calcular Rapport com pesos definidos
+- [x] Adicionar ajuste por perfil neurológico (Reptiliano/Límbico/Neocórtex)
+- [x] Adicionar tooltip com breakdown ao hover na porcentagem
+- [x] Adicionar insight card com justificativa e melhoria
+- [x] Testar com cenários de validação (19 testes passando)
+
+## Gates de Funcionalidade por Plano de Assinatura (v27)
+- [x] Verificar/atualizar schema com campos subscriptionTier e limites
+- [x] Implementar verificação de trial expirado (7 dias ou 7 consultas)
+- [x] Implementar contagem de consultas mensais por plano
+- [x] Bloquear aba Negociação no backend para plano basic
+- [x] Criar UpgradeModal no frontend para plano basic
+- [x] Desabilitar aba Negociação visualmente para plano basic (com badge PRO)
+- [x] Manter acesso a consultas antigas com Negociação após downgrade
+- [x] Implementar admin override (ignorar restrições)
+- [x] Testar cenários de validação (29 testes passando)
+
+## Bug Fix - Trial Expirado Bloqueando Usuário (v28)
+- [ ] Analisar lógica de verificação de trial no middleware
+- [ ] Corrigir comparação de datas de trial
+- [ ] Testar com usuário toscc@cin.ufpe.br
+
+## Tela de Upgrade Intuitiva (v29)
+- [x] Atualizar LimitReachedModal com lógica de planos dinâmica
+- [x] Trial expirado: mostrar planos Básico e Pro
+- [x] Básico no limite: mostrar apenas plano Pro
+- [x] Criar UI interativa com cards de planos e benefícios
+- [x] Adicionar CTAs claros para cada plano
+- [x] Testar cenários de upgrade (194 testes passando)
+
+## Enforcement Estrito de Limites e Upsell (v30)
+- [x] Refatorar middleware para verificar limites ANTES de executar lógica de IA/DB
+- [x] Retornar TRPC_ERROR FORBIDDEN quando limite atingido
+- [x] Criar testes automatizados: trial bloqueado na 8ª, basic na 21ª, pro na 51ª (26 testes passando)
+- [x] Testar que admins nunca são bloqueados (por role e por email)
+- [x] Implementar UpgradeBanner dinâmico (trial->basic/pro, basic->pro)
+- [x] Verificar lógica de reset mensal alinhada com ciclo Stripe (webhook invoice.paid)
+- [x] Tratar erro FORBIDDEN no frontend com modal de upgrade
+
+## Reimplementação de Modais de Upsell (v31)
+- [x] Step 1: Analisar LimitReachedModal existente e criar UpgradeModal persuasivo
+- [x] Step 2: Implementar detecção de limites com hook useUsageLimit
+- [x] Step 3: Integrar modal em NewConsultation, TranscriptionReview e ConsultationDetail
+- [x] Step 4: Criar copywriting persuasivo com frases de impacto
+- [x] Step 5: Adicionar código de erro LIMIT_EXCEEDED no backend
+- [x] Step 6: Testar fluxos de trigger (trial, basic, feature_gate)
+- [x] Step 7: Criar testes automatizados para modais de upsell (27 testes passando)
+
+## Automação de Liberação de Acesso via Stripe Webhooks (v33)
+- [x] Verificar implementação atual do webhook do Stripe
+- [x] Configurar chaves de produção do Stripe (via Settings > Payment)
+- [x] Garantir tratamento de checkout.session.completed para ativar planos (Basic/Pro)
+- [x] Implementar customer.subscription.deleted para revogar acesso (rebaixa para trial)
+- [x] Implementar invoice.payment_failed para marcar como past_due
+- [x] Validar segurança com STRIPE_WEBHOOK_SECRET
+- [x] Criar testes automatizados (30 testes passando)
+- [ ] Usuário deve configurar webhook no painel do Stripe
+
+## Reconstrução Robusta da Integração Stripe (v34)
+- [x] Auditar schema do banco (stripe_customer_id, plan_type, subscription_status)
+- [x] Criar tabela payment_logs para auditoria de webhooks
+- [x] Configurar mapeamento de Price IDs (Basic: price_1SuYhvJBQOFbtGZhL4AVyGqb, Pro: price_1SuYhvJBQOFbtGZhu5hcAhqH)
+- [x] Configurar mapeamento de Product IDs (Basic: prod_TsJKWnhkerrtD3, Pro: prod_TsJKKhldI5j5h6)
+- [x] Reconstruir webhook handler com lógica robusta e idempotente
+- [x] Implementar feature gating: Basic sem Neurovendas, Pro com acesso completo
+- [x] Criar testes end-to-end do fluxo de pagamento (281 testes passando)
+- [x] Validar fluxo completo: webhook → DB → UI
+
+## Gerenciamento de Assinatura e Correções (v35)
+- [x] Corrigir tamanho do modal de upgrade para caber na tela (max-h-[90vh] com scroll)
+- [x] Criar página de gerenciamento de assinatura (ver status, cancelar, upgrade)
+- [x] Implementar pop-up de upgrade para usuários Basic/Trial em funcionalidades Pro (Negociação)
+- [x] Página de assinatura já acessível via sidebar
+
+## Correção de Bugs - Menu e Pop-up (v36)
+- [x] Adicionar link "Assinatura" no menu lateral do dashboard
+- [x] Corrigir pop-up de upgrade nas funções Pro (não está aparecendo)
+- [x] Testar fluxo completo após correções
+
+## Otimização UI/UX de Conversão (v37)
+- [x] Substituir aba 'Assinatura' por botão CTA atrativo na sidebar (gradient Deep Blue to Cyan, ícone Crown)
+- [x] Otimizar modal de upgrade: max-width 500px, grid 2 colunas, animação suave
+- [x] Reescrever copywriting dos benefícios por plano (Trial, Basic, Pro)
+- [x] Manter lógica de restrição: Basic não acessa Negociação
+- [x] Garantir responsividade e estética dark mode
+
+## Refinamentos de UX e Integridade do Sistema (v38)
+- [x] Adicionar atribuição "Metodologia: Dr. Carlos Rodriguez" na aba Negociação (texto discreto, canto inferior direito)
+- [x] Padronizar sidebar globalmente - garantir que "Consultas" apareça em todas as páginas (incluindo Meu Perfil)
+- [x] Corrigir edição de perfil para permitir múltiplas edições (não apenas uma vez)
+- [x] Testar fluxo completo após correções
+
+## Reposicionamento Atribuição de Metodologia (v39)
+- [x] Mover atribuição "Metodologia: Dr. Carlos Rodriguez" do rodapé para o topo da aba Negociação
+- [x] Aumentar tamanho da fonte (text-xs para text-sm ou text-base)
+- [x] Aplicar font-weight medium/semi-bold para leitura clara
+- [x] Usar cor de destaque suave (azul claro da paleta ZEAL)
+- [x] Garantir balanceamento visual sem empurrar outros elementos
+- [x] Testar e validar mudanças
+
+## Sincronização Global da Sidebar (v40)
+- [x] Analisar componentes de sidebar e identificar inconsistências entre páginas
+- [x] Unificar sidebar com botão de upgrade em todas as páginas (Dashboard, Pacientes, Consultas, Perfil)
+- [x] Garantir que o botão de upgrade mantenha mesmo estilo e posição em todas as telas
+- [x] Testar navegação completa e validar consistência visual
+
+## Copywriting Estratégico - Conversão (v41)
+- [x] Atualizar headline: "Sua Clínica no Próximo Nível com Inteligência Artificial"
+- [x] Atualizar subheadline com foco em tempo e faturamento
+- [x] Reescrever features com gatilhos psicológicos (Autoridade, Ganho de Tempo, Aumento de Lucro)
+- [x] Adicionar nova feature de Neurovendas
+- [x] Atualizar CTA: "Começar minha Revolução Clínica"
+- [x] Manter design system atual (cores, fontes, layout)
+- [x] Testar e validar mudanças
+
+## Simplificação Copywriting Minimalista (v42)
+- [x] Remover item do odontograma da lista de benefícios
+- [x] Substituir "Nota SOAP" por "Documentação clínica" ou "Diagnósticos e Tratamentos"
+- [x] Reduzir para 3 tópicos principais (Transcrição, Documentação, Neurovendas)
+- [x] Ajustar espaçamento vertical (gap) para manter equilíbrio visual
+- [x] Aplicar mesmas mudanças na página de Register
+- [x] Testar e validar mudanças
+
+## Ajustes de Copywriting (v43)
+- [x] Trocar "O ZEAL" por "A ZEAL" em todas as ocorrências
+- [x] Colocar "com Inteligência Artificial" na mesma linha do headline
+- [x] Aplicar mudanças nas páginas de Login e Register
+
+## Otimização PDF Plano de Tratamento (v44)
+- [x] Analisar lógica atual de geração do PDF
+- [x] Aumentar espaçamento entre linhas (line-height 1.5-1.6)
+- [x] Melhorar hierarquia tipográfica (Bold para títulos, Regular para corpo)
+- [x] Garantir margens equilibradas (mínimo 22mm)
+- [x] Adicionar espaçamento entre itens de tratamento e recomendações
+- [x] Organizar: Dados Paciente > Histórico > Plano Detalhado > Recomendações > Assinatura
+- [x] Alinhar cabeçalho com logo ZEAL e informações da clínica
+- [x] Testar e validar PDF gerado
+
+## Correção Layout PDF (v45)
+- [x] Corrigir overflow de texto na caixa de Alertas (ajustar altura dinâmica)
+- [x] Remover círculos numerados redundantes da Sequência de Tratamento
+- [x] Usar hierarquia de texto limpa (Fase X: Título em negrito)
+- [x] Garantir espaçamento uniforme entre as fases
+- [x] Testar e validar PDF corrigido
+
+## Ajustes Finais PDF (v46)
+- [x] Remover duplicação "Fase X: Fase X:" - exibir apenas "Fase X:" seguido do título sem repetir
+- [x] Aumentar espaçamento entre texto e linha divisória entre fases
+- [x] Testar e validar PDF corrigido
+
+## UI Adaptativa por Plano (v47)
+- [ ] Implementar badge de status (ADMIN gold, PRO gradient azul, BASIC slate, TRIAL verde) próximo à logo
+- [ ] Ajustar lógica do botão de upgrade: ocultar para Admin/Pro, mostrar para Basic/Trial
+- [ ] Basic: botão "Upgrade para PRO" | Trial: botão "Assinar Plano PRO"
+- [ ] Garantir integração com AuthContext e subscriptionTier do usuário
+- [ ] Aplicar estilos Tailwind com cantos arredondados e harmonia dark mode
+- [ ] Testar e validar para todos os níveis de usuário
+
+## UI Adaptativa por Plano (v47) - CONCLUÍDO
+- [x] Adicionar badge de status do plano na sidebar próximo à logo (ADMIN, PRO, BASIC, TRIAL)
+- [x] Admin: badge âmbar, sem botão de upgrade, badge "Acesso Admin" no lugar do CTA
+- [x] Pro: badge gradiente azul/cyan, badge "Plano PRO Ativo" no lugar do CTA
+- [x] Basic: badge cinza, botão "Upgrade para PRO" com texto "Desbloqueie Neurovendas"
+- [x] Trial: badge verde, botão "Assinar Plano PRO" com texto "Desbloqueie todo o potencial"
+- [x] Aplicar mudanças em todas as páginas (Dashboard, Patients, Consultations, Profile)
+- [x] Testar e validar lógica condicional
+
+## Ajuste Visual Badge do Plano (v48)
+- [x] Diminuir tamanho do badge do plano (text-[10px] menor)
+- [x] Alinhar badge com a logo (mt-0.5 para descer um pouco)
+- [x] Aplicar mudanças em todas as páginas (Dashboard, Patients, Consultations, Profile)
+
+## Correção Bug PRO identificado como TRIAL (v49)
+- [x] Auditar schema do banco - verificar campos plan, subscriptionStatus, subscriptionTier
+- [x] Verificar lógica do webhook Stripe - garantir que checkout.session.completed atualize plan corretamente
+- [x] Corrigir lógica de determinação de plano no frontend - priorizar assinatura ativa sobre trial
+- [x] Garantir que usuário PRO veja badge PRO (não TRIAL) e não veja botão de upgrade
+- [x] Testar e validar correções
+
+## Correção Integração Stripe - Plano Correto (v50)
+- [x] Analisar produtos/preços configurados no Stripe (Basic vs PRO price_ids)
+- [x] Corrigir webhook para identificar plano correto baseado no price_id
+- [x] Atualizar subscriptionTier para 'basic' ou 'pro' conforme o plano comprado
+- [x] Implementar lógica de cancelamento que esgota trial (consultationCount = 7)
+- [x] Garantir que usuário com trial esgotado precise assinar para usar novamente
+- [x] Testar fluxo completo: compra Basic, compra PRO, cancelamento
+
+## Integração Enterprise Stripe (v51)
+- [x] Configurar 3 contas Admin (zealtecnologia@gmail.com, tiagosennachacon@gmail.com, victorodriguez2611@gmail.com)
+- [x] Verificar Product IDs do Stripe (Basic: prod_TsJKWnhkerrtD3, PRO: prod_TsJKKhldI5j5h6)
+- [x] Refatorar webhook para identificar plano por Product ID (não pelo valor pago)
+- [x] Implementar lógica de cancelamento que esgota trial (consultationCount = 7)
+- [x] Implementar middleware de controle de acesso (Basic não acessa Negociação)
+- [x] Garantir que consultas do Trial não sejam descontadas do plano pago
+- [x] Testar cenários: PRO com cupom 100%, cancelamento, login Admin
+
+## Correção Crítica Stripe PRO→Basic (v52)
+- [x] Analisar logs e identificar onde a identificação de plano está falhando
+- [x] Corrigir webhook para expandir line_items com Stripe API e obter Product ID
+- [x] Implementar reset de consultationCount = 0 ao iniciar novo plano
+- [x] Garantir que PRO seja identificado corretamente pelo Product ID prod_TsJKKhldI5j5h6
+- [x] Testar fluxo completo de compra PRO
+
+## Correções de UX v53
+- [ ] Corrigir botão "Voltar para Login" que não está funcionando
+- [ ] Corrigir redirecionamento após iniciar Trial (deve ir para dashboard, não ficar no pricing)
+- [ ] Ajustar cores dos nomes dos planos nos cards (texto "ZEAL" cortado/escuro)
+- [ ] Criar contador de consultas ao clicar no badge do plano (X/Y consultas usadas)
+
+## Correções de UX v54
+- [x] Corrigir botão Voltar para Login na página de Pricing (usar Link do wouter)
+- [x] Corrigir redirecionamento após iniciar Trial (usar window.location.href para forçar navegação)
+- [x] Ajustar cores dos nomes dos planos nos cards do UpgradeModal (ZEAL PRO, ZEAL Básico)
+- [x] Criar componente UsageCounterModal para mostrar contador de consultas
+- [x] Tornar badge do plano clicável no Dashboard para abrir contador
+- [x] Tornar badge do plano clicável no Patients para abrir contador
+- [x] Tornar badge do plano clicável no Consultations para abrir contador
+
+## Correção do Contador de Consultas v55
+- [x] Analisar billing.getPlanInfo para verificar cálculo de consultationsUsed e consultationsLimit
+- [x] Corrigir lógica de contagem baseada no plano do usuário (adicionado consultationsUsed, consultationsLimit, trialDaysRemaining)
+- [x] Garantir que consultation_count incrementa ao finalizar consulta (já implementado em generateSOAP)
+- [x] Testar contador com diferentes planos (trial, basic, pro, admin)
+
+## Ajustes Críticos no Sistema de Planos v56
+- [x] REQ1: Permitir acesso à aba Negociação para usuários Trial (backend + frontend)
+- [x] REQ2: Corrigir alinhamento do botão de upgrade (Crown icon + texto)
+- [x] REQ3: Melhorar modal de detalhes de uso - PRO não deve ter botão de upgrade
+- [x] Testar todos os cenários de planos (trial, basic, pro, admin)
+
+## Correção Respostas Sugeridas Neurovendas v57
+- [x] Analisar prompt de análise de Neurovendas no backend (routers.ts)
+- [x] Corrigir prompt para gerar respostas sugeridas completas e personalizadas (não apenas "LAER")
+- [x] Testar com consulta real para validar as respostas
+
+## Atualização Informações de Planos v58
+- [x] Analisar configuração real dos planos no backend (products.ts, billing.ts)
+- [x] Mapear todas as telas que exibem info de planos (6 telas + 4 sidebars)
+- [x] Atualizar Pricing.tsx com permissões reais (features com ✓ e ✗)
+- [x] Atualizar UpgradeModal.tsx com permissões reais
+- [x] Atualizar UsageCounterModal.tsx com permissões reais
+- [x] Atualizar LimitReachedModal.tsx com permissões reais
+- [x] Atualizar Subscription.tsx (PLAN_DETAILS + inline lists)
+- [x] Atualizar sidebars (Dashboard, Patients, Consultations, Profile)
+
+## Alterações v59
+- [x] Renomear "Gerar Nota SOAP" para "Gerar Notas Clínicas" em todos os botões e textos do sistema (9 arquivos atualizados)
+- [x] Corrigir bug do perfil que salva automaticamente sem dar tempo de editar (useRef para proteger modo de edição)
+
+## Bug Perfil Auto-Save v60
+- [x] Investigar causa raiz: refetchOnWindowFocus padrão do React Query causava re-fetch do getProfile
+- [x] Corrigir: desabilitar refetchOnWindowFocus/refetchOnReconnect na query getProfile
+- [x] Corrigir: useRef editingRef como guard no useEffect para impedir reset durante edição
+- [x] Testado: modo de edição persiste por 10+ segundos sem sair automaticamente
+
+## Perfil Completo v61
+- [x] BUG: Corrigir definitivamente edição de perfil (useReducer + refetchOnWindowFocus:false no pai)
+- [x] Adicionar campo telefone ao schema e perfil (com máscara (XX) XXXXX-XXXX)
+- [x] Adicionar campo especialidade ao schema e perfil
+- [x] Adicionar campo endereço do consultório ao schema e perfil (textarea)
+- [x] Implementar máscara de CRO (CRO-UF Número)
+- [x] Atualizar backend (schema, db.ts, routers.ts) + migração aplicada
+- [x] Testado: modo de edição persiste 15+ segundos, 310 testes passando
+
+## Simplificação do Perfil v62
+- [x] Remover campos telefone, especialidade e endereço do DentistProfile.tsx
+- [x] Manter apenas Nome Completo e CRO/Número de Registro
+- [x] FormData simplificado para { name, croNumber } apenas

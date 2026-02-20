@@ -3,14 +3,18 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut, UserCircle } from "lucide-react";
+import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut, UserCircle, Sparkles, Crown, ArrowRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { getLoginUrl } from "@/const";
+import { UpgradeModal } from "@/components/UpgradeModal";
+import { UsageCounterModal } from "@/components/UsageCounterModal";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [showUsageModal, setShowUsageModal] = useState(false);
   
   const { data: consultations, isLoading } = trpc.consultations.list.useQuery(
     undefined,
@@ -21,6 +25,20 @@ export default function Dashboard() {
     undefined,
     { enabled: !!user }
   );
+
+  // Get subscription info to show upgrade CTA
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
+  // Admin users are always treated as unlimited/PRO
+  const isAdmin = user?.role === 'admin';
+  const isPro = isAdmin || planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
+  const isBasic = !isAdmin && planInfo?.tier === 'basic';
+  const isTrial = !isAdmin && !isPro && !isBasic && planInfo?.tier === 'trial';
+
+  // Get usage info for counter modal - use correct field names from backend
+  const consultationsUsed = planInfo?.consultationsUsed ?? planInfo?.used ?? 0;
+  const consultationsLimit = planInfo?.consultationsLimit ?? planInfo?.limit ?? 7;
+  const daysRemaining = planInfo?.trialDaysRemaining;
+  const currentTier = isAdmin ? 'admin' : (planInfo?.tier || 'trial') as 'trial' | 'basic' | 'pro' | 'unlimited' | 'admin';
 
   if (authLoading) {
     return (
@@ -54,6 +72,13 @@ export default function Dashboard() {
     finalized: "bg-green-500/20 text-green-400",
   };
 
+  // Determine upgrade trigger type
+  const getUpgradeTrigger = () => {
+    if (isTrial) return "trial_limit";
+    if (isBasic) return "basic_limit";
+    return "feature_gate";
+  };
+
   return (
     <div className="min-h-screen bg-background flex">
       {/* Mobile Sidebar Overlay */}
@@ -71,11 +96,35 @@ export default function Dashboard() {
         transform transition-transform duration-200 ease-in-out
         ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}>
-        {/* Logo */}
+        {/* Logo with Plan Badge */}
         <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
             <span className="text-xl font-bold text-foreground">Zeal</span>
+            {/* Plan Status Badge - Clickable */}
+            <button
+              onClick={() => setShowUsageModal(true)}
+              className="group"
+              title="Ver uso de consultas"
+            >
+              {user?.role === 'admin' ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white mt-0.5 group-hover:bg-amber-400 transition-colors cursor-pointer">
+                  ADMIN
+                </span>
+              ) : isPro ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white mt-0.5 group-hover:from-blue-500 group-hover:to-cyan-400 transition-colors cursor-pointer">
+                  PRO
+                </span>
+              ) : isBasic ? (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white mt-0.5 group-hover:bg-slate-400 transition-colors cursor-pointer">
+                  BASIC
+                </span>
+              ) : (
+                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500 text-white mt-0.5 group-hover:bg-emerald-400 transition-colors cursor-pointer">
+                  TRIAL
+                </span>
+              )}
+            </button>
           </div>
           <button 
             onClick={() => setSidebarOpen(false)}
@@ -125,6 +174,55 @@ export default function Dashboard() {
               </button>
             </li>
           </ul>
+
+          {/* Upgrade CTA Button - Only show for Basic and Trial users (not Admin or Pro) */}
+          {user?.role !== 'admin' && !isPro && (
+            <div className="mt-6">
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="
+                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                  bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
+                  hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
+                  shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                  transition-all duration-300 transform hover:scale-[1.02]
+                  border border-indigo-400/30
+                  group
+                "
+              >
+                <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
+                  <Sparkles className="h-4 w-4 text-white" />
+                </div>
+                <div className="flex flex-col items-start min-w-0">
+                  <span className="text-sm font-semibold text-white truncate">
+                    {isBasic ? 'Upgrade para PRO' : 'Assinar Plano PRO'}
+                  </span>
+                  <span className="text-xs text-indigo-200 truncate">
+                    {isBasic ? 'Desbloqueie Negociação e mais' : 'Desbloqueie todo o potencial'}
+                  </span>
+                </div>
+                <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
+              </button>
+            </div>
+          )}
+
+          {/* Pro/Admin Badge - Show for Pro users or Admin */}
+          {(isPro || user?.role === 'admin') && (
+            <div className="mt-6">
+              <div className={`
+                w-full flex items-center gap-3 px-4 py-3 rounded-xl
+                ${user?.role === 'admin' 
+                  ? 'bg-gradient-to-r from-amber-600/20 to-yellow-600/20 border border-amber-500/30' 
+                  : 'bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30'
+                }
+              `}>
+                <Crown className={`h-5 w-5 shrink-0 ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`} />
+                <span className={`text-sm font-medium truncate ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                  {user?.role === 'admin' ? 'Acesso Admin' : 'Plano PRO Ativo'}
+                </span>
+              </div>
+            </div>
+          )}
         </nav>
 
         {/* User Profile */}
@@ -182,11 +280,11 @@ export default function Dashboard() {
             <CardContent className="p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs lg:text-sm text-muted-foreground">Total de Pacientes</p>
-                  <p className="text-2xl lg:text-3xl font-bold mt-1 lg:mt-2">{totalPatients}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Total de Pacientes</p>
+                  <p className="text-2xl lg:text-3xl font-bold">{totalPatients}</p>
                   <p className="text-xs text-muted-foreground mt-1 hidden sm:block">pacientes cadastrados</p>
                 </div>
-                <Users className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground" />
+                <Users className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
               </div>
             </CardContent>
           </Card>
@@ -195,24 +293,24 @@ export default function Dashboard() {
             <CardContent className="p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs lg:text-sm text-muted-foreground">Consultas Realizadas</p>
-                  <p className="text-2xl lg:text-3xl font-bold mt-1 lg:mt-2">{completedConsultations}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Consultas Realizadas</p>
+                  <p className="text-2xl lg:text-3xl font-bold">{completedConsultations}</p>
                   <p className="text-xs text-muted-foreground mt-1 hidden sm:block">consultas completas</p>
                 </div>
-                <FileText className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground" />
+                <FileText className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
+          <Card className="bg-card border-border col-span-2 lg:col-span-1">
             <CardContent className="p-4 lg:p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs lg:text-sm text-muted-foreground">Em Andamento</p>
-                  <p className="text-2xl lg:text-3xl font-bold mt-1 lg:mt-2">{pendingConsultations}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">Em Andamento</p>
+                  <p className="text-2xl lg:text-3xl font-bold">{pendingConsultations}</p>
                   <p className="text-xs text-muted-foreground mt-1 hidden sm:block">consultas pendentes</p>
                 </div>
-                <Clock className="h-6 w-6 lg:h-8 lg:w-8 text-muted-foreground" />
+                <Clock className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
               </div>
             </CardContent>
           </Card>
@@ -220,65 +318,79 @@ export default function Dashboard() {
 
         {/* Recent Consultations */}
         <div className="p-4 lg:p-6">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 lg:p-6">
-              <div className="flex items-center gap-3 mb-4 lg:mb-6">
-                <Mic className="h-5 w-5 text-muted-foreground" />
-                <h2 className="text-base lg:text-lg font-semibold">Consultas Recentes</h2>
-              </div>
+          <div className="flex items-center gap-2 mb-4">
+            <Mic className="h-5 w-5 text-muted-foreground" />
+            <h2 className="text-lg font-semibold">Consultas Recentes</h2>
+          </div>
 
-              {isLoading ? (
-                <div className="flex justify-center py-8 lg:py-12">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                </div>
-              ) : recentConsultations.length === 0 ? (
-                <div className="text-center py-8 lg:py-12 text-muted-foreground">
-                  <Mic className="h-12 w-12 lg:h-16 lg:w-16 mx-auto mb-4 opacity-30" />
-                  <p className="text-base lg:text-lg">Nenhuma consulta registrada ainda</p>
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setLocation("/new-consultation")}
-                  >
-                    Iniciar Primeira Consulta
-                  </Button>
-                </div>
-              ) : (
-                <div className="space-y-2 lg:space-y-3">
-                  {recentConsultations.map((consultation) => (
-                    <div
-                      key={consultation.id}
-                      className="flex items-center justify-between p-3 lg:p-4 rounded-lg border border-border hover:border-primary/50 cursor-pointer transition-colors"
-                      onClick={() => {
-                        if (consultation.status === "draft" && !consultation.transcript) {
-                          setLocation(`/consultation/${consultation.id}/review`);
-                        } else {
-                          setLocation(`/consultation/${consultation.id}`);
-                        }
-                      }}
-                    >
-                      <div className="flex items-center gap-3 lg:gap-4 min-w-0">
-                        <div className="w-8 h-8 lg:w-10 lg:h-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-                          <User className="h-4 w-4 lg:h-5 lg:w-5 text-muted-foreground" />
-                        </div>
-                        <div className="min-w-0">
-                          <p className="font-medium text-sm lg:text-base truncate">{consultation.patientName}</p>
-                          <p className="text-xs lg:text-sm text-muted-foreground">
-                            {new Date(consultation.createdAt).toLocaleDateString('pt-BR')}
-                          </p>
-                        </div>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
+          ) : recentConsultations.length === 0 ? (
+            <Card className="bg-card border-border">
+              <CardContent className="p-8 text-center">
+                <Mic className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium mb-2">Nenhuma consulta ainda</h3>
+                <p className="text-muted-foreground mb-4">
+                  Comece gravando sua primeira consulta
+                </p>
+                <Button onClick={() => setLocation("/new-consultation")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Consulta
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {recentConsultations.map((consultation) => (
+                <Card 
+                  key={consultation.id} 
+                  className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => setLocation(`/consultation/${consultation.id}`)}
+                >
+                  <CardContent className="p-4 flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                        <User className="h-5 w-5 text-primary" />
                       </div>
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium shrink-0 ${statusColors[consultation.status]}`}>
-                        {statusLabels[consultation.status]}
-                      </span>
+                      <div>
+                        <p className="font-medium">{consultation.patientName || "Paciente"}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {new Date(consultation.createdAt).toLocaleDateString('pt-BR')}
+                        </p>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[consultation.status] || statusColors.draft}`}>
+                      {statusLabels[consultation.status] || consultation.status}
+                    </span>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </main>
+
+      {/* Upgrade Modal */}
+      <UpgradeModal
+        open={showUpgradeModal}
+        onOpenChange={setShowUpgradeModal}
+        trigger={getUpgradeTrigger()}
+        currentPlan={currentTier === 'admin' ? 'unlimited' : currentTier}
+        consultationsUsed={consultationsUsed}
+        consultationsLimit={consultationsLimit}
+      />
+
+      {/* Usage Counter Modal */}
+      <UsageCounterModal
+        open={showUsageModal}
+        onOpenChange={setShowUsageModal}
+        tier={currentTier}
+        consultationsUsed={consultationsUsed}
+        consultationsLimit={consultationsLimit}
+        daysRemaining={daysRemaining}
+      />
     </div>
   );
 }

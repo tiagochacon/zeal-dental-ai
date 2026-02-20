@@ -16,11 +16,16 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   // Dentist profile fields
   croNumber: varchar("croNumber", { length: 50 }),
+  phone: varchar("phone", { length: 30 }),
+  specialty: varchar("specialty", { length: 100 }),
+  clinicAddress: text("clinicAddress"),
   // Stripe subscription fields
   stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
   subscriptionStatus: mysqlEnum("subscriptionStatus", ["active", "inactive", "past_due", "canceled", "trialing"]).default("inactive").notNull(),
   priceId: varchar("priceId", { length: 255 }),
+  // Subscription tier for feature gating
+  subscriptionTier: mysqlEnum("subscriptionTier", ["trial", "basic", "pro", "unlimited"]).default("trial").notNull(),
   subscriptionEndDate: timestamp("subscriptionEndDate"),
   // Trial fields
   trialStartedAt: timestamp("trialStartedAt"),
@@ -235,6 +240,30 @@ export interface TranscriptSegment {
 /**
  * Neurovendas Analysis structure for sales intelligence
  */
+/**
+ * Payment logs table for Stripe webhook audit trail
+ */
+export const paymentLogs = mysqlTable("payment_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  eventId: varchar("eventId", { length: 255 }).notNull().unique(), // Stripe event ID for idempotency
+  eventType: varchar("eventType", { length: 100 }).notNull(),
+  userId: int("userId"),
+  stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
+  stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
+  priceId: varchar("priceId", { length: 255 }),
+  productId: varchar("productId", { length: 255 }),
+  planType: mysqlEnum("planType", ["trial", "basic", "pro", "unlimited"]),
+  amount: int("amount"), // Amount in cents
+  currency: varchar("currency", { length: 10 }),
+  status: mysqlEnum("status", ["success", "failed", "duplicate", "ignored"]).notNull(),
+  errorMessage: text("errorMessage"),
+  rawPayload: json("rawPayload"),
+  processedAt: timestamp("processedAt").defaultNow().notNull(),
+});
+
+export type PaymentLog = typeof paymentLogs.$inferSelect;
+export type InsertPaymentLog = typeof paymentLogs.$inferInsert;
+
 export interface NeurovendasAnalysis {
   perfilPsicografico: {
     nivelCerebralDominante: "neocortex" | "limbico" | "reptiliano";
@@ -277,6 +306,15 @@ export interface NeurovendasAnalysis {
   };
   rapport: {
     nivel: number;
+    breakdown: {
+      validacaoEmocional: number;
+      espelhamentoLinguistico: number;
+      escutaAtiva: number;
+      equilibrioTurnos: number;
+      ausenciaInterrupcoes: number;
+    };
+    justificativa: string;
+    melhoria: string;
     pontosFortesRelacionamento: string[];
     acoesParaMelhorar: string[];
   };

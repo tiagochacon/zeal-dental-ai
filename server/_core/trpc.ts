@@ -1,5 +1,5 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG, SUBSCRIPTION_REQUIRED_ERR_MSG } from '@shared/const';
-import { hasAccessToPremium, hasReachedConsultationLimit, getRemainingConsultations } from '../billing';
+import { hasAccessToPremium, hasReachedConsultationLimit, getRemainingConsultations, hasNegotiationAccess, getUserTier } from '../billing';
 import { getConsultationCount } from '../db';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
@@ -122,11 +122,11 @@ const enforceConsultationLimit = t.middleware(async opts => {
 
   // VERIFICAR LIMITE ESTRITAMENTE ANTES de executar qualquer lógica
   if (hasReachedConsultationLimit(ctx.user)) {
-    const remaining = getRemainingConsultations(ctx.user);
-    const limit = ctx.user.consultationCount;
+    const used = ctx.user.consultationCount;
+    const tier = getUserTier(ctx.user);
     throw new TRPCError({ 
       code: "FORBIDDEN", 
-      message: `Limite de consultas atingido para o seu plano. Você usou ${limit} consultas. Faça upgrade para continuar.`,
+      message: `LIMIT_EXCEEDED:${tier}:${used}:Limite de consultas atingido para o seu plano. Faça upgrade para continuar.`,
     });
   }
 
@@ -140,3 +140,37 @@ const enforceConsultationLimit = t.middleware(async opts => {
 });
 
 export const consultationLimitProcedure = t.procedure.use(enforceConsultationLimit);
+
+/**
+ * Middleware que verifica acesso à aba de Negociação.
+ * Bloqueia usuários do plano basic de acessar análise de Neurovendas.
+ */
+const enforceNegotiationAccess = t.middleware(async opts => {
+  const { ctx, next } = opts;
+
+  if (!ctx.user) {
+    throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+
+  // Admins por role ou por email têm acesso total
+  if (ctx.user.role === 'admin' || ADMIN_EMAILS.includes(ctx.user.email || '')) {
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }
+
+  // Verificar se tem acesso à Negociação
+  if (!hasNegotiationAccess(ctx.user)) {
+    throw new TRPCError({ 
+      code: "FORBIDDEN", 
+      message: "Upgrade para o plano PRO para acessar a análise de Negociação. Desbloqueie insights de neurovendas para aumentar sua taxa de aceitação de tratamentos.",
+    });
+  }
+
+  return next({
+    ctx: {
+      ...ctx,
+      user: ctx.user,
+    },
+  });
+});
+
+export const negotiationAccessProcedure = t.procedure.use(enforceNegotiationAccess);

@@ -52,7 +52,6 @@ export default function Login() {
     loginMutation.mutate({ email, password });
   };
 
-<<<<<<< HEAD
   return (
     <div className="min-h-screen flex bg-gradient-to-br from-background via-[#0d1a2d] to-background relative overflow-hidden">
       {/* Animated Background Effects - Deep Blue Theme */}
@@ -69,205 +68,40 @@ export default function Login() {
             <img src="/logo.png" alt="ZEAL" className="h-16 w-auto drop-shadow-2xl" />
             <span className="text-5xl font-bold text-white tracking-tight">Zeal</span>
           </div>
-=======
-  const cardVariants = {
-    hidden: { opacity: 0, y: 24 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
-    shake: { x: [0, -8, 8, -6, 6, 0], transition: { duration: 0.5 } },
-  };
-
-  const formVariants = {
-    hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
-  };
-
-  const fieldVariants = {
-    hidden: { opacity: 0, y: 8 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
-  };
-
-  const features = [
-    {
-      icon: '🎯',
-      title: 'Foco Total no Paciente',
-      description: 'Transcrição inteligente que elimina as anotações manuais durante a consulta.',
-    },
-    {
-      icon: '📋',
-      title: 'Notas SOAP em Segundos',
-      description: 'Documentação clínica impecável e automática, pronta para exportação.',
-    },
-    {
-      icon: '🦷',
-      title: 'Diagnóstico de Alto Impacto',
-      description: 'Odontogramas automáticos que facilitam a compreensão e o fechamento pelo paciente.',
-    },
-    {
-      icon: '🧠',
-      title: 'Inteligência em Neurovendas',
-      description: 'Scripts e gatilhos personalizados para cada perfil de paciente, baseados em neurociência.',
-    },
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-100">
-      <div className="container mx-auto px-4 py-8">
-        <div className="grid lg:grid-cols-5 gap-12 items-start">
-          {/* Left Side - Marketing Copy (3/5 colunas) */}
-          <motion.div
-            className="lg:col-span-3 space-y-8"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-          >
-            {/* Headline */}
-            <motion.h1
-              className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-gray-900 leading-tight"
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: 'easeOut' }}
-            >
-              Sua Clínica no{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-800">
-                Próximo Nível
-              </span>{' '}
-              com Inteligência Artificial
-            </motion.h1>
-            
-            {/* Subheadline */}
-            <motion.p
-              className="text-lg md:text-xl text-gray-600 leading-relaxed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.2, duration: 0.5 }}
-            >
-              Recupere seu tempo e aumente o faturamento do seu consultório. O ZEAL{' '}
-              <strong>automatiza sua burocracia clínica</strong> e utiliza{' '}
-              <span className="text-blue-600 font-semibold">Neurovendas</span> para elevar a aceitação dos seus tratamentos.
-            </motion.p>
-            
-            {/* Features */}
-            <motion.div
-              className="space-y-4"
-              initial="hidden"
-              animate="visible"
-              variants={{
-                visible: {
-                  transition: {
-                    staggerChildren: 0.1,
-                    delayChildren: 0.3,
-                  },
-                },
-              }}
-            >
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                O que o ZEAL faz pela sua clínica:
-              </h3>
-              
-              {features.map((feature, i) => (
-                <motion.div
-                  key={i}
-                  className="flex items-start gap-4 p-4 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
-                  variants={{
-                    hidden: { opacity: 0, x: -20 },
-                    visible: { opacity: 1, x: 0 },
-                  }}
-                >
-                  <span className="text-3xl flex-shrink-0">{feature.icon}</span>
-                  <div className="flex-1">
-                    <h4 className="font-semibold text-gray-900 mb-1">{feature.title}</h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">{feature.description}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
-            
-            {/* Social Proof */}
-            <motion.div
-              className="space-y-4"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.8, duration: 0.5 }}
-            >
-              <div className="flex flex-wrap gap-4 text-sm text-gray-600">
-                <span>✓ Usado por 200+ dentistas no Brasil</span>
-                <span>✓ Taxa média de conversão: 67%</span>
-                <span>✓ Nota 4.9/5 no Google Reviews</span>
-              </div>
-              
-              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                <p className="italic text-gray-700 mb-2">
-                  "Fechei 4 tratamentos seguidos usando os scripts do ZEAL. Nunca tinha conseguido isso antes!"
-                </p>
-                <p className="text-sm text-gray-600">
-                  <strong>Dra. Ana Silva</strong> - São Paulo, SP
-                </p>
-              </div>
-            </motion.div>
-            
-            {/* CTAs */}
-            <motion.div
-              className="flex flex-col sm:flex-row gap-4 pt-4"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 1, duration: 0.5 }}
-            >
-              <Link href="/register">
-                <Button
-                  size="lg"
-                  className="w-full sm:w-auto px-8 py-6 text-lg font-semibold bg-gradient-to-r from-blue-600 to-blue-800 hover:from-blue-700 hover:to-blue-900 shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-                >
-                  Começar minha Revolução Clínica
-                </Button>
-              </Link>
-              
-              <Link href="/pricing">
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="w-full sm:w-auto px-6 py-6 text-base border-2 hover:border-blue-600 hover:text-blue-600"
-                >
-                  Ver Planos →
-                </Button>
-              </Link>
-            </motion.div>
-          </motion.div>
->>>>>>> e4a0246 (feat: atualizar copy de login/registro com foco em revolucao clinica e IA)
           
           <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
-            Assistente de IA<br />
-            <span className="text-blue-400">Odontológico</span>
+            Sua Clínica no Próximo Nível com <span className="text-blue-400">Inteligência Artificial</span>
           </h1>
           
           <p className="text-xl text-gray-300 mb-8 leading-relaxed">
-            Transforme suas consultas com inteligência artificial. 
-            Transcrições automáticas, notas SOAP precisas e odontogramas detalhados.
+            Recupere seu tempo e eleve o faturamento do seu consultório. 
+            A ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
           </p>
           
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
+          <div className="space-y-5">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Transcrição de áudio em tempo real</span>
+              <span className="text-gray-300 leading-relaxed">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais durante a consulta.</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
                 <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Geração automática de notas clínicas</span>
+              <span className="text-gray-300 leading-relaxed">Diagnósticos e Tratamentos Precisos: Documentação clínica gerada automaticamente a partir do áudio da sua consulta.</span>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-blue-600/20 flex items-center justify-center">
-                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+            <div className="flex items-start gap-4">
+              <div className="w-11 h-11 rounded-full bg-cyan-600/20 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300">Odontograma interativo e detalhado</span>
+              <span className="text-cyan-300 font-medium leading-relaxed">Estratégia de Neurovendas: Scripts e gatilhos personalizados para aumentar o fechamento de tratamentos.</span>
             </div>
           </div>
         </div>

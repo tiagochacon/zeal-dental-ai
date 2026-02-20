@@ -1,0 +1,38 @@
+{
+  "query": "SELECT id, email, role, subscriptionTier, subscriptionStatus FROM users WHERE email IN ('zealtecnologia@gmail.com', 'tiagosennachacon@gmail.com', 'victorodriguez2611@gmail.com');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, email, role, subscriptionTier, subscriptionStatus FROM users WHERE email IN ('zealtecnologia@gmail.com', 'tiagosennachacon@gmail.com', 'victorodriguez2611@gmail.com');",
+  "rows": [
+    {
+      "id": "2730042",
+      "email": "zealtecnologia@gmail.com",
+      "role": "admin",
+      "subscriptionTier": "trial",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "2730051",
+      "email": "tiagosennachacon@gmail.com",
+      "role": "admin",
+      "subscriptionTier": "trial",
+      "subscriptionStatus": "active"
+    },
+    {
+      "id": "3420113",
+      "email": "tiagosennachacon@gmail.com",
+      "role": "user",
+      "subscriptionTier": "trial",
+      "subscriptionStatus": "inactive"
+    },
+    {
+      "id": "3570007",
+      "email": "victorodriguez2611@gmail.com",
+      "role": "admin",
+      "subscriptionTier": "trial",
+      "subscriptionStatus": "active"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\temail\trole\tsubscriptionTier\tsubscriptionStatus\n2730042\tzealtecnologia@gmail.com\tadmin\ttrial\tactive\n2730051\ttiagosennachacon@gmail.com\tadmin\ttrial\tactive\n3420113\ttiagosennachacon@gmail.com\tuser\ttrial\tinactive\n3570007\tvictorodriguez2611@gmail.com\tadmin\ttrial\tactive\n",
+  "stderr": "",
+  "execution_time_ms": 139
+}

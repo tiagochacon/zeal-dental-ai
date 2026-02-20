@@ -258,7 +258,7 @@ describe('Usage Limits - Admin Users (Unlimited Access)', () => {
 });
 
 describe('Usage Limits - Edge Cases', () => {
-  it('should BLOCK user with no subscription and no trial', () => {
+  it('should fallback to trial tier for user with no subscription and no trial', () => {
     const user = createMockUser({
       subscriptionStatus: 'inactive',
       trialStartedAt: null,
@@ -266,7 +266,8 @@ describe('Usage Limits - Edge Cases', () => {
     });
     
     expect(hasAccessToPremium(user)).toBe(false);
-    expect(getConsultationLimit(user)).toBe(0);
+    // New behavior: fallback to trial tier limit (7) instead of 0
+    expect(getConsultationLimit(user)).toBe(7);
   });
 
   it('should handle user with canceled subscription', () => {
