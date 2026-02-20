@@ -143,14 +143,18 @@ export const appRouter = router({
         return {
           name: user.name || '',
           croNumber: user.croNumber || '',
+          phone: user.phone || '',
+          specialty: user.specialty || '',
+          clinicAddress: user.clinicAddress || '',
         };
       }),
     updateProfile: protectedProcedure
       .input(z.object({
         name: z.string().min(1, "Nome é obrigatório"),
         croNumber: z.string().min(1, "CRO é obrigatório"),
-        birthDate: z.string().optional(),
-        clinicName: z.string().optional(),
+        phone: z.string().optional(),
+        specialty: z.string().optional(),
+        clinicAddress: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         await updateDentistProfile(ctx.user.id, input);

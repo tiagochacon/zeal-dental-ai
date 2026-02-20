@@ -16,6 +16,9 @@ export const users = mysqlTable("users", {
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
   // Dentist profile fields
   croNumber: varchar("croNumber", { length: 50 }),
+  phone: varchar("phone", { length: 30 }),
+  specialty: varchar("specialty", { length: 100 }),
+  clinicAddress: text("clinicAddress"),
   // Stripe subscription fields
   stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),

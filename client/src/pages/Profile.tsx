@@ -15,7 +15,7 @@ export default function Profile() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
 
   // Get subscription info to show upgrade CTA
-  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user, refetchOnWindowFocus: false, refetchOnReconnect: false });
   // Admin users are always treated as unlimited/PRO
   const isAdmin = user?.role === 'admin';
   const isPro = isAdmin || planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';

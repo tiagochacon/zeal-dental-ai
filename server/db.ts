@@ -109,6 +109,9 @@ export async function updateUserCRO(userId: number, croNumber: string) {
 export async function updateDentistProfile(userId: number, data: {
   name?: string;
   croNumber?: string;
+  phone?: string;
+  specialty?: string;
+  clinicAddress?: string;
 }) {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

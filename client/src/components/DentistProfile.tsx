@@ -1,36 +1,109 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useReducer, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Loader2, Save, UserCircle, Pencil } from "lucide-react";
+import { Loader2, Save, UserCircle, Pencil, Phone, MapPin, Stethoscope, BadgeCheck } from "lucide-react";
+
+// ---- Types ----
+interface FormData {
+  name: string;
+  croNumber: string;
+  phone: string;
+  specialty: string;
+  clinicAddress: string;
+}
+
+type State = {
+  mode: "view" | "editing" | "saving";
+  formData: FormData;
+  initialData: FormData; // snapshot of data when editing started
+};
+
+type Action =
+  | { type: "LOAD_PROFILE"; data: FormData }
+  | { type: "START_EDITING" }
+  | { type: "UPDATE_FIELD"; field: keyof FormData; value: string }
+  | { type: "START_SAVING" }
+  | { type: "SAVE_SUCCESS"; data: FormData }
+  | { type: "SAVE_ERROR" }
+  | { type: "CANCEL" };
+
+const emptyForm: FormData = { name: "", croNumber: "", phone: "", specialty: "", clinicAddress: "" };
+
+function reducer(state: State, action: Action): State {
+  switch (action.type) {
+    case "LOAD_PROFILE":
+      // Only update form data if we are NOT editing or saving
+      if (state.mode === "editing" || state.mode === "saving") return state;
+      return { ...state, formData: action.data, initialData: action.data };
+    case "START_EDITING":
+      return { ...state, mode: "editing", initialData: { ...state.formData } };
+    case "UPDATE_FIELD":
+      if (state.mode !== "editing") return state;
+      return { ...state, formData: { ...state.formData, [action.field]: action.value } };
+    case "START_SAVING":
+      return { ...state, mode: "saving" };
+    case "SAVE_SUCCESS":
+      return { mode: "view", formData: action.data, initialData: action.data };
+    case "SAVE_ERROR":
+      return { ...state, mode: "editing" };
+    case "CANCEL":
+      return { mode: "view", formData: state.initialData, initialData: state.initialData };
+    default:
+      return state;
+  }
+}
+
+// ---- CRO mask helper ----
+function formatCRO(value: string): string {
+  // Remove everything except letters and digits
+  const cleaned = value.replace(/[^a-zA-Z0-9]/g, "");
+  
+  // Extract state prefix (up to 2 letters) and number (up to 6 digits)
+  const letters = cleaned.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 2);
+  const digits = cleaned.replace(/[^0-9]/g, "").slice(0, 6);
+  
+  if (!letters && !digits) return "";
+  if (letters && !digits) return `CRO-${letters}`;
+  if (!letters && digits) return digits;
+  return `CRO-${letters} ${digits}`;
+}
 
 export default function DentistProfile() {
-  const [isEditing, setIsEditing] = useState(false);
-  // Use a ref to track editing state that survives re-renders from query refetches
-  // This ref is the single source of truth for "are we editing right now?"
-  const editingRef = useRef(false);
-  const [formData, setFormData] = useState({
-    name: "",
-    croNumber: "",
+  const [state, dispatch] = useReducer(reducer, {
+    mode: "view",
+    formData: emptyForm,
+    initialData: emptyForm,
   });
 
+  // Track if we have loaded initial data at least once
+  const hasLoadedRef = useRef(false);
+
   const { data: profile, isLoading } = trpc.auth.getProfile.useQuery(undefined, {
-    // Disable automatic refetching to prevent resetting edit state
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
+    refetchOnMount: !hasLoadedRef.current, // only refetch on mount if never loaded
   });
 
   const utils = trpc.useUtils();
 
-  // Sync profile data to form ONLY when not editing
+  // Sync profile data to form – reducer guards against overwriting during edit
   useEffect(() => {
-    if (profile && !editingRef.current) {
-      setFormData({
-        name: profile.name || "",
-        croNumber: profile.croNumber || "",
+    if (profile) {
+      hasLoadedRef.current = true;
+      dispatch({
+        type: "LOAD_PROFILE",
+        data: {
+          name: profile.name || "",
+          croNumber: profile.croNumber || "",
+          phone: profile.phone || "",
+          specialty: profile.specialty || "",
+          clinicAddress: profile.clinicAddress || "",
+        },
       });
     }
   }, [profile]);
@@ -38,59 +111,64 @@ export default function DentistProfile() {
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
       toast.success("Perfil atualizado com sucesso!");
-      // Exit editing mode AFTER successful save
-      editingRef.current = false;
-      setIsEditing(false);
-      // Invalidate to refresh cached data (will trigger useEffect above, 
-      // but editingRef is already false so it will sync new data)
+      dispatch({ type: "SAVE_SUCCESS", data: state.formData });
       utils.auth.getProfile.invalidate();
     },
     onError: (error) => {
-      // Stay in editing mode on error so user can fix and retry
       toast.error(error.message || "Erro ao atualizar perfil");
+      dispatch({ type: "SAVE_ERROR" });
     },
   });
 
   const handleStartEditing = useCallback(() => {
-    // Sync latest profile data before entering edit mode
-    if (profile) {
-      setFormData({
-        name: profile.name || "",
-        croNumber: profile.croNumber || "",
-      });
+    dispatch({ type: "START_EDITING" });
+  }, []);
+
+  const handleCancel = useCallback(() => {
+    dispatch({ type: "CANCEL" });
+  }, []);
+
+  const handleFieldChange = useCallback((field: keyof FormData, value: string) => {
+    dispatch({ type: "UPDATE_FIELD", field, value });
+  }, []);
+
+  const handleCROChange = useCallback((rawValue: string) => {
+    dispatch({ type: "UPDATE_FIELD", field: "croNumber", value: formatCRO(rawValue) });
+  }, []);
+
+  const handlePhoneChange = useCallback((rawValue: string) => {
+    // Phone mask: (XX) XXXXX-XXXX
+    const digits = rawValue.replace(/\D/g, "").slice(0, 11);
+    let formatted = digits;
+    if (digits.length > 2) {
+      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
     }
-    // Set ref BEFORE state to ensure useEffect guard is active
-    editingRef.current = true;
-    setIsEditing(true);
-  }, [profile]);
+    if (digits.length > 7) {
+      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
+    }
+    dispatch({ type: "UPDATE_FIELD", field: "phone", value: formatted });
+  }, []);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!formData.name.trim()) {
+    e.stopPropagation();
+
+    if (!state.formData.name.trim()) {
       toast.error("Nome completo é obrigatório");
       return;
     }
-    
-    if (!formData.croNumber.trim()) {
+    if (!state.formData.croNumber.trim()) {
       toast.error("CRO é obrigatório");
       return;
     }
 
-    updateProfileMutation.mutate(formData);
-  }, [formData, updateProfileMutation]);
+    dispatch({ type: "START_SAVING" });
+    updateProfileMutation.mutate(state.formData);
+  }, [state.formData, updateProfileMutation]);
 
-  const handleCancel = useCallback(() => {
-    // Reset form to original profile data
-    if (profile) {
-      setFormData({
-        name: profile.name || "",
-        croNumber: profile.croNumber || "",
-      });
-    }
-    editingRef.current = false;
-    setIsEditing(false);
-  }, [profile]);
+  const isEditing = state.mode === "editing";
+  const isSaving = state.mode === "saving";
+  const isDisabled = !isEditing;
 
   if (isLoading) {
     return (
@@ -116,52 +194,120 @@ export default function DentistProfile() {
         </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
           {/* Nome Completo */}
           <div className="space-y-2">
-            <Label htmlFor="profile-name" className="text-sm font-medium">
+            <Label htmlFor="profile-name" className="text-sm font-medium flex items-center gap-1.5">
+              <UserCircle className="h-4 w-4 text-muted-foreground" />
               Nome Completo <span className="text-destructive">*</span>
             </Label>
             <Input
               id="profile-name"
               type="text"
               placeholder="Dr. João Silva"
-              value={formData.name}
-              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-              disabled={!isEditing}
-              className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
+              value={state.formData.name}
+              onChange={(e) => handleFieldChange("name", e.target.value)}
+              disabled={isDisabled}
+              className={isDisabled ? "bg-muted/50 cursor-not-allowed" : ""}
             />
           </div>
 
-          {/* CRO */}
+          {/* CRO com máscara */}
           <div className="space-y-2">
-            <Label htmlFor="profile-cro" className="text-sm font-medium">
+            <Label htmlFor="profile-cro" className="text-sm font-medium flex items-center gap-1.5">
+              <BadgeCheck className="h-4 w-4 text-muted-foreground" />
               CRO/Número de Registro <span className="text-destructive">*</span>
             </Label>
             <Input
               id="profile-cro"
               type="text"
               placeholder="CRO-SP 12345"
-              value={formData.croNumber}
-              onChange={(e) => setFormData(prev => ({ ...prev, croNumber: e.target.value }))}
-              disabled={!isEditing}
-              className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
+              value={state.formData.croNumber}
+              onChange={(e) => handleCROChange(e.target.value)}
+              disabled={isDisabled}
+              className={isDisabled ? "bg-muted/50 cursor-not-allowed" : ""}
+            />
+            {isEditing && (
+              <p className="text-xs text-muted-foreground">
+                Formato: CRO-UF Número (ex: CRO-SP 12345)
+              </p>
+            )}
+          </div>
+
+          {/* Telefone com máscara */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-phone" className="text-sm font-medium flex items-center gap-1.5">
+              <Phone className="h-4 w-4 text-muted-foreground" />
+              Telefone
+            </Label>
+            <Input
+              id="profile-phone"
+              type="text"
+              placeholder="(11) 99999-9999"
+              value={state.formData.phone}
+              onChange={(e) => handlePhoneChange(e.target.value)}
+              disabled={isDisabled}
+              className={isDisabled ? "bg-muted/50 cursor-not-allowed" : ""}
+            />
+          </div>
+
+          {/* Especialidade */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-specialty" className="text-sm font-medium flex items-center gap-1.5">
+              <Stethoscope className="h-4 w-4 text-muted-foreground" />
+              Especialidade
+            </Label>
+            <Input
+              id="profile-specialty"
+              type="text"
+              placeholder="Ortodontia, Endodontia, Implantodontia..."
+              value={state.formData.specialty}
+              onChange={(e) => handleFieldChange("specialty", e.target.value)}
+              disabled={isDisabled}
+              className={isDisabled ? "bg-muted/50 cursor-not-allowed" : ""}
+            />
+          </div>
+
+          {/* Endereço do Consultório */}
+          <div className="space-y-2">
+            <Label htmlFor="profile-address" className="text-sm font-medium flex items-center gap-1.5">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              Endereço do Consultório
+            </Label>
+            <Textarea
+              id="profile-address"
+              placeholder="Rua Exemplo, 123 - Sala 45 - São Paulo/SP"
+              value={state.formData.clinicAddress}
+              onChange={(e) => handleFieldChange("clinicAddress", e.target.value)}
+              disabled={isDisabled}
+              rows={2}
+              className={isDisabled ? "bg-muted/50 cursor-not-allowed resize-none" : "resize-none"}
             />
           </div>
 
           {/* Editing indicator */}
           {isEditing && (
             <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-              <Pencil className="h-4 w-4 text-blue-400" />
+              <Pencil className="h-4 w-4 text-blue-400 shrink-0" />
               <p className="text-sm text-blue-300">
                 Modo de edição ativo. Faça suas alterações e clique em <strong>Salvar</strong>.
               </p>
             </div>
           )}
 
+          {/* Saving indicator */}
+          {isSaving && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20">
+              <Loader2 className="h-4 w-4 text-amber-400 animate-spin shrink-0" />
+              <p className="text-sm text-amber-300">
+                Salvando suas alterações...
+              </p>
+            </div>
+          )}
+
           {/* Botões de Ação */}
           <div className="flex gap-3 pt-4">
-            {!isEditing ? (
+            {state.mode === "view" ? (
               <Button
                 type="button"
                 onClick={handleStartEditing}
@@ -175,10 +321,10 @@ export default function DentistProfile() {
               <>
                 <Button
                   type="submit"
-                  disabled={updateProfileMutation.isPending}
+                  disabled={isSaving}
                   className="flex-1"
                 >
-                  {updateProfileMutation.isPending ? (
+                  {isSaving ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Salvando...
@@ -194,7 +340,7 @@ export default function DentistProfile() {
                   type="button"
                   variant="outline"
                   onClick={handleCancel}
-                  disabled={updateProfileMutation.isPending}
+                  disabled={isSaving}
                   className="flex-1"
                 >
                   Cancelar

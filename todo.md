@@ -503,3 +503,12 @@
 - [x] Corrigir: desabilitar refetchOnWindowFocus/refetchOnReconnect na query getProfile
 - [x] Corrigir: useRef editingRef como guard no useEffect para impedir reset durante edição
 - [x] Testado: modo de edição persiste por 10+ segundos sem sair automaticamente
+
+## Perfil Completo v61
+- [x] BUG: Corrigir definitivamente edição de perfil (useReducer + refetchOnWindowFocus:false no pai)
+- [x] Adicionar campo telefone ao schema e perfil (com máscara (XX) XXXXX-XXXX)
+- [x] Adicionar campo especialidade ao schema e perfil
+- [x] Adicionar campo endereço do consultório ao schema e perfil (textarea)
+- [x] Implementar máscara de CRO (CRO-UF Número)
+- [x] Atualizar backend (schema, db.ts, routers.ts) + migração aplicada
+- [x] Testado: modo de edição persiste 15+ segundos, 310 testes passando
