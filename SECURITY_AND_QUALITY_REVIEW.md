@@ -457,3 +457,11 @@ const cache = new NodeCache({ stdTTL: 600 }); // 10 minutos
 
 
 
+
+
+
+
+
+
+
+

@@ -420,3 +420,10 @@ if (chunksUploaded > 0) {
 **Versão:** 1.0.0  
 **Autor:** ZEAL Development Team
 
+
+
+
+
+
+
+
