@@ -1,14 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Loader2, Save, UserCircle } from "lucide-react";
+import { Loader2, Save, UserCircle, Pencil } from "lucide-react";
 
 export default function DentistProfile() {
   const [isEditing, setIsEditing] = useState(false);
+  const isEditingRef = useRef(false);
   const [formData, setFormData] = useState({
     name: "",
     croNumber: "",
@@ -19,6 +20,7 @@ export default function DentistProfile() {
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
       toast.success("Perfil atualizado com sucesso!");
+      isEditingRef.current = false;
       setIsEditing(false);
       refetch();
     },
@@ -27,14 +29,28 @@ export default function DentistProfile() {
     },
   });
 
+  // Only sync profile data to form when NOT editing
+  // This prevents the form from being reset while the user is typing
   useEffect(() => {
-    if (profile) {
+    if (profile && !isEditingRef.current) {
       setFormData({
         name: profile.name || "",
         croNumber: profile.croNumber || "",
       });
     }
   }, [profile]);
+
+  const handleStartEditing = () => {
+    // Sync latest profile data before entering edit mode
+    if (profile) {
+      setFormData({
+        name: profile.name || "",
+        croNumber: profile.croNumber || "",
+      });
+    }
+    isEditingRef.current = true;
+    setIsEditing(true);
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +75,7 @@ export default function DentistProfile() {
         croNumber: profile.croNumber || "",
       });
     }
+    isEditingRef.current = false;
     setIsEditing(false);
   };
 
@@ -119,17 +136,16 @@ export default function DentistProfile() {
             />
           </div>
 
-
-
           {/* Botões de Ação */}
           <div className="flex gap-3 pt-4">
             {!isEditing ? (
               <Button
                 type="button"
-                onClick={() => setIsEditing(true)}
+                onClick={handleStartEditing}
                 className="w-full"
                 variant="default"
               >
+                <Pencil className="mr-2 h-4 w-4" />
                 Editar Perfil
               </Button>
             ) : (
@@ -175,4 +191,3 @@ export default function DentistProfile() {
     </Card>
   );
 }
-

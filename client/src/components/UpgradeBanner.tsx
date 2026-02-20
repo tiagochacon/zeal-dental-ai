@@ -247,7 +247,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
                 ? "Assine agora para continuar usando o ZEAL."
                 : currentPlan === "trial" 
                   ? "Seu trial expira em breve. Assine para continuar usando."
-                  : "Assine para desbloquear transcrição e notas SOAP automáticas."
+                  : "Assine para desbloquear transcrição e Notas Clínicas automáticas."
               }
             </p>
           )}

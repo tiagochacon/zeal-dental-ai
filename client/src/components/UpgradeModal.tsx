@@ -98,7 +98,7 @@ const PLAN_FEATURES = {
     features: [
       "7 Consultas completas",
       "Transcrição automática de áudio",
-      "Notas SOAP com IA",
+      "Notas Clínicas com IA",
       "Odontograma automático",
       "Análise de Negociação",
     ],
@@ -109,7 +109,7 @@ const PLAN_FEATURES = {
     features: [
       "20 Consultas/mês",
       "Transcrição automática de áudio",
-      "Notas SOAP com IA",
+      "Notas Clínicas com IA",
       "Odontograma automático",
       "Exportação de PDF",
     ],

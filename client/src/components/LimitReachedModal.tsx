@@ -71,7 +71,7 @@ export function LimitReachedModal({
   const basicFeatures = [
     { icon: Mic, text: "20 consultas/mês" },
     { icon: FileText, text: "Transcrição automática de áudio" },
-    { icon: FileText, text: "Notas SOAP com IA" },
+    { icon: FileText, text: "Notas Clínicas com IA" },
     { icon: FileText, text: "Odontograma automático" },
     { icon: FileText, text: "Exportação de PDF" },
   ];

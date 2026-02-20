@@ -198,12 +198,12 @@ export function AdaptiveNegotiationTab({
           Perfil Neurológico Não Detectado
         </h3>
         <p className="text-gray-500 max-w-md mb-6">
-          O perfil neurológico do paciente será detectado automaticamente quando a nota SOAP for gerada.
+          O perfil neurológico do paciente será detectado automaticamente quando a Nota Clínica for gerada.
           {!transcript && ' Primeiro, grave ou transcreva a consulta.'}
         </p>
         {transcript && (
           <p className="text-sm text-gray-600">
-            Gere a nota SOAP para detectar o perfil neurológico automaticamente.
+            Gere a Nota Clínica para detectar o perfil neurológico automaticamente.
           </p>
         )}
       </div>

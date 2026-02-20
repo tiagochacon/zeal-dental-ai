@@ -82,12 +82,12 @@ export default function ConsultationDetail() {
 
   const updateSOAPMutation = trpc.consultations.updateSOAP.useMutation({
     onSuccess: () => {
-      toast.success("Nota SOAP atualizada!");
+      toast.success("Notas Clínicas atualizadas!");
       setIsEditing(false);
       refetch();
     },
     onError: () => {
-      toast.error("Erro ao atualizar nota SOAP");
+      toast.error("Erro ao atualizar Notas Clínicas");
     },
   });
 
@@ -165,7 +165,7 @@ export default function ConsultationDetail() {
 
   const handleExportPDF = () => {
     if (!consultation || !consultation.soapNote) {
-      toast.error("Nota SOAP não disponível para exportação");
+      toast.error("Notas Clínicas não disponíveis para exportação");
       return;
     }
     try {

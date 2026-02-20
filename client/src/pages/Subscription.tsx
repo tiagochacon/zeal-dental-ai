@@ -52,7 +52,7 @@ const PLAN_DETAILS = {
     features: [
       "7 consultas de teste",
       "Transcrição automática de áudio",
-      "Notas SOAP com IA",
+      "Notas Clínicas com IA",
       "Odontograma automático",
       "Análise de Negociação/Neurovendas",
     ],
@@ -66,7 +66,7 @@ const PLAN_DETAILS = {
     features: [
       "20 consultas/mês",
       "Transcrição automática de áudio",
-      "Notas SOAP com IA",
+      "Notas Clínicas com IA",
       "Odontograma automático",
       "Exportação de PDF",
     ],
@@ -80,7 +80,7 @@ const PLAN_DETAILS = {
     features: [
       "50 consultas/mês",
       "Transcrição automática de áudio",
-      "Notas SOAP com IA",
+      "Notas Clínicas com IA",
       "Odontograma automático",
       "Exportação de PDF",
       "Análise de Negociação/Neurovendas",
@@ -322,7 +322,7 @@ export default function Subscription() {
                         </li>
                         <li className="flex items-center gap-2">
                           <FileText className="h-4 w-4 text-blue-400" />
-                          Notas SOAP com IA
+                          Notas Clínicas com IA
                         </li>
                         <li className="flex items-center gap-2">
                           <Check className="h-4 w-4 text-green-500" />

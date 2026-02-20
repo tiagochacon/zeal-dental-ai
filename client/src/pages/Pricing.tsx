@@ -26,7 +26,7 @@ const PLANS = [
     features: [
       { text: "Até 7 consultas", included: true },
       { text: "Transcrição automática de áudio", included: true },
-      { text: "Notas SOAP com IA", included: true },
+      { text: "Notas Clínicas com IA", included: true },
       { text: "Odontograma automático", included: true },
       { text: "Análise de Negociação/Neurovendas", included: true },
       { text: "Exportação de PDF", included: false },
@@ -45,7 +45,7 @@ const PLANS = [
     features: [
       { text: "Até 20 consultas/mês", included: true },
       { text: "Transcrição automática de áudio", included: true },
-      { text: "Notas SOAP com IA", included: true },
+      { text: "Notas Clínicas com IA", included: true },
       { text: "Odontograma automático", included: true },
       { text: "Exportação de PDF", included: true },
       { text: "Análise de Negociação/Neurovendas", included: false },
@@ -66,7 +66,7 @@ const PLANS = [
     features: [
       { text: "Até 50 consultas/mês", included: true },
       { text: "Transcrição automática de áudio", included: true },
-      { text: "Notas SOAP com IA", included: true },
+      { text: "Notas Clínicas com IA", included: true },
       { text: "Odontograma automático", included: true },
       { text: "Exportação de PDF", included: true },
       { text: "Análise de Negociação/Neurovendas", included: true },

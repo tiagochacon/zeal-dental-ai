@@ -493,3 +493,7 @@
 - [x] Atualizar LimitReachedModal.tsx com permissões reais
 - [x] Atualizar Subscription.tsx (PLAN_DETAILS + inline lists)
 - [x] Atualizar sidebars (Dashboard, Patients, Consultations, Profile)
+
+## Alterações v59
+- [x] Renomear "Gerar Nota SOAP" para "Gerar Notas Clínicas" em todos os botões e textos do sistema (9 arquivos atualizados)
+- [x] Corrigir bug do perfil que salva automaticamente sem dar tempo de editar (useRef para proteger modo de edição)

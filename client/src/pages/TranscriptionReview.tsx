@@ -54,7 +54,7 @@ export default function TranscriptionReview() {
 
   const generateSOAPMutation = trpc.consultations.analyzeAndGenerateSOAP.useMutation({
     onSuccess: () => {
-      toast.success("Nota SOAP gerada com sucesso!");
+      toast.success("Notas Clínicas geradas com sucesso!");
       setLocation(`/consultation/${consultationId}`);
     },
     onError: (error: any) => {
@@ -69,7 +69,7 @@ export default function TranscriptionReview() {
         setUpgradeTrigger(trigger);
         setShowUpgradeModal(true);
       } else {
-        toast.error(`Erro ao gerar nota SOAP: ${error.message}`);
+        toast.error(`Erro ao gerar Notas Clínicas: ${error.message}`);
       }
     },
   });
@@ -389,12 +389,12 @@ export default function TranscriptionReview() {
                 {generateSOAPMutation.isPending ? (
                   <>
                     <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Gerando Nota SOAP...
+                    Gerando Notas Clínicas...
                   </>
                 ) : (
                   <>
                     <Check className="h-4 w-4 mr-1 lg:mr-2" />
-                    Confirmar e Gerar Nota SOAP
+                    Confirmar e Gerar Notas Clínicas
                   </>
                 )}
               </Button>

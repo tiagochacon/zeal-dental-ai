@@ -273,7 +273,7 @@ export function UsageCounterModal({
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
-                    Notas SOAP com IA
+                    Notas Clínicas com IA
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="text-emerald-400">✓</span>
