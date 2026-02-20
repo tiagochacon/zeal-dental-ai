@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,30 +9,25 @@ import { Loader2, Save, UserCircle, Pencil } from "lucide-react";
 
 export default function DentistProfile() {
   const [isEditing, setIsEditing] = useState(false);
-  const isEditingRef = useRef(false);
+  // Use a ref to track editing state that survives re-renders from query refetches
+  // This ref is the single source of truth for "are we editing right now?"
+  const editingRef = useRef(false);
   const [formData, setFormData] = useState({
     name: "",
     croNumber: "",
   });
 
-  const { data: profile, isLoading, refetch } = trpc.auth.getProfile.useQuery();
-
-  const updateProfileMutation = trpc.auth.updateProfile.useMutation({
-    onSuccess: () => {
-      toast.success("Perfil atualizado com sucesso!");
-      isEditingRef.current = false;
-      setIsEditing(false);
-      refetch();
-    },
-    onError: (error) => {
-      toast.error(error.message || "Erro ao atualizar perfil");
-    },
+  const { data: profile, isLoading } = trpc.auth.getProfile.useQuery(undefined, {
+    // Disable automatic refetching to prevent resetting edit state
+    refetchOnWindowFocus: false,
+    refetchOnReconnect: false,
   });
 
-  // Only sync profile data to form when NOT editing
-  // This prevents the form from being reset while the user is typing
+  const utils = trpc.useUtils();
+
+  // Sync profile data to form ONLY when not editing
   useEffect(() => {
-    if (profile && !isEditingRef.current) {
+    if (profile && !editingRef.current) {
       setFormData({
         name: profile.name || "",
         croNumber: profile.croNumber || "",
@@ -40,7 +35,23 @@ export default function DentistProfile() {
     }
   }, [profile]);
 
-  const handleStartEditing = () => {
+  const updateProfileMutation = trpc.auth.updateProfile.useMutation({
+    onSuccess: () => {
+      toast.success("Perfil atualizado com sucesso!");
+      // Exit editing mode AFTER successful save
+      editingRef.current = false;
+      setIsEditing(false);
+      // Invalidate to refresh cached data (will trigger useEffect above, 
+      // but editingRef is already false so it will sync new data)
+      utils.auth.getProfile.invalidate();
+    },
+    onError: (error) => {
+      // Stay in editing mode on error so user can fix and retry
+      toast.error(error.message || "Erro ao atualizar perfil");
+    },
+  });
+
+  const handleStartEditing = useCallback(() => {
     // Sync latest profile data before entering edit mode
     if (profile) {
       setFormData({
@@ -48,11 +59,12 @@ export default function DentistProfile() {
         croNumber: profile.croNumber || "",
       });
     }
-    isEditingRef.current = true;
+    // Set ref BEFORE state to ensure useEffect guard is active
+    editingRef.current = true;
     setIsEditing(true);
-  };
+  }, [profile]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.name.trim()) {
@@ -66,18 +78,19 @@ export default function DentistProfile() {
     }
 
     updateProfileMutation.mutate(formData);
-  };
+  }, [formData, updateProfileMutation]);
 
-  const handleCancel = () => {
+  const handleCancel = useCallback(() => {
+    // Reset form to original profile data
     if (profile) {
       setFormData({
         name: profile.name || "",
         croNumber: profile.croNumber || "",
       });
     }
-    isEditingRef.current = false;
+    editingRef.current = false;
     setIsEditing(false);
-  };
+  }, [profile]);
 
   if (isLoading) {
     return (
@@ -106,35 +119,45 @@ export default function DentistProfile() {
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Nome Completo */}
           <div className="space-y-2">
-            <Label htmlFor="name" className="text-sm font-medium">
+            <Label htmlFor="profile-name" className="text-sm font-medium">
               Nome Completo <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="name"
+              id="profile-name"
               type="text"
               placeholder="Dr. João Silva"
               value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
               disabled={!isEditing}
-              className={!isEditing ? "bg-muted/50" : ""}
+              className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
             />
           </div>
 
           {/* CRO */}
           <div className="space-y-2">
-            <Label htmlFor="croNumber" className="text-sm font-medium">
+            <Label htmlFor="profile-cro" className="text-sm font-medium">
               CRO/Número de Registro <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="croNumber"
+              id="profile-cro"
               type="text"
               placeholder="CRO-SP 12345"
               value={formData.croNumber}
-              onChange={(e) => setFormData({ ...formData, croNumber: e.target.value })}
+              onChange={(e) => setFormData(prev => ({ ...prev, croNumber: e.target.value }))}
               disabled={!isEditing}
-              className={!isEditing ? "bg-muted/50" : ""}
+              className={!isEditing ? "bg-muted/50 cursor-not-allowed" : ""}
             />
           </div>
+
+          {/* Editing indicator */}
+          {isEditing && (
+            <div className="flex items-center gap-2 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+              <Pencil className="h-4 w-4 text-blue-400" />
+              <p className="text-sm text-blue-300">
+                Modo de edição ativo. Faça suas alterações e clique em <strong>Salvar</strong>.
+              </p>
+            </div>
+          )}
 
           {/* Botões de Ação */}
           <div className="flex gap-3 pt-4">

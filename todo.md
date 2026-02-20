@@ -497,3 +497,9 @@
 ## Alterações v59
 - [x] Renomear "Gerar Nota SOAP" para "Gerar Notas Clínicas" em todos os botões e textos do sistema (9 arquivos atualizados)
 - [x] Corrigir bug do perfil que salva automaticamente sem dar tempo de editar (useRef para proteger modo de edição)
+
+## Bug Perfil Auto-Save v60
+- [x] Investigar causa raiz: refetchOnWindowFocus padrão do React Query causava re-fetch do getProfile
+- [x] Corrigir: desabilitar refetchOnWindowFocus/refetchOnReconnect na query getProfile
+- [x] Corrigir: useRef editingRef como guard no useEffect para impedir reset durante edição
+- [x] Testado: modo de edição persiste por 10+ segundos sem sair automaticamente
