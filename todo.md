@@ -512,3 +512,8 @@
 - [x] Implementar máscara de CRO (CRO-UF Número)
 - [x] Atualizar backend (schema, db.ts, routers.ts) + migração aplicada
 - [x] Testado: modo de edição persiste 15+ segundos, 310 testes passando
+
+## Simplificação do Perfil v62
+- [x] Remover campos telefone, especialidade e endereço do DentistProfile.tsx
+- [x] Manter apenas Nome Completo e CRO/Número de Registro
+- [x] FormData simplificado para { name, croNumber } apenas

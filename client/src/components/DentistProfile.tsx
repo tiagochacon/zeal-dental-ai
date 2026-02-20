@@ -3,24 +3,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Loader2, Save, UserCircle, Pencil, Phone, MapPin, Stethoscope, BadgeCheck } from "lucide-react";
+import { Loader2, Save, UserCircle, Pencil, BadgeCheck } from "lucide-react";
 
 // ---- Types ----
 interface FormData {
   name: string;
   croNumber: string;
-  phone: string;
-  specialty: string;
-  clinicAddress: string;
 }
 
 type State = {
   mode: "view" | "editing" | "saving";
   formData: FormData;
-  initialData: FormData; // snapshot of data when editing started
+  initialData: FormData;
 };
 
 type Action =
@@ -32,7 +28,7 @@ type Action =
   | { type: "SAVE_ERROR" }
   | { type: "CANCEL" };
 
-const emptyForm: FormData = { name: "", croNumber: "", phone: "", specialty: "", clinicAddress: "" };
+const emptyForm: FormData = { name: "", croNumber: "" };
 
 function reducer(state: State, action: Action): State {
   switch (action.type) {
@@ -60,13 +56,9 @@ function reducer(state: State, action: Action): State {
 
 // ---- CRO mask helper ----
 function formatCRO(value: string): string {
-  // Remove everything except letters and digits
   const cleaned = value.replace(/[^a-zA-Z0-9]/g, "");
-  
-  // Extract state prefix (up to 2 letters) and number (up to 6 digits)
   const letters = cleaned.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 2);
   const digits = cleaned.replace(/[^0-9]/g, "").slice(0, 6);
-  
   if (!letters && !digits) return "";
   if (letters && !digits) return `CRO-${letters}`;
   if (!letters && digits) return digits;
@@ -80,18 +72,16 @@ export default function DentistProfile() {
     initialData: emptyForm,
   });
 
-  // Track if we have loaded initial data at least once
   const hasLoadedRef = useRef(false);
 
   const { data: profile, isLoading } = trpc.auth.getProfile.useQuery(undefined, {
     refetchOnWindowFocus: false,
     refetchOnReconnect: false,
-    refetchOnMount: !hasLoadedRef.current, // only refetch on mount if never loaded
+    refetchOnMount: !hasLoadedRef.current,
   });
 
   const utils = trpc.useUtils();
 
-  // Sync profile data to form – reducer guards against overwriting during edit
   useEffect(() => {
     if (profile) {
       hasLoadedRef.current = true;
@@ -100,9 +90,6 @@ export default function DentistProfile() {
         data: {
           name: profile.name || "",
           croNumber: profile.croNumber || "",
-          phone: profile.phone || "",
-          specialty: profile.specialty || "",
-          clinicAddress: profile.clinicAddress || "",
         },
       });
     }
@@ -134,19 +121,6 @@ export default function DentistProfile() {
 
   const handleCROChange = useCallback((rawValue: string) => {
     dispatch({ type: "UPDATE_FIELD", field: "croNumber", value: formatCRO(rawValue) });
-  }, []);
-
-  const handlePhoneChange = useCallback((rawValue: string) => {
-    // Phone mask: (XX) XXXXX-XXXX
-    const digits = rawValue.replace(/\D/g, "").slice(0, 11);
-    let formatted = digits;
-    if (digits.length > 2) {
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
-    }
-    if (digits.length > 7) {
-      formatted = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`;
-    }
-    dispatch({ type: "UPDATE_FIELD", field: "phone", value: formatted });
   }, []);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
@@ -232,57 +206,6 @@ export default function DentistProfile() {
                 Formato: CRO-UF Número (ex: CRO-SP 12345)
               </p>
             )}
-          </div>
-
-          {/* Telefone com máscara */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-phone" className="text-sm font-medium flex items-center gap-1.5">
-              <Phone className="h-4 w-4 text-muted-foreground" />
-              Telefone
-            </Label>
-            <Input
-              id="profile-phone"
-              type="text"
-              placeholder="(11) 99999-9999"
-              value={state.formData.phone}
-              onChange={(e) => handlePhoneChange(e.target.value)}
-              disabled={isDisabled}
-              className={isDisabled ? "bg-muted/50 cursor-not-allowed" : ""}
-            />
-          </div>
-
-          {/* Especialidade */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-specialty" className="text-sm font-medium flex items-center gap-1.5">
-              <Stethoscope className="h-4 w-4 text-muted-foreground" />
-              Especialidade
-            </Label>
-            <Input
-              id="profile-specialty"
-              type="text"
-              placeholder="Ortodontia, Endodontia, Implantodontia..."
-              value={state.formData.specialty}
-              onChange={(e) => handleFieldChange("specialty", e.target.value)}
-              disabled={isDisabled}
-              className={isDisabled ? "bg-muted/50 cursor-not-allowed" : ""}
-            />
-          </div>
-
-          {/* Endereço do Consultório */}
-          <div className="space-y-2">
-            <Label htmlFor="profile-address" className="text-sm font-medium flex items-center gap-1.5">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              Endereço do Consultório
-            </Label>
-            <Textarea
-              id="profile-address"
-              placeholder="Rua Exemplo, 123 - Sala 45 - São Paulo/SP"
-              value={state.formData.clinicAddress}
-              onChange={(e) => handleFieldChange("clinicAddress", e.target.value)}
-              disabled={isDisabled}
-              rows={2}
-              className={isDisabled ? "bg-muted/50 cursor-not-allowed resize-none" : "resize-none"}
-            />
           </div>
 
           {/* Editing indicator */}
