@@ -517,3 +517,6 @@
 - [x] Remover campos telefone, especialidade e endereço do DentistProfile.tsx
 - [x] Manter apenas Nome Completo e CRO/Número de Registro
 - [x] FormData simplificado para { name, croNumber } apenas
+
+## Remover Máscara CRO v63
+- [x] Remover formatCRO e preenchimento automático do campo CRO no perfil

@@ -55,16 +55,7 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-// ---- CRO mask helper ----
-function formatCRO(value: string): string {
-  const cleaned = value.replace(/[^a-zA-Z0-9]/g, "");
-  const letters = cleaned.replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 2);
-  const digits = cleaned.replace(/[^0-9]/g, "").slice(0, 6);
-  if (!letters && !digits) return "";
-  if (letters && !digits) return `CRO-${letters}`;
-  if (!letters && digits) return digits;
-  return `CRO-${letters} ${digits}`;
-}
+
 
 export default function DentistProfile() {
   const [state, dispatch] = useReducer(reducer, {
@@ -120,9 +111,6 @@ export default function DentistProfile() {
     dispatch({ type: "UPDATE_FIELD", field, value });
   }, []);
 
-  const handleCROChange = useCallback((rawValue: string) => {
-    dispatch({ type: "UPDATE_FIELD", field: "croNumber", value: formatCRO(rawValue) });
-  }, []);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
@@ -231,15 +219,11 @@ export default function DentistProfile() {
               type="text"
               placeholder="CRO-SP 12345"
               value={state.formData.croNumber}
-              onChange={(e) => handleCROChange(e.target.value)}
+              onChange={(e) => handleFieldChange("croNumber", e.target.value)}
               disabled={isDisabled}
               className={isDisabled ? "bg-muted/50 cursor-not-allowed" : ""}
             />
-            {isEditing && (
-              <p className="text-xs text-muted-foreground">
-                Formato: CRO-UF Número (ex: CRO-SP 12345)
-              </p>
-            )}
+
           </div>
 
           {/* Indicador de modo edição */}
