@@ -73,7 +73,7 @@ export default function Login() {
             Sua Clínica no Próximo Nível com <span className="text-blue-400">Inteligência Artificial</span>
           </h1>
           
-          <p className="text-xl text-gray-300 mb-8 leading-relaxed">
+          <p className="text-xl text-foreground/70 mb-8 leading-relaxed">
             Recupere seu tempo e eleve o faturamento do seu consultório. 
             A ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
           </p>
@@ -85,7 +85,7 @@ export default function Login() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300 leading-relaxed">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais durante a consulta.</span>
+              <span className="text-foreground/70 leading-relaxed">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais durante a consulta.</span>
             </div>
             <div className="flex items-start gap-4">
               <div className="w-11 h-11 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
@@ -93,7 +93,7 @@ export default function Login() {
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-gray-300 leading-relaxed">Diagnósticos e Tratamentos Precisos: Documentação clínica gerada automaticamente a partir do áudio da sua consulta.</span>
+              <span className="text-foreground/70 leading-relaxed">Diagnósticos e Tratamentos Precisos: Documentação clínica gerada automaticamente a partir do áudio da sua consulta.</span>
             </div>
             <div className="flex items-start gap-4">
               <div className="w-11 h-11 rounded-full bg-cyan-600/20 flex items-center justify-center flex-shrink-0">
@@ -145,7 +145,16 @@ export default function Login() {
 
               {/* Password Field */}
               <div className="relative">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">Senha</label>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-muted-foreground">Senha</label>
+                  <button
+                    type="button"
+                    onClick={() => toast.info("Recuperação de senha em breve!")}
+                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                  >
+                    Esqueci minha senha
+                  </button>
+                </div>
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
@@ -157,7 +166,7 @@ export default function Login() {
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-[42px] text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-4 top-[50px] text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />

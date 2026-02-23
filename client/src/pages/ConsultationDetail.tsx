@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
@@ -13,11 +14,12 @@ import { exportSOAPToPDF, exportTreatmentPlanToPDF } from "@/lib/pdfExport";
 import Odontogram from "@/components/Odontogram";
 import { 
   Loader2, ArrowLeft, FileText, AudioLines, Download, CheckCircle, Edit, 
-  AlertTriangle, Stethoscope, ClipboardList, CheckCircle2, Star,
-  LayoutDashboard, Users, Menu, X, LogOut, UserCircle, TrendingUp
+  AlertTriangle, Stethoscope, ClipboardList, CheckCircle2, Star, TrendingUp,
+  XCircle
 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 import { useLocation, useParams } from "wouter";
-import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 import type { SOAPNote, TreatmentPlan } from "../../../drizzle/schema";
 import { AdaptiveNegotiationTab } from "@/components/negotiation";
@@ -29,7 +31,7 @@ export default function ConsultationDetail() {
   const params = useParams();
   const consultationId = params.id ? parseInt(params.id) : null;
   
-  const { user, loading: authLoading, logout } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [isEditingPlan, setIsEditingPlan] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
@@ -38,7 +40,6 @@ export default function ConsultationDetail() {
   const [treatmentClosed, setTreatmentClosed] = useState<boolean | null>(null);
   const [treatmentClosedNotes, setTreatmentClosedNotes] = useState("");
   const [hoveredStar, setHoveredStar] = useState(0);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [planForm, setPlanForm] = useState({
     summary: "",
     stepsText: "",
@@ -317,26 +318,21 @@ export default function ConsultationDetail() {
 
   if (authLoading || isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!user) {
-    window.location.href = getLoginUrl();
-    return null;
-  }
-
   if (!consultation) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-16">
         <Card className="max-w-md">
           <CardContent className="pt-6 text-center">
             <p className="text-muted-foreground mb-4">Consulta não encontrada</p>
-            <Button onClick={() => setLocation("/")}>
+            <Button onClick={() => setLocation("/consultations")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Voltar ao Dashboard
+              Voltar às Consultas
             </Button>
           </CardContent>
         </Card>
@@ -347,174 +343,101 @@ export default function ConsultationDetail() {
   const soapNote = consultation.soapNote as SOAPNote | null;
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 border-r border-border bg-sidebar flex flex-col
-        transform transition-transform duration-200 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
-            <span className="text-xl font-bold text-foreground">Zeal</span>
-          </div>
-          <button 
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 hover:bg-sidebar-accent rounded-lg"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
-            <li>
-              <button
-                onClick={() => { setLocation("/"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/patients"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <Users className="h-5 w-5" />
-                Pacientes
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <FileText className="h-5 w-5" />
-                Consultas
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <UserCircle className="h-5 w-5" />
-                Meu Perfil
-              </button>
-            </li>
-          </ul>
-        </nav>
-
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
-              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={logout}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
+    <motion.div
+      className="space-y-4 max-w-4xl mx-auto"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {/* Page Header */}
+      <div className="flex items-center justify-between flex-wrap gap-4">
+        <div className="flex items-center gap-2 lg:gap-3">
+          <Button variant="ghost" size="sm" onClick={() => setLocation("/consultations")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            <span className="hidden sm:inline">Consultas</span>
           </Button>
+          <div>
+            <h1 className="text-lg lg:text-xl font-bold">{consultation.patientName}</h1>
+            <p className="text-xs lg:text-sm text-muted-foreground">
+              {new Date(consultation.createdAt).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+              })}
+            </p>
+          </div>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <header className="p-4 lg:p-6 border-b border-border">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-2 lg:gap-4">
-              <button 
-                onClick={() => setSidebarOpen(true)}
-                className="lg:hidden p-2 hover:bg-muted rounded-lg"
-              >
-                <Menu className="h-5 w-5" />
-              </button>
-              <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Voltar</span>
-              </Button>
-              <div>
-                <h1 className="text-lg lg:text-xl font-bold">{consultation.patientName}</h1>
-                <p className="text-xs lg:text-sm text-muted-foreground">
-                  {new Date(consultation.createdAt).toLocaleDateString('pt-BR', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                  })}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              {soapNote && (
+        <div className="flex items-center gap-2 flex-wrap">
+          {soapNote && (
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleExportPDF}>
                   <Download className="mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Exportar</span> PDF
                 </Button>
-              )}
-              {treatmentPlan && (
+              </TooltipTrigger>
+              <TooltipContent>Exportar PDF da Nota SOAP</TooltipContent>
+            </Tooltip>
+          )}
+          {treatmentPlan && (
+            <Tooltip>
+              <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" onClick={handleExportTreatmentPlanPDF}>
                   <Download className="mr-2 h-4 w-4" />
                   <span className="hidden sm:inline">Plano</span> PDF
                 </Button>
+              </TooltipTrigger>
+              <TooltipContent>Exportar PDF do Plano de Tratamento</TooltipContent>
+            </Tooltip>
+          )}
+          
+          {consultation.status !== "finalized" && !isEditing && (
+            <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
+              <Edit className="mr-2 h-4 w-4" />
+              <span className="hidden sm:inline">Editar</span>
+            </Button>
+          )}
+          
+          {consultation.status !== "finalized" && !isEditing && (
+            <Button size="sm" onClick={handleFinalize} disabled={finalizeMutation.isPending}>
+              {finalizeMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span className="hidden sm:inline">Finalizando...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Finalizar
+                </>
               )}
-              
-              {consultation.status !== "finalized" && !isEditing && (
-                <Button variant="outline" size="sm" onClick={() => setIsEditing(true)}>
-                  <Edit className="mr-2 h-4 w-4" />
-                  <span className="hidden sm:inline">Editar</span>
-                </Button>
-              )}
-              
-              {consultation.status !== "finalized" && !isEditing && (
-                <Button size="sm" onClick={handleFinalize} disabled={finalizeMutation.isPending}>
-                  {finalizeMutation.isPending ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      <span className="hidden sm:inline">Finalizando...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Finalizar
-                    </>
-                  )}
-                </Button>
-              )}
+            </Button>
+          )}
 
-              {consultation.status === "finalized" && (
-                <Badge variant="secondary" className="bg-green-500/20 text-green-500">
-                  <CheckCircle className="mr-1 h-3 w-3" />
-                  Finalizada
-                </Badge>
-              )}
-            </div>
-          </div>
-        </header>
+          {consultation.status === "finalized" && (
+            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-500">
+              <CheckCircle className="mr-1 h-3 w-3" />
+              Finalizada
+            </Badge>
+          )}
+          {consultation.status === "finalized" && (consultation as any).treatmentClosed === true && (
+            <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1">
+              <CheckCircle2 className="h-3 w-3" />
+              Tratamento Fechado
+            </Badge>
+          )}
+          {consultation.status === "finalized" && (consultation as any).treatmentClosed === false && (
+            <Badge className="bg-destructive/15 text-destructive border-destructive/20 gap-1">
+              <XCircle className="h-3 w-3" />
+              Não Fechado
+            </Badge>
+          )}
+        </div>
+      </div>
 
-        <div className="p-4 lg:p-6 max-w-4xl mx-auto">
-          <Tabs defaultValue="soap" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+      <div>
+        <Tabs defaultValue="soap" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="soap" className="text-xs sm:text-sm">
                 <FileText className="mr-1 sm:mr-2 h-4 w-4" />
@@ -800,8 +723,7 @@ export default function ConsultationDetail() {
               />
             </TabsContent>
           </Tabs>
-        </div>
-      </main>
+      </div>
 
       {/* Treatment Plan Editor */}
       <Dialog open={isEditingPlan} onOpenChange={setIsEditingPlan}>
@@ -887,9 +809,9 @@ export default function ConsultationDetail() {
       <Dialog open={showFeedbackModal} onOpenChange={setShowFeedbackModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Avalie esta consulta</DialogTitle>
+            <DialogTitle>Finalizar Consulta</DialogTitle>
             <DialogDescription>
-              Seu feedback é obrigatório para finalizar a consulta e nos ajuda a melhorar o sistema.
+              Avalie a consulta antes de finalizar. Seu feedback nos ajuda a melhorar o sistema.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6 py-4">
@@ -919,35 +841,47 @@ export default function ConsultationDetail() {
             </div>
 
             {/* Treatment Closed */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tratamento Fechado?</label>
-              <div className="flex gap-3">
-                <Button
+            <Separator />
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Resultado do Tratamento</Label>
+              <p className="text-xs text-muted-foreground">
+                O paciente aceitou o plano de tratamento proposto?
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <button
                   type="button"
-                  variant={treatmentClosed === true ? "default" : "outline"}
-                  size="sm"
                   onClick={() => setTreatmentClosed(true)}
-                  className={treatmentClosed === true ? "bg-green-600 hover:bg-green-700" : ""}
+                  className={cn(
+                    "flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all",
+                    treatmentClosed === true
+                      ? "border-emerald-500 bg-emerald-500/10 text-emerald-600"
+                      : "border-border hover:border-emerald-500/50"
+                  )}
                 >
-                  Sim
-                </Button>
-                <Button
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span className="text-sm font-medium">Fechado ✓</span>
+                </button>
+                <button
                   type="button"
-                  variant={treatmentClosed === false ? "default" : "outline"}
-                  size="sm"
                   onClick={() => setTreatmentClosed(false)}
-                  className={treatmentClosed === false ? "bg-red-600 hover:bg-red-700" : ""}
+                  className={cn(
+                    "flex items-center justify-center gap-2 p-3 rounded-lg border-2 transition-all",
+                    treatmentClosed === false
+                      ? "border-destructive bg-destructive/10 text-destructive"
+                      : "border-border hover:border-destructive/50"
+                  )}
                 >
-                  Não
-                </Button>
+                  <XCircle className="h-4 w-4" />
+                  <span className="text-sm font-medium">Não Fechado</span>
+                </button>
               </div>
               {treatmentClosed === false && (
                 <Textarea
-                  placeholder="Motivo pelo qual o tratamento não foi fechado..."
+                  placeholder="Motivo (opcional): o que impediu o fechamento?"
                   value={treatmentClosedNotes}
                   onChange={(e) => setTreatmentClosedNotes(e.target.value)}
                   rows={2}
-                  className="mt-2"
+                  className="resize-none"
                 />
               )}
             </div>
@@ -990,7 +924,7 @@ export default function ConsultationDetail() {
         currentPlan={user?.subscriptionTier as "trial" | "basic" | "pro" | "unlimited" || "basic"}
         feature="Negociação"
       />
-    </div>
+    </motion.div>
   );
 }
 

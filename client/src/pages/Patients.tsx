@@ -4,11 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, User, Search, Phone, Mail, Trash2, Edit, Users } from "lucide-react";
+import { motion } from "framer-motion";
+import { Loader2, Plus, User, Search, Phone, Mail, Trash2, Edit, Users, ChevronRight, FileText, Calendar } from "lucide-react";
 import { toast } from "sonner";
+import { useLocation } from "wouter";
+import { consultationStatusConfig } from "@/lib/utils";
 
 interface PatientFormData {
   name: string;
@@ -18,6 +27,18 @@ interface PatientFormData {
   medicalHistory: string;
   allergies: string;
   medications: string;
+}
+
+interface Patient {
+  id: number;
+  name: string;
+  phone?: string | null;
+  email?: string | null;
+  cpf?: string | null;
+  medicalHistory?: string | null;
+  allergies?: string | null;
+  medications?: string | null;
+  createdAt?: string | Date;
 }
 
 const initialFormData: PatientFormData = {
@@ -51,42 +72,44 @@ const PatientForm = memo(function PatientForm({
   
   return (
     <form onSubmit={onSubmit} className="space-y-4 mt-4">
-      <div className="space-y-2">
-        <Label htmlFor={`${prefix}name`} className="text-sm">Nome Completo *</Label>
-        <Input
-          id={`${prefix}name`}
-          value={formData.name}
-          onChange={(e) => onFieldChange('name', e.target.value)}
-          placeholder="Nome do paciente"
-          required
-          autoComplete="off"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      {/* Identification group */}
+      <div className="space-y-3">
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Identificação</p>
         <div className="space-y-2">
-          <Label htmlFor={`${prefix}cpf`} className="text-sm">CPF</Label>
+          <Label htmlFor={`${prefix}name`} className="text-sm">Nome Completo *</Label>
           <Input
-            id={`${prefix}cpf`}
-            value={formData.cpf}
-            onChange={(e) => onFieldChange('cpf', e.target.value)}
-            placeholder="000.000.000-00"
+            id={`${prefix}name`}
+            value={formData.name}
+            onChange={(e) => onFieldChange('name', e.target.value)}
+            placeholder="Nome do paciente"
+            required
             autoComplete="off"
           />
         </div>
-      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor={`${prefix}phone`} className="text-sm">Telefone</Label>
-          <Input
-            id={`${prefix}phone`}
-            value={formData.phone}
-            onChange={(e) => onFieldChange('phone', e.target.value)}
-            placeholder="(00) 00000-0000"
-            autoComplete="off"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor={`${prefix}cpf`} className="text-sm">CPF</Label>
+            <Input
+              id={`${prefix}cpf`}
+              value={formData.cpf}
+              onChange={(e) => onFieldChange('cpf', e.target.value)}
+              placeholder="000.000.000-00"
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor={`${prefix}phone`} className="text-sm">Telefone</Label>
+            <Input
+              id={`${prefix}phone`}
+              value={formData.phone}
+              onChange={(e) => onFieldChange('phone', e.target.value)}
+              placeholder="(00) 00000-0000"
+              autoComplete="off"
+            />
+          </div>
         </div>
+
         <div className="space-y-2">
           <Label htmlFor={`${prefix}email`} className="text-sm">E-mail</Label>
           <Input
@@ -100,40 +123,50 @@ const PatientForm = memo(function PatientForm({
         </div>
       </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={`${prefix}medicalHistory`} className="text-sm">Histórico Médico</Label>
-        <Textarea
-          id={`${prefix}medicalHistory`}
-          value={formData.medicalHistory}
-          onChange={(e) => onFieldChange('medicalHistory', e.target.value)}
-          placeholder="Condições médicas relevantes..."
-          rows={3}
-        />
-      </div>
+      {/* Clinical History — collapsible */}
+      <Accordion type="single" collapsible className="border rounded-lg px-3">
+        <AccordionItem value="clinical" className="border-none">
+          <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+            Histórico Clínico (opcional)
+          </AccordionTrigger>
+          <AccordionContent className="space-y-3 pb-3">
+            <div className="space-y-2">
+              <Label htmlFor={`${prefix}medicalHistory`} className="text-sm">Histórico Médico</Label>
+              <Textarea
+                id={`${prefix}medicalHistory`}
+                value={formData.medicalHistory}
+                onChange={(e) => onFieldChange('medicalHistory', e.target.value)}
+                placeholder="Condições médicas relevantes..."
+                rows={3}
+              />
+            </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={`${prefix}allergies`} className="text-sm">Alergias</Label>
-        <Input
-          id={`${prefix}allergies`}
-          value={formData.allergies}
-          onChange={(e) => onFieldChange('allergies', e.target.value)}
-          placeholder="Alergias conhecidas"
-          autoComplete="off"
-        />
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${prefix}allergies`} className="text-sm">Alergias</Label>
+              <Input
+                id={`${prefix}allergies`}
+                value={formData.allergies}
+                onChange={(e) => onFieldChange('allergies', e.target.value)}
+                placeholder="Alergias conhecidas"
+                autoComplete="off"
+              />
+            </div>
 
-      <div className="space-y-2">
-        <Label htmlFor={`${prefix}medications`} className="text-sm">Medicamentos em Uso</Label>
-        <Textarea
-          id={`${prefix}medications`}
-          value={formData.medications}
-          onChange={(e) => onFieldChange('medications', e.target.value)}
-          placeholder="Medicamentos que o paciente utiliza..."
-          rows={2}
-        />
-      </div>
+            <div className="space-y-2">
+              <Label htmlFor={`${prefix}medications`} className="text-sm">Medicamentos em Uso</Label>
+              <Textarea
+                id={`${prefix}medications`}
+                value={formData.medications}
+                onChange={(e) => onFieldChange('medications', e.target.value)}
+                placeholder="Medicamentos que o paciente utiliza..."
+                rows={2}
+              />
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
-      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-4">
+      <div className="flex flex-col-reverse sm:flex-row justify-end gap-2 pt-2">
         <Button 
           type="button" 
           variant="outline" 
@@ -156,11 +189,159 @@ const PatientForm = memo(function PatientForm({
   );
 });
 
+// Patient Detail Sheet
+function PatientDetailSheet({ 
+  patient, 
+  open, 
+  onClose 
+}: { 
+  patient: Patient | null; 
+  open: boolean; 
+  onClose: () => void; 
+}) {
+  const [, setLocation] = useLocation();
+  const { user } = useAuth();
+
+  const { data: consultations } = trpc.consultations.list.useQuery(
+    undefined,
+    { enabled: !!user && open && !!patient }
+  );
+
+  const patientConsultations = consultations?.filter(c => c.patientName === patient?.name) || [];
+
+  if (!patient) return null;
+
+  return (
+    <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+        <SheetHeader className="mb-6">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+              <span className="text-primary font-bold text-lg">
+                {patient.name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <SheetTitle className="text-left">{patient.name}</SheetTitle>
+              <SheetDescription className="text-left">Ficha do paciente</SheetDescription>
+            </div>
+          </div>
+        </SheetHeader>
+
+        {/* Contact Info */}
+        <div className="space-y-3 mb-6">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Contato</p>
+          {patient.phone && (
+            <div className="flex items-center gap-2 text-sm">
+              <Phone className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span>{patient.phone}</span>
+            </div>
+          )}
+          {patient.email && (
+            <div className="flex items-center gap-2 text-sm">
+              <Mail className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span>{patient.email}</span>
+            </div>
+          )}
+          {patient.cpf && (
+            <div className="flex items-center gap-2 text-sm">
+              <User className="h-4 w-4 text-muted-foreground shrink-0" />
+              <span>CPF: {patient.cpf}</span>
+            </div>
+          )}
+          {patient.createdAt && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Calendar className="h-4 w-4 shrink-0" />
+              <span>Cadastrado em {new Date(patient.createdAt).toLocaleDateString('pt-BR')}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Clinical History */}
+        {(patient.medicalHistory || patient.allergies || patient.medications) && (
+          <>
+            <Separator className="mb-4" />
+            <div className="space-y-3 mb-6">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Histórico Clínico</p>
+              {patient.medicalHistory && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Histórico médico</p>
+                  <p className="text-sm">{patient.medicalHistory}</p>
+                </div>
+              )}
+              {patient.allergies && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Alergias</p>
+                  <p className="text-sm">{patient.allergies}</p>
+                </div>
+              )}
+              {patient.medications && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Medicamentos em uso</p>
+                  <p className="text-sm">{patient.medications}</p>
+                </div>
+              )}
+            </div>
+          </>
+        )}
+
+        {/* Consultations */}
+        <Separator className="mb-4" />
+        <div className="space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Consultas ({patientConsultations.length})</p>
+            <Button 
+              size="sm" 
+              onClick={() => { setLocation(`/new-consultation?patientId=${patient.id}`); onClose(); }}
+            >
+              <Plus className="h-3 w-3 mr-1" />
+              Nova Consulta
+            </Button>
+          </div>
+
+          {patientConsultations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <FileText className="h-8 w-8 text-muted-foreground mb-2" />
+              <p className="text-sm text-muted-foreground">Nenhuma consulta ainda</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {patientConsultations.slice(0, 10).map(consultation => {
+                const statusConfig = consultationStatusConfig[consultation.status as keyof typeof consultationStatusConfig];
+                return (
+                  <div
+                    key={consultation.id}
+                    className="flex items-center justify-between p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-muted/30 transition-all cursor-pointer"
+                    onClick={() => { setLocation(`/consultation/${consultation.id}`); onClose(); }}
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {new Date(consultation.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {statusConfig && (
+                        <Badge className={statusConfig.className + " text-xs"}>{statusConfig.label}</Badge>
+                      )}
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export default function Patients() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<number | null>(null);
+  const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
   const [formData, setFormData] = useState<PatientFormData>(initialFormData);
 
   const utils = trpc.useUtils();
@@ -178,7 +359,7 @@ export default function Patients() {
       utils.patients.list.invalidate();
     },
     onError: () => {
-      toast.error("Erro ao cadastrar paciente");
+      toast.error("Erro ao cadastrar paciente. Tente novamente.");
     },
   });
 
@@ -190,7 +371,7 @@ export default function Patients() {
       utils.patients.list.invalidate();
     },
     onError: () => {
-      toast.error("Erro ao atualizar paciente");
+      toast.error("Erro ao atualizar paciente. Tente novamente.");
     },
   });
 
@@ -200,7 +381,7 @@ export default function Patients() {
       utils.patients.list.invalidate();
     },
     onError: () => {
-      toast.error("Erro ao remover paciente");
+      toast.error("Erro ao remover paciente. Tente novamente.");
     },
   });
 
@@ -234,7 +415,8 @@ export default function Patients() {
     }
   }, [formData, editingPatient, updateMutation, createMutation, patients]);
 
-  const handleEdit = useCallback((patient: NonNullable<typeof patients>[number]) => {
+  const handleEdit = useCallback((patient: Patient, e: React.MouseEvent) => {
+    e.stopPropagation();
     setEditingPatient(patient.id);
     setFormData({
       name: patient.name,
@@ -247,8 +429,9 @@ export default function Patients() {
     });
   }, []);
 
-  const handleDelete = useCallback((id: number) => {
-    if (confirm("Tem certeza que deseja remover este paciente?")) {
+  const handleDelete = useCallback((id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (confirm("Tem certeza que deseja remover este paciente? Esta ação não pode ser desfeita.")) {
       deleteMutation.mutate({ id });
     }
   }, [deleteMutation]);
@@ -270,7 +453,12 @@ export default function Patients() {
   );
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between gap-4">
         <div>
@@ -291,7 +479,7 @@ export default function Patients() {
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
+              <DialogTitle>Adicionar Paciente</DialogTitle>
               <DialogDescription className="text-sm">
                 Preencha os dados do paciente. Apenas o nome é obrigatório.
               </DialogDescription>
@@ -315,51 +503,89 @@ export default function Patients() {
           placeholder="Buscar paciente por nome, email ou telefone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10"
+          className="pl-10 h-10"
         />
       </div>
 
       {/* Patient List */}
       {isLoading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i}>
+              <CardContent className="p-5">
+                <div className="flex items-center gap-3 mb-3">
+                  <Skeleton className="h-10 w-10 rounded-full shrink-0" />
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-3 w-1/2" />
+                  </div>
+                </div>
+                <Skeleton className="h-3 w-full mb-2" />
+                <Skeleton className="h-3 w-2/3" />
+              </CardContent>
+            </Card>
+          ))}
         </div>
       ) : filteredPatients && filteredPatients.length > 0 ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {filteredPatients.map((patient) => (
-            <Card key={patient.id} className="hover:shadow-md transition-shadow">
+            <Card 
+              key={patient.id} 
+              className="hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
+              onClick={() => setViewingPatient(patient as Patient)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                      <User className="h-5 w-5 text-primary" />
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                      <span className="text-primary font-semibold text-sm">
+                        {patient.name.charAt(0).toUpperCase()}
+                      </span>
                     </div>
                     <div className="min-w-0">
-                      <CardTitle className="text-base truncate">{patient.name}</CardTitle>
+                      <CardTitle className="text-sm font-semibold truncate">{patient.name}</CardTitle>
+                      {patient.cpf && (
+                        <p className="text-xs text-muted-foreground truncate">{patient.cpf}</p>
+                      )}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8"
-                      onClick={() => handleEdit(patient)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8 text-destructive hover:text-destructive"
-                      onClick={() => handleDelete(patient.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8"
+                          onClick={(e) => handleEdit(patient, e)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Editar</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => handleDelete(patient.id, e)}
+                          disabled={deleteMutation.isPending}
+                        >
+                          {deleteMutation.isPending ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Remover</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="pt-0">
-                <div className="space-y-2 text-sm">
+                <div className="space-y-1.5 text-sm">
                   {patient.phone && (
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Phone className="h-3.5 w-3.5 shrink-0" />
@@ -372,6 +598,12 @@ export default function Patients() {
                       <span className="truncate">{patient.email}</span>
                     </div>
                   )}
+                  {(patient as Patient).createdAt && (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
+                      <Calendar className="h-3 w-3 shrink-0" />
+                      <span>Cadastrado em {new Date((patient as Patient).createdAt!).toLocaleDateString('pt-BR')}</span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -379,24 +611,34 @@ export default function Patients() {
         </div>
       ) : (
         <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-12">
-            <Users className="h-12 w-12 text-muted-foreground mb-4" />
-            <p className="text-muted-foreground text-center">
-              {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado ainda"}
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-4 rounded-full bg-muted mb-4">
+              <Users className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente ainda"}
+            </h3>
+            <p className="text-muted-foreground text-sm max-w-sm mb-6">
+              {searchQuery
+                ? `Nenhum paciente corresponde a "${searchQuery}".`
+                : "Adicione seu primeiro paciente para começar a gerenciar sua clínica."}
             </p>
             {!searchQuery && (
-              <Button 
-                variant="outline" 
-                className="mt-4"
-                onClick={() => setIsCreateOpen(true)}
-              >
+              <Button onClick={() => setIsCreateOpen(true)}>
                 <Plus className="h-4 w-4 mr-2" />
-                Cadastrar Primeiro Paciente
+                Adicionar Paciente
               </Button>
             )}
           </CardContent>
         </Card>
       )}
+
+      {/* Patient Detail Sheet */}
+      <PatientDetailSheet
+        patient={viewingPatient}
+        open={viewingPatient !== null}
+        onClose={() => setViewingPatient(null)}
+      />
 
       {/* Edit Patient Dialog */}
       <Dialog open={editingPatient !== null} onOpenChange={(open) => {
@@ -422,6 +664,6 @@ export default function Patients() {
           />
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

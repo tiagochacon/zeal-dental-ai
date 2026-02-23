@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { trpc } from "@/lib/trpc";
 import {
@@ -11,9 +12,16 @@ import {
   FileText,
   Search,
   Trash2,
+  ChevronRight,
+  Plus,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { consultationStatusConfig } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 export default function Consultations() {
   const [, setLocation] = useLocation();
@@ -33,61 +41,49 @@ export default function Consultations() {
       refetch();
     },
     onError: () => {
-      toast.error("Erro ao remover consulta");
+      toast.error("Erro ao remover consulta. Tente novamente.");
     },
   });
-
-  const statusLabels: Record<string, string> = {
-    draft: "Rascunho",
-    transcribed: "Transcrito",
-    reviewed: "Revisado",
-    finalized: "Finalizado",
-  };
-
-  const statusColors: Record<string, string> = {
-    draft: "bg-yellow-500/20 text-yellow-400",
-    transcribed: "bg-blue-500/20 text-blue-400",
-    reviewed: "bg-purple-500/20 text-purple-400",
-    finalized: "bg-green-500/20 text-green-400",
-  };
 
   const filteredConsultations = consultations?.filter(consultation => {
     const query = searchQuery.toLowerCase().trim();
     if (!query) return true;
     return (
       consultation.patientName.toLowerCase().includes(query) ||
-      statusLabels[consultation.status]?.toLowerCase().includes(query)
+      (consultationStatusConfig[consultation.status as keyof typeof consultationStatusConfig]?.label ?? consultation.status).toLowerCase().includes(query)
     );
   }) || [];
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-lg lg:text-xl font-bold">Consultas Realizadas</h1>
+          <h1 className="text-lg lg:text-2xl font-bold">Consultas Realizadas</h1>
           <p className="text-xs lg:text-sm text-muted-foreground">
             Visualize e gerencie todas as consultas
           </p>
         </div>
+        <Button size="sm" onClick={() => setLocation("/new-consultation")} className="shrink-0">
+          <Plus className="h-4 w-4 mr-2" />
+          Nova Consulta
+        </Button>
+      </div>
 
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por paciente ou status"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-9"
-          />
-        </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar por paciente ou status..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-9 h-10"
+        />
       </div>
 
       {/* Consultation List */}
@@ -99,45 +95,114 @@ export default function Consultations() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {filteredConsultations.length === 0 ? (
-            <div className="py-12 text-center text-muted-foreground">
-              Nenhuma consulta encontrada
+          {isLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border">
+                  <div className="space-y-2 flex-1">
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-24" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="h-6 w-20 rounded-full" />
+                    <Skeleton className="h-8 w-16 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : filteredConsultations.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="p-4 rounded-full bg-muted mb-4">
+                <FileText className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold mb-2">
+                {searchQuery ? "Nenhuma consulta encontrada" : "Nenhuma consulta ainda"}
+              </h3>
+              <p className="text-muted-foreground text-sm max-w-sm mb-6">
+                {searchQuery
+                  ? `Nenhuma consulta corresponde a "${searchQuery}".`
+                  : "Grave sua primeira consulta para começar a usar o sistema."}
+              </p>
+              {!searchQuery && (
+                <Button onClick={() => setLocation("/new-consultation")}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Nova Consulta
+                </Button>
+              )}
             </div>
           ) : (
             <div className="space-y-3">
               {filteredConsultations.map(consultation => (
                 <div
                   key={consultation.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border border-border"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-muted/30 transition-all duration-200 cursor-pointer group"
+                  onClick={() => setLocation(`/consultation/${consultation.id}`)}
                 >
                   <div className="min-w-0">
                     <p className="font-medium text-sm lg:text-base truncate">
                       {consultation.patientName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(consultation.createdAt).toLocaleDateString("pt-BR")}
+                      {new Date(consultation.createdAt).toLocaleDateString("pt-BR", {
+                        day: "2-digit",
+                        month: "long",
+                        year: "numeric",
+                      })}
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-2">
-                    <Badge className={statusColors[consultation.status]}>
-                      {statusLabels[consultation.status]}
+                  <div className="flex items-center gap-2 flex-wrap" onClick={(e) => e.stopPropagation()}>
+                    <Badge className={consultationStatusConfig[consultation.status as keyof typeof consultationStatusConfig]?.className}>
+                      {consultationStatusConfig[consultation.status as keyof typeof consultationStatusConfig]?.label ?? consultation.status}
                     </Badge>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setLocation(`/consultation/${consultation.id}`)}
-                    >
-                      Ver
-                    </Button>
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => setDeleteId(consultation.id)}
-                    >
-                      <Trash2 className="h-4 w-4 mr-1" />
-                      Excluir
-                    </Button>
+
+                    {/* Treatment Closed Badge */}
+                    {consultation.status === "finalized" && (consultation as any).treatmentClosed === true && (
+                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Fechado
+                      </Badge>
+                    )}
+                    {consultation.status === "finalized" && (consultation as any).treatmentClosed === false && (
+                      <Badge className="bg-destructive/15 text-destructive border-destructive/20 gap-1">
+                        <XCircle className="h-3 w-3" />
+                        Não Fechado
+                      </Badge>
+                    )}
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-foreground"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setLocation(`/consultation/${consultation.id}`);
+                          }}
+                        >
+                          Ver
+                          <ChevronRight className="h-4 w-4 ml-1" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Ver consulta</TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDeleteId(consultation.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Remover</TooltipContent>
+                    </Tooltip>
                   </div>
                 </div>
               ))}
@@ -152,7 +217,8 @@ export default function Consultations() {
           <DialogHeader>
             <DialogTitle>Excluir consulta</DialogTitle>
             <DialogDescription>
-              Esta ação é permanente e removerá transcrição, notas e arquivos de áudio.
+              Esta ação é permanente e removerá a transcrição, notas clínicas e arquivos de áudio.
+              Esta operação não pode ser desfeita.
             </DialogDescription>
           </DialogHeader>
           <div className="flex justify-end gap-2 mt-4">
@@ -170,12 +236,12 @@ export default function Consultations() {
                   Excluindo...
                 </>
               ) : (
-                "Excluir"
+                "Excluir Permanentemente"
               )}
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </motion.div>
   );
 }

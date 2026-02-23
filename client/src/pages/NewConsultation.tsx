@@ -8,17 +8,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { trpc } from "@/lib/trpc";
-import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText, LayoutDashboard, Users, Menu, X, UserCircle } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, Square, Upload, Play, Pause, AlertCircle, FileText } from "lucide-react";
+import { motion } from "framer-motion";
 import { UpgradeModal, type UpgradeModalTrigger } from "@/components/UpgradeModal";
 import { useUsageLimit, getTriggerFromError } from "@/hooks/useUsageLimit";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
 import { toast } from "sonner";
 
 export default function NewConsultation() {
   const [, setLocation] = useLocation();
   const { user, loading: authLoading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Form state
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
@@ -352,125 +351,34 @@ export default function NewConsultation() {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-16">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
-  if (!user) {
-    window.location.href = getLoginUrl();
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 border-r border-border bg-sidebar flex flex-col
-        transform transition-transform duration-200 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
-            <span className="text-xl font-bold text-foreground">Zeal</span>
-          </div>
-          <button 
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 hover:bg-sidebar-accent rounded-lg"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <motion.div
+      className="max-w-3xl mx-auto space-y-4 lg:space-y-6"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
+      {/* Page Header */}
+      <div className="flex items-center gap-2 lg:gap-3">
+        <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
+          <ArrowLeft className="h-4 w-4 mr-1 lg:mr-2" />
+          <span className="hidden sm:inline">Voltar</span>
+        </Button>
+        <div>
+          <h1 className="text-lg lg:text-xl font-bold">Nova Consulta</h1>
+          <p className="text-xs lg:text-sm text-muted-foreground hidden sm:block">
+            Grave áudio ou digite o texto da consulta
+          </p>
         </div>
+      </div>
 
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
-            <li>
-              <button
-                onClick={() => { setLocation("/"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/patients"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <Users className="h-5 w-5" />
-                Pacientes
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <FileText className="h-5 w-5" />
-                Consultas
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <UserCircle className="h-5 w-5" />
-                Meu Perfil
-              </button>
-            </li>
-          </ul>
-        </nav>
-
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
-              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        <header className="p-4 lg:p-6 border-b border-border">
-          <div className="flex items-center gap-2 lg:gap-4">
-            <button 
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <Button variant="ghost" size="sm" onClick={() => setLocation("/")}>
-              <ArrowLeft className="h-4 w-4 mr-1 lg:mr-2" />
-              <span className="hidden sm:inline">Voltar</span>
-            </Button>
-            <div>
-              <h1 className="text-lg lg:text-xl font-bold">Nova Consulta</h1>
-              <p className="text-xs lg:text-sm text-muted-foreground hidden sm:block">
-                Grave áudio ou digite o texto da consulta
-              </p>
-            </div>
-          </div>
-        </header>
-
-        <div className="p-4 lg:p-6 max-w-3xl mx-auto space-y-4 lg:space-y-6">
+      <div className="space-y-4 lg:space-y-6">
           {/* Patient Selection */}
           <Card>
             <CardHeader className="p-4 lg:p-6">
@@ -758,8 +666,7 @@ Dentista: Há quanto tempo sente essa dor?
               inputMode === "audio" ? 'Continuar para Transcrição' : 'Continuar para Revisão'
             )}
           </Button>
-        </div>
-      </main>
+      </div>
 
       {/* Upgrade Modal */}
       <UpgradeModal
@@ -770,6 +677,6 @@ Dentista: Há quanto tempo sente essa dor?
         consultationsUsed={usageLimit.consultationsUsed}
         consultationsLimit={usageLimit.consultationsLimit}
       />
-    </div>
+    </motion.div>
   );
 }

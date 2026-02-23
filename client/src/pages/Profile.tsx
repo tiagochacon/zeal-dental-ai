@@ -1,8 +1,14 @@
+import { motion } from "framer-motion";
 import DentistProfile from "@/components/DentistProfile";
 
 export default function Profile() {
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* Header */}
       <div>
         <h1 className="text-xl lg:text-3xl font-bold">
@@ -17,6 +23,6 @@ export default function Profile() {
       <div className="max-w-2xl">
         <DentistProfile />
       </div>
-    </div>
+    </motion.div>
   );
 }
