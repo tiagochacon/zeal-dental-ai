@@ -656,3 +656,13 @@
 - [x] Corrigir fluxo de criação de membro / login (gerar openId no addClinicMember)
 - [x] Corrigir usuários existentes sem openId (4 usuários corrigidos no banco)
 - [x] Testar login CRC (328 testes passando)
+
+## Fix: CRC redirecionado para assinatura + botão Voltar + contagem consultas (v69)
+- [x] Botão "Voltar ao Dashboard" no Pricing.tsx redireciona por papel (CRC -> /crc, Gestor -> /gestor)
+- [x] CRC não é mais bloqueado pelo PaywallGuard (herda acesso do gestor)
+- [x] CRC é redirecionado automaticamente para /crc ao acessar / (Dashboard.tsx)
+- [x] CRC/Dentista criado pelo gestor herda acesso da assinatura do gestor (getEffectiveBillingUser)
+- [x] Contagem de consultas baseada no gestor (incrementClinicConsultationCount)
+- [x] Todos os middlewares de billing usam getEffectiveBillingUser
+- [x] billing.getPlanInfo retorna info do plano do gestor para CRC/Dentista
+- [x] 328 testes passando, 0 erros TypeScript

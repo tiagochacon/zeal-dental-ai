@@ -144,7 +144,7 @@ export default function Pricing() {
       <div className="container max-w-6xl py-8">
         <div className="flex items-center gap-4 mb-8">
           {user ? (
-            <Link href="/">
+            <Link href={user.clinicRole === 'crc' ? '/crc' : user.clinicRole === 'gestor' ? '/gestor' : '/'}>
               <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                 <ArrowLeft className="mr-2 h-4 w-4" />
                 Voltar ao Dashboard

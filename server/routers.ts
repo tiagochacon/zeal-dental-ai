@@ -38,7 +38,8 @@ import { SOAPNote, TreatmentPlan } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
 import { PLAN_CONFIGS, PlanTier } from "./stripe/products";
-import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId, incrementConsultationCount } from "./db";
+import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId } from "./db";
+import { incrementClinicConsultationCount } from "./clinicBilling";
 import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
 import { sdk } from "./_core/sdk";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
@@ -890,7 +891,7 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         ];
         const isAdmin = ctx.user.role === 'admin' || ADMIN_EMAILS.includes(ctx.user.email || '');
         if (!isAdmin) {
-          await incrementConsultationCount(ctx.user.id);
+          await incrementClinicConsultationCount(ctx.user);
         }
 
         return { success: true, soapNote };
@@ -981,9 +982,12 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
     // Get current plan info for frontend
     getPlanInfo: protectedProcedure.query(async ({ ctx }) => {
       const { getUserPlanInfo } = await import('./billing');
+      const { getEffectiveBillingUser } = await import('./clinicBilling');
       const user = await getUserById(ctx.user.id);
       if (!user) throw new Error("Usuário não encontrado");
-      return getUserPlanInfo(user);
+      // For CRC/Dentista, use the gestor's plan info
+      const billingUser = await getEffectiveBillingUser(user);
+      return getUserPlanInfo(billingUser);
     }),
 
     // Start free trial

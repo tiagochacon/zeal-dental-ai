@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { Plus, Mic, User, FileText, Users, Clock, ChevronRight, TrendingUp } from "lucide-react";
 import { useLocation } from "wouter";
@@ -11,6 +12,13 @@ import { consultationStatusConfig } from "@/lib/utils";
 export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+
+  // Redirect CRC users to their dashboard
+  useEffect(() => {
+    if (user?.clinicRole === 'crc') {
+      setLocation('/crc');
+    }
+  }, [user, setLocation]);
 
   const { data: consultations, isLoading: consultationsLoading } = trpc.consultations.list.useQuery(
     undefined,

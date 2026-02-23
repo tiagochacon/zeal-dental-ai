@@ -1,6 +1,7 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG, SUBSCRIPTION_REQUIRED_ERR_MSG } from '@shared/const';
 import { hasAccessToPremium, hasReachedConsultationLimit, getRemainingConsultations, hasNegotiationAccess, getUserTier } from '../billing';
 import { getConsultationCount } from '../db';
+import { getEffectiveBillingUser } from '../clinicBilling';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -49,6 +50,8 @@ export const adminProcedure = t.procedure.use(
 /**
  * Middleware that requires an active subscription.
  * Use this for premium features like AI transcription and SOAP note generation.
+ * 
+ * For CRC/Dentista in a clinic, checks the GESTOR's subscription instead.
  */
 const requireSubscription = t.middleware(async opts => {
   const { ctx, next } = opts;
@@ -62,12 +65,20 @@ const requireSubscription = t.middleware(async opts => {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 
-  // Check if user has active subscription OR active trial
+  // Get the effective billing user (gestor for clinic members)
+  const billingUser = await getEffectiveBillingUser(ctx.user);
+
+  // Allow admins (gestor might be admin) to bypass
+  if (billingUser.role === 'admin') {
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }
+
+  // Check if billing user has active subscription OR active trial
   const activeStatuses = ['active', 'trialing'];
-  const hasActiveSubscription = activeStatuses.includes(ctx.user.subscriptionStatus || '');
+  const hasActiveSubscription = activeStatuses.includes(billingUser.subscriptionStatus || '');
   
   // Check trial by dates (trialEndsAt > now)
-  const hasActiveTrial = ctx.user.trialEndsAt && new Date(ctx.user.trialEndsAt) > new Date();
+  const hasActiveTrial = billingUser.trialEndsAt && new Date(billingUser.trialEndsAt) > new Date();
   
   if (!hasActiveSubscription && !hasActiveTrial) {
     throw new TRPCError({ 
@@ -99,6 +110,8 @@ const ADMIN_EMAILS = [
  * Middleware que verifica limites de consultas de forma estrita.
  * DEVE ser usado em rotas que consomem consultas (transcribe, generateSOAP).
  * Verifica ANTES de executar qualquer lógica de AI.
+ * 
+ * Para CRC/Dentista em uma clínica, verifica os limites do GESTOR.
  */
 const enforceConsultationLimit = t.middleware(async opts => {
   const { ctx, next } = opts;
@@ -112,18 +125,26 @@ const enforceConsultationLimit = t.middleware(async opts => {
     return next({ ctx: { ...ctx, user: ctx.user, isUnlimited: true } });
   }
 
-  // Verificar se tem acesso premium (assinatura ou trial)
-  if (!hasAccessToPremium(ctx.user)) {
+  // Get the effective billing user (gestor for clinic members)
+  const billingUser = await getEffectiveBillingUser(ctx.user);
+
+  // If the gestor is admin, bypass
+  if (billingUser.role === 'admin' || ADMIN_EMAILS.includes(billingUser.email || '')) {
+    return next({ ctx: { ...ctx, user: ctx.user, isUnlimited: true } });
+  }
+
+  // Verificar se tem acesso premium (assinatura ou trial) - using gestor's billing
+  if (!hasAccessToPremium(billingUser)) {
     throw new TRPCError({ 
       code: "FORBIDDEN", 
       message: "Assinatura ativa ou trial necessária. Acesse /pricing.",
     });
   }
 
-  // VERIFICAR LIMITE ESTRITAMENTE ANTES de executar qualquer lógica
-  if (hasReachedConsultationLimit(ctx.user)) {
-    const used = ctx.user.consultationCount;
-    const tier = getUserTier(ctx.user);
+  // VERIFICAR LIMITE ESTRITAMENTE ANTES de executar qualquer lógica - using gestor's count
+  if (hasReachedConsultationLimit(billingUser)) {
+    const used = billingUser.consultationCount;
+    const tier = getUserTier(billingUser);
     throw new TRPCError({ 
       code: "FORBIDDEN", 
       message: `LIMIT_EXCEEDED:${tier}:${used}:Limite de consultas atingido para o seu plano. Faça upgrade para continuar.`,
@@ -144,6 +165,8 @@ export const consultationLimitProcedure = t.procedure.use(enforceConsultationLim
 /**
  * Middleware que verifica acesso à aba de Negociação.
  * Bloqueia usuários do plano basic de acessar análise de Neurovendas.
+ * 
+ * Para CRC/Dentista em uma clínica, verifica o plano do GESTOR.
  */
 const enforceNegotiationAccess = t.middleware(async opts => {
   const { ctx, next } = opts;
@@ -157,8 +180,16 @@ const enforceNegotiationAccess = t.middleware(async opts => {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 
-  // Verificar se tem acesso à Negociação
-  if (!hasNegotiationAccess(ctx.user)) {
+  // Get the effective billing user (gestor for clinic members)
+  const billingUser = await getEffectiveBillingUser(ctx.user);
+
+  // If the gestor is admin, bypass
+  if (billingUser.role === 'admin' || ADMIN_EMAILS.includes(billingUser.email || '')) {
+    return next({ ctx: { ...ctx, user: ctx.user } });
+  }
+
+  // Verificar se tem acesso à Negociação - using gestor's plan
+  if (!hasNegotiationAccess(billingUser)) {
     throw new TRPCError({ 
       code: "FORBIDDEN", 
       message: "Upgrade para o plano PRO para acessar a análise de Negociação. Desbloqueie insights de neurovendas para aumentar sua taxa de aceitação de tratamentos.",

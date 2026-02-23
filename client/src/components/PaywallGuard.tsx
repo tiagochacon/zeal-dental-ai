@@ -7,7 +7,7 @@ import { Loader2 } from "lucide-react";
 const AUTH_ROUTES = ["/login", "/register"];
 
 // Routes that don't require subscription (but require auth)
-const PUBLIC_ROUTES = ["/login", "/register", "/pricing", "/support", "/404"];
+const PUBLIC_ROUTES = ["/login", "/register", "/pricing", "/support", "/404", "/subscription"];
 
 interface PaywallGuardProps {
   children: React.ReactNode;
@@ -40,6 +40,14 @@ export function PaywallGuard({ children }: PaywallGuardProps) {
 
     // Admin bypass
     if (user.role === "admin") {
+      setIsChecking(false);
+      return;
+    }
+
+    // Clinic member bypass: CRC and Dentista created by gestor inherit access from gestor's subscription
+    // If user has a clinicId and clinicRole (crc or dentista), they are managed by the gestor
+    // and should not be blocked by paywall - the gestor's subscription covers them
+    if (user.clinicId && (user.clinicRole === "crc" || user.clinicRole === "dentista")) {
       setIsChecking(false);
       return;
     }
