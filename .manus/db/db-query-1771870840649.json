@@ -1,0 +1,80 @@
+{
+  "query": "SELECT id, patientId, dentistId, status, createdAt FROM consultations ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, patientId, dentistId, status, createdAt FROM consultations ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "id": "1830001",
+      "patientId": "840001",
+      "dentistId": "2730051",
+      "status": "finalized",
+      "createdAt": "2026-02-23 17:14:52"
+    },
+    {
+      "id": "1770001",
+      "patientId": "1350001",
+      "dentistId": "6030001",
+      "status": "transcribed",
+      "createdAt": "2026-02-22 00:49:00"
+    },
+    {
+      "id": "1680001",
+      "patientId": "1290001",
+      "dentistId": "3570007",
+      "status": "transcribed",
+      "createdAt": "2026-02-20 19:20:23"
+    },
+    {
+      "id": "1650001",
+      "patientId": "1260001",
+      "dentistId": "3060001",
+      "status": "finalized",
+      "createdAt": "2026-02-19 22:40:44"
+    },
+    {
+      "id": "1620001",
+      "patientId": "1230001",
+      "dentistId": "3870063",
+      "status": "finalized",
+      "createdAt": "2026-02-14 23:58:40"
+    },
+    {
+      "id": "1590001",
+      "patientId": "1200001",
+      "dentistId": "3570007",
+      "status": "finalized",
+      "createdAt": "2026-02-09 12:54:06"
+    },
+    {
+      "id": "1560001",
+      "patientId": "1170001",
+      "dentistId": "3570007",
+      "status": "finalized",
+      "createdAt": "2026-02-06 17:39:12"
+    },
+    {
+      "id": "1530001",
+      "patientId": "1140001",
+      "dentistId": "3570007",
+      "status": "finalized",
+      "createdAt": "2026-02-06 12:14:50"
+    },
+    {
+      "id": "1500002",
+      "patientId": "1110002",
+      "dentistId": "5220001",
+      "status": "transcribed",
+      "createdAt": "2026-02-05 23:42:06"
+    },
+    {
+      "id": "1500001",
+      "patientId": "1110001",
+      "dentistId": "5220001",
+      "status": "transcribed",
+      "createdAt": "2026-02-05 23:31:24"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tpatientId\tdentistId\tstatus\tcreatedAt\n1830001\t840001\t2730051\tfinalized\t2026-02-23 17:14:52\n1770001\t1350001\t6030001\ttranscribed\t2026-02-22 00:49:00\n1680001\t1290001\t3570007\ttranscribed\t2026-02-20 19:20:23\n1650001\t1260001\t3060001\tfinalized\t2026-02-19 22:40:44\n1620001\t1230001\t3870063\tfinalized\t2026-02-14 23:58:40\n1590001\t1200001\t3570007\tfinalized\t2026-02-09 12:54:06\n1560001\t1170001\t3570007\tfinalized\t2026-02-06 17:39:12\n1530001\t1140001\t3570007\tfinalized\t2026-02-06 12:14:50\n1500002\t1110002\t5220001\ttranscribed\t2026-02-05 23:42:06\n1500001\t1110001\t5220001\ttranscribed\t2026-02-05 23:31:24\n",
+  "stderr": "",
+  "execution_time_ms": 54
+}

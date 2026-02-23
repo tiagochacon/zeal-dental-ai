@@ -666,3 +666,8 @@
 - [x] Todos os middlewares de billing usam getEffectiveBillingUser
 - [x] billing.getPlanInfo retorna info do plano do gestor para CRC/Dentista
 - [x] 328 testes passando, 0 erros TypeScript
+
+## Bug: Não consegue excluir a última consulta da lista (v70)
+- [x] Diagnosticar fluxo de exclusão de consultas (backend + frontend)
+- [x] Corrigir bug: gestor e admin agora podem excluir consultas de membros da clínica
+- [x] Testar exclusão (328 testes passando)

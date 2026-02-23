@@ -605,8 +605,24 @@ export const appRouter = router({
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
+        if (!consultation) {
+          throw new Error("Consulta não encontrada");
+        }
+
+        // Check permissions: own consultation, admin, or gestor of the same clinic
+        const isOwner = consultation.dentistId === ctx.user.id;
+        const isAdmin = ctx.user.role === 'admin';
+        let isGestorOfClinic = false;
+        if (ctx.user.clinicRole === 'gestor' && ctx.user.clinicId) {
+          // Check if the dentist who created this consultation belongs to the gestor's clinic
+          const dentist = await getUserById(consultation.dentistId);
+          if (dentist && dentist.clinicId === ctx.user.clinicId) {
+            isGestorOfClinic = true;
+          }
+        }
+
+        if (!isOwner && !isAdmin && !isGestorOfClinic) {
+          throw new Error("Acesso negado: você não tem permissão para excluir esta consulta");
         }
 
         const chunkFiles = await getAudioChunksByConsultation(input.consultationId);
