@@ -676,3 +676,14 @@
 - [x] Diagnosticar: LeadDetail.tsx chama clinic.getMembers (restrito ao gestor) para listar dentistas na conversão
 - [x] Corrigir: permitir CRC ver membros da clínica (necessário para converter leads em pacientes)
 - [x] Testar: 328 testes passando, 0 erros TypeScript
+
+## Feature: Contas criadas pelo gestor vinculadas automaticamente ao plano (v72)
+- [x] Diagnosticar fluxo de login e como clinicId/clinicRole são propagados
+- [x] Backend: auth.me retorna dados do plano do gestor para CRC/Dentista (subscriptionStatus, tier, etc.)
+- [x] Backend: authenticateUser retorna clinicId e clinicRole
+- [x] Backend: emailLogin retorna redirectTo baseado no papel (CRC -> /crc, Gestor -> /gestor)
+- [x] Backend: stripe.getSubscriptionInfo usa getEffectiveBillingUser para CRC/Dentista
+- [x] Frontend: Login.tsx usa redirectTo para redirecionar por papel
+- [x] Frontend: PaywallGuard já faz bypass para CRC/Dentista com clinicId
+- [x] Frontend: billing.getPlanInfo já usa getEffectiveBillingUser
+- [x] 0 erros TypeScript, 328 testes passando

@@ -111,6 +111,8 @@ export async function authenticateUser(email: string, password: string) {
     trialEndsAt: user.trialEndsAt,
     consultationCount: user.consultationCount,
     priceId: user.priceId,
+    clinicId: user.clinicId,
+    clinicRole: user.clinicRole,
   };
 }
 

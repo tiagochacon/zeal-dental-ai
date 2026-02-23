@@ -128,7 +128,36 @@ export const appRouter = router({
   system: systemRouter,
   
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    me: publicProcedure.query(async (opts) => {
+      const user = opts.ctx.user;
+      if (!user) return null;
+
+      // For CRC/Dentista in a clinic, enrich with gestor's subscription data
+      if (user.clinicId && (user.clinicRole === 'crc' || user.clinicRole === 'dentista')) {
+        const { getEffectiveBillingUser } = await import('./clinicBilling');
+        const gestor = await getEffectiveBillingUser(user);
+        if (gestor && gestor.id !== user.id) {
+          // Return user data but with gestor's subscription fields
+          return {
+            ...user,
+            // Override subscription fields with gestor's data
+            subscriptionStatus: gestor.subscriptionStatus,
+            subscriptionTier: gestor.subscriptionTier,
+            priceId: gestor.priceId,
+            subscriptionEndDate: gestor.subscriptionEndDate,
+            trialStartedAt: gestor.trialStartedAt,
+            trialEndsAt: gestor.trialEndsAt,
+            consultationCount: gestor.consultationCount,
+            consultationCountResetAt: gestor.consultationCountResetAt,
+            // Add gestor info for reference
+            gestorName: gestor.name,
+            gestorEmail: gestor.email,
+          };
+        }
+      }
+
+      return user;
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -201,8 +230,37 @@ export const appRouter = router({
           ...cookieOptions,
           maxAge: ONE_YEAR_MS,
         });
+
+        // For CRC/Dentista, return gestor's subscription status
+        let effectiveSubscriptionStatus = user.subscriptionStatus;
+        let redirectTo = '/';
+        if (user.clinicId && (user.clinicRole === 'crc' || user.clinicRole === 'dentista')) {
+          // Fetch full user from DB for getEffectiveBillingUser (needs full User type)
+          const fullUser = await getUserById(user.id);
+          if (fullUser) {
+            const { getEffectiveBillingUser } = await import('./clinicBilling');
+            const gestor = await getEffectiveBillingUser(fullUser);
+            if (gestor && gestor.id !== user.id) {
+              effectiveSubscriptionStatus = gestor.subscriptionStatus;
+            }
+          }
+          // Set redirect based on role
+          if (user.clinicRole === 'crc') redirectTo = '/crc';
+          else if (user.clinicRole === 'dentista') redirectTo = '/';
+        } else if (user.clinicRole === 'gestor') {
+          redirectTo = '/gestor';
+        }
         
-        return { id: user.id, email: user.email, name: user.name, role: user.role, subscriptionStatus: user.subscriptionStatus };
+        return { 
+          id: user.id, 
+          email: user.email, 
+          name: user.name, 
+          role: user.role, 
+          subscriptionStatus: effectiveSubscriptionStatus,
+          clinicRole: user.clinicRole,
+          clinicId: user.clinicId,
+          redirectTo,
+        };
       }),
   }),
 
@@ -1050,10 +1108,14 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
       const user = await getUserById(ctx.user.id);
       if (!user) throw new Error("Usuário não encontrado");
 
+      // For CRC/Dentista, use the gestor's subscription info
+      const { getEffectiveBillingUser } = await import('./clinicBilling');
+      const billingUser = await getEffectiveBillingUser(user);
+
       return {
-        subscriptionStatus: user.subscriptionStatus,
-        priceId: user.priceId,
-        subscriptionEndDate: user.subscriptionEndDate,
+        subscriptionStatus: billingUser.subscriptionStatus,
+        priceId: billingUser.priceId,
+        subscriptionEndDate: billingUser.subscriptionEndDate,
         plans: Object.entries(PLAN_CONFIGS)
           .filter(([_, config]) => config.priceId !== null) // Only show paid plans
           .map(([tier, config]) => ({

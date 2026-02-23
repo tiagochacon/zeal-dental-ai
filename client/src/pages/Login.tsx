@@ -16,10 +16,11 @@ export default function Login() {
   const [error, setError] = useState("");
 
   const loginMutation = trpc.auth.emailLogin.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       toast.success("Login realizado com sucesso!");
       await refresh();
-      setLocation("/");
+      // Redirect based on user role (CRC -> /crc, Gestor -> /gestor, etc.)
+      setLocation(data.redirectTo || "/");
     },
     onError: (err) => {
       setError(err.message || "Erro ao fazer login. Verifique suas credenciais.");
