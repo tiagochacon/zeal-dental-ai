@@ -8,6 +8,7 @@ import { z } from "zod";
 import {
   createPatient,
   getPatientsByDentist,
+  getPatientsByClinic,
   getPatientById,
   updatePatient,
   deletePatient,
@@ -284,6 +285,11 @@ export const appRouter = router({
       }),
 
     list: protectedProcedure.query(async ({ ctx }) => {
+      const user = ctx.user;
+      // Gestor e admin veem todos os pacientes da clínica
+      if (user.clinicId && (user.clinicRole === 'gestor' || user.role === 'admin')) {
+        return await getPatientsByClinic(user.clinicId);
+      }
       return await getPatientsByDentist(ctx.user.id);
     }),
 
@@ -291,7 +297,11 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         const patient = await getPatientById(input.id);
-        if (!patient || patient.dentistId !== ctx.user.id) {
+        if (!patient) throw new Error("Paciente não encontrado");
+        // Dono, gestor da mesma clínica, ou admin
+        const isOwner = patient.dentistId === ctx.user.id;
+        const isClinicGestor = ctx.user.clinicId && patient.clinicId === ctx.user.clinicId && (ctx.user.clinicRole === 'gestor' || ctx.user.role === 'admin');
+        if (!isOwner && !isClinicGestor) {
           throw new Error("Paciente não encontrado ou acesso negado");
         }
         return patient;
@@ -301,7 +311,10 @@ export const appRouter = router({
       .input(updatePatientSchema)
       .mutation(async ({ ctx, input }) => {
         const patient = await getPatientById(input.id);
-        if (!patient || patient.dentistId !== ctx.user.id) {
+        if (!patient) throw new Error("Paciente não encontrado");
+        const isOwner = patient.dentistId === ctx.user.id;
+        const isClinicGestor = ctx.user.clinicId && patient.clinicId === ctx.user.clinicId && (ctx.user.clinicRole === 'gestor' || ctx.user.role === 'admin');
+        if (!isOwner && !isClinicGestor) {
           throw new Error("Paciente não encontrado ou acesso negado");
         }
         const { id, ...updateData } = input;

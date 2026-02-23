@@ -209,6 +209,12 @@ function PatientDetailSheet({
 
   const patientConsultations = consultations?.filter(c => c.patientName === patient?.name) || [];
 
+  // Extrair dados de neurovendas da última consulta que tem análise
+  const lastAnalyzedConsultation = patientConsultations.find(
+    (c: any) => c.neurovendasAnalysis || c.soapNote
+  ) as any;
+  const neurovendas = lastAnalyzedConsultation?.neurovendasAnalysis as any;
+
   if (!patient) return null;
 
   return (
@@ -285,6 +291,145 @@ function PatientDetailSheet({
           </>
         )}
 
+        {/* Neurovendas / Rapport Info from last consultation */}
+        {neurovendas && (
+          <>
+            <Separator className="mb-4" />
+            <Accordion type="single" collapsible defaultValue="rapport" className="mb-6">
+              {/* Rapport */}
+              {neurovendas.rapport && (
+                <AccordionItem value="rapport" className="border rounded-lg px-3 mb-2">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+                    <div className="flex items-center gap-2">
+                      <span>Rapport</span>
+                      <Badge variant="outline" className={`text-xs ${
+                        neurovendas.rapport.nivel >= 7 ? "text-green-400 border-green-500/30" :
+                        neurovendas.rapport.nivel >= 4 ? "text-yellow-400 border-yellow-500/30" :
+                        "text-red-400 border-red-500/30"
+                      }`}>
+                        {neurovendas.rapport.nivel}/10
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-2 pb-3">
+                    {neurovendas.rapport.justificativa && (
+                      <p className="text-sm text-muted-foreground">{neurovendas.rapport.justificativa}</p>
+                    )}
+                    {neurovendas.rapport.melhoria && (
+                      <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2.5">
+                        <p className="text-xs font-medium text-yellow-400 mb-0.5">Sugestão</p>
+                        <p className="text-sm text-muted-foreground">{neurovendas.rapport.melhoria}</p>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Perfil Psicológico */}
+              {neurovendas.perfilPsicologico && (
+                <AccordionItem value="perfil" className="border rounded-lg px-3 mb-2">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+                    <div className="flex items-center gap-2">
+                      <span>Perfil Psicológico</span>
+                      {neurovendas.perfilPsicologico.tipo && (
+                        <Badge variant="outline" className="text-xs text-blue-400 border-blue-500/30">
+                          {neurovendas.perfilPsicologico.tipo}
+                        </Badge>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-2 pb-3">
+                    {neurovendas.perfilPsicologico.descricao && (
+                      <p className="text-sm text-muted-foreground">{neurovendas.perfilPsicologico.descricao}</p>
+                    )}
+                    {neurovendas.perfilPsicologico.abordagemRecomendada && (
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5">
+                        <p className="text-xs font-medium text-blue-400 mb-0.5">Abordagem Recomendada</p>
+                        <p className="text-sm text-muted-foreground">{neurovendas.perfilPsicologico.abordagemRecomendada}</p>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Gatilhos Mentais */}
+              {neurovendas.gatilhosMentais && (
+                <AccordionItem value="gatilhos" className="border rounded-lg px-3 mb-2">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+                    Gatilhos Mentais
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 pb-3">
+                    {neurovendas.gatilhosMentais.positivos?.length > 0 && (
+                      <div>
+                        <p className="text-xs text-green-400 uppercase tracking-wide font-medium mb-1.5">✓ Use estes</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {neurovendas.gatilhosMentais.positivos.map((g: string, i: number) => (
+                            <Badge key={i} variant="outline" className="bg-green-500/10 text-green-400 border-green-500/30 text-xs">
+                              {g}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {neurovendas.gatilhosMentais.negativos?.length > 0 && (
+                      <div>
+                        <p className="text-xs text-red-400 uppercase tracking-wide font-medium mb-1.5">✗ Evite estes</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {neurovendas.gatilhosMentais.negativos.map((g: string, i: number) => (
+                            <Badge key={i} variant="outline" className="bg-red-500/10 text-red-400 border-red-500/30 text-xs">
+                              {g}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Objeções */}
+              {neurovendas.objecoes?.length > 0 && (
+                <AccordionItem value="objecoes" className="border rounded-lg px-3 mb-2">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+                    <div className="flex items-center gap-2">
+                      <span>Objeções</span>
+                      <Badge variant="outline" className="text-xs text-amber-400 border-amber-500/30">
+                        {neurovendas.objecoes.length}
+                      </Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-2 pb-3">
+                    {neurovendas.objecoes.map((obj: any, i: number) => (
+                      <div key={i} className="bg-secondary/50 rounded-lg p-3">
+                        <p className="text-sm font-medium mb-1">"{obj.frase}"</p>
+                        {obj.contexto && <p className="text-xs text-muted-foreground mb-2">{obj.contexto}</p>}
+                        {obj.tecnicaSugerida && (
+                          <div className="bg-green-600/10 border border-green-500/20 rounded p-2 mt-1">
+                            <p className="text-xs font-medium text-green-400 mb-0.5">Resposta</p>
+                            <p className="text-xs text-muted-foreground">{obj.tecnicaSugerida}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Resumo */}
+              {neurovendas.resumoGeral && (
+                <AccordionItem value="resumo" className="border rounded-lg px-3">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+                    Resumo da Análise
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-3">
+                    <p className="text-sm text-muted-foreground leading-relaxed">{neurovendas.resumoGeral}</p>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+            </Accordion>
+          </>
+        )}
+
         {/* Consultations */}
         <Separator className="mb-4" />
         <div className="space-y-3">
@@ -307,7 +452,7 @@ function PatientDetailSheet({
           ) : (
             <div className="space-y-2">
               {patientConsultations.slice(0, 10).map(consultation => {
-                const statusConfig = consultationStatusConfig[consultation.status as keyof typeof consultationStatusConfig];
+                const statusCfg = consultationStatusConfig[consultation.status as keyof typeof consultationStatusConfig];
                 return (
                   <div
                     key={consultation.id}
@@ -320,8 +465,8 @@ function PatientDetailSheet({
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {statusConfig && (
-                        <Badge className={statusConfig.className + " text-xs"}>{statusConfig.label}</Badge>
+                      {statusCfg && (
+                        <Badge className={statusCfg.className + " text-xs"}>{statusCfg.label}</Badge>
                       )}
                       <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     </div>

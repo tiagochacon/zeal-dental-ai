@@ -176,6 +176,15 @@ export async function getPatientsByDentist(dentistId: number): Promise<Patient[]
     .orderBy(desc(patients.updatedAt));
 }
 
+export async function getPatientsByClinic(clinicId: number): Promise<Patient[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select().from(patients)
+    .where(eq(patients.clinicId, clinicId))
+    .orderBy(desc(patients.updatedAt));
+}
+
 export async function getPatientById(id: number): Promise<Patient | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

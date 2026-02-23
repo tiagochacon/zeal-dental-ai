@@ -687,3 +687,11 @@
 - [x] Frontend: PaywallGuard já faz bypass para CRC/Dentista com clinicId
 - [x] Frontend: billing.getPlanInfo já usa getEffectiveBillingUser
 - [x] 0 erros TypeScript, 328 testes passando
+
+## Fix: Pacientes do Gestor + Layout + Rapport CRC (v73)
+- [x] Backend: gestor vê todos os pacientes da clínica (getPatientsByClinic)
+- [x] Leads convertidos aparecem automaticamente na tela de Pacientes (via clinicId)
+- [x] PatientDetailSheet com Accordion de Rapport, Perfil Psicológico, Gatilhos e Objeções
+- [x] CallDetail.tsx reescrito com gauge visual, cards de insights, objeções detalhadas
+- [x] Informações de neurovendas disponíveis no PatientDetailSheet para dentista
+- [x] 0 erros TS, 328 testes passando
