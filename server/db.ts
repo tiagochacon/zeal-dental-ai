@@ -646,10 +646,14 @@ export async function addClinicMember(data: {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
+  // Generate openId for email-based auth (required for session token creation)
+  const openId = `email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  
   const result = await db.insert(users).values({
     name: data.name,
     email: data.email,
     passwordHash: data.passwordHash,
+    openId,
     loginMethod: "email",
     clinicId: data.clinicId,
     clinicRole: data.clinicRole,

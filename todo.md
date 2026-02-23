@@ -650,3 +650,9 @@
 - [x] Propagar clinicId do dentista para pacientes na criação
 - [x] Testar fluxo completo
 - [x] Corrigir barras do funil para usar valor máximo como referência (não hardcoded 100%)
+
+## Bug: Login CRC criado pelo gestor não funciona (v68)
+- [x] Diagnosticar erro no login de CRC criado via Meu Time (faltava openId)
+- [x] Corrigir fluxo de criação de membro / login (gerar openId no addClinicMember)
+- [x] Corrigir usuários existentes sem openId (4 usuários corrigidos no banco)
+- [x] Testar login CRC (328 testes passando)
