@@ -1,0 +1,541 @@
+{
+  "query": "SELECT p.id, p.name, p.clinicId, p.dentistId, c.id as consultationId, c.status, c.treatmentClosed FROM patients p LEFT JOIN consultations c ON c.patientId = p.id ORDER BY p.id;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT p.id, p.name, p.clinicId, p.dentistId, c.id as consultationId, c.status, c.treatmentClosed FROM patients p LEFT JOIN consultations c ON c.patientId = p.id ORDER BY p.id;",
+  "rows": [
+    {
+      "id": "630001",
+      "name": "Tiago Oliveira de Senna Caaetê Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730042",
+      "consultationId": "870001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "630001",
+      "name": "Tiago Oliveira de Senna Caaetê Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730042",
+      "consultationId": "870002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "630001",
+      "name": "Tiago Oliveira de Senna Caaetê Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730042",
+      "consultationId": "960001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "630001",
+      "name": "Tiago Oliveira de Senna Caaetê Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730042",
+      "consultationId": "1710002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "660001",
+      "name": "teste",
+      "clinicId": "NULL",
+      "dentistId": "3090004",
+      "consultationId": "900001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "690001",
+      "name": "Carlos",
+      "clinicId": "NULL",
+      "dentistId": "2730052",
+      "consultationId": "930001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "720001",
+      "name": "teste Vitito ",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "990001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "720001",
+      "name": "teste Vitito ",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1320001",
+      "status": "transcribed",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "750001",
+      "name": "Marcos Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730042",
+      "consultationId": "1050001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "750001",
+      "name": "Marcos Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730042",
+      "consultationId": "1020002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "750001",
+      "name": "Marcos Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730042",
+      "consultationId": "1020001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780001",
+      "name": "Mario Augusto",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1050002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780001",
+      "name": "Mario Augusto",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1110001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780001",
+      "name": "Mario Augusto",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1140003",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780001",
+      "name": "Mario Augusto",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1230002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780002",
+      "name": "Carla Menezes",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1050003",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780003",
+      "name": "Tiago Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1050004",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780003",
+      "name": "Tiago Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1050009",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780004",
+      "name": "teste 1 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1050005",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780005",
+      "name": "Victor Hugo",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1050006",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780006",
+      "name": "Karla Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1050011",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780006",
+      "name": "Karla Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1050007",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780007",
+      "name": "teste 2 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1050008",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780008",
+      "name": "teste 3 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1050010",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780009",
+      "name": "teste 4 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1050012",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780010",
+      "name": "teste 5 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1050014",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780011",
+      "name": "teste 6 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1050016",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780012",
+      "name": "teste 7 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1050017",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "780012",
+      "name": "teste 7 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1170001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810001",
+      "name": "teste ",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810002",
+      "name": "teste 2",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810003",
+      "name": "teste 3 ",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080003",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810004",
+      "name": "teste 4 ",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080004",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810005",
+      "name": "teste 5 ",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080005",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810006",
+      "name": "teste 6 ",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080006",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810007",
+      "name": "teste 7 ",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080007",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "810008",
+      "name": "teste 8 ",
+      "clinicId": "NULL",
+      "dentistId": "4110066",
+      "consultationId": "1080008",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "840001",
+      "name": "Tiago Oliveira de Senna Caaetê Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2730051",
+      "consultationId": "1830001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "870002",
+      "name": "teste 8 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1140002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "870002",
+      "name": "teste 8 ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1140005",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "870003",
+      "name": "Carla Menezes",
+      "clinicId": "NULL",
+      "dentistId": "2940092",
+      "consultationId": "1440002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "900001",
+      "name": "teste 2",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1200001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "930001",
+      "name": "Marcos Chacon",
+      "clinicId": "NULL",
+      "dentistId": "2760013",
+      "consultationId": "1230001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "960001",
+      "name": "Fabio Netto",
+      "clinicId": "NULL",
+      "dentistId": "2820001",
+      "consultationId": "1260001",
+      "status": "reviewed",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "990001",
+      "name": "Paciente 1 ",
+      "clinicId": "NULL",
+      "dentistId": "4650006",
+      "consultationId": "1290001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1020001",
+      "name": "Tiago Chacon",
+      "clinicId": "NULL",
+      "dentistId": "4890018",
+      "consultationId": "1350002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1050001",
+      "name": "teste marcito ",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1380001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1050002",
+      "name": "teste 4 ",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1380002",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1050002",
+      "name": "teste 4 ",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1470001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1080001",
+      "name": "TIAGO OLIVEIRA DE SENNA CAAETE CHACON",
+      "clinicId": "NULL",
+      "dentistId": "2940092",
+      "consultationId": "1440001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1110002",
+      "name": "Beltrano da silva",
+      "clinicId": "NULL",
+      "dentistId": "5220001",
+      "consultationId": "1500002",
+      "status": "transcribed",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1140001",
+      "name": "Teste Babi ",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1530001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1170001",
+      "name": "Teste Rodrigo",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1560001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1200001",
+      "name": "Teste Willi",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1590001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1230001",
+      "name": "Teste maria julia ",
+      "clinicId": "NULL",
+      "dentistId": "3870063",
+      "consultationId": "1620001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1260001",
+      "name": "teste 1",
+      "clinicId": "NULL",
+      "dentistId": "3060001",
+      "consultationId": "1650001",
+      "status": "finalized",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1290001",
+      "name": "teste ana ",
+      "clinicId": "NULL",
+      "dentistId": "3570007",
+      "consultationId": "1680001",
+      "status": "transcribed",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1350001",
+      "name": "Teste 1",
+      "clinicId": "NULL",
+      "dentistId": "6030001",
+      "consultationId": "1770001",
+      "status": "transcribed",
+      "treatmentClosed": "NULL"
+    },
+    {
+      "id": "1380001",
+      "name": "TIAGO OLIVEIRA DE SENNA CAAETE CHACON",
+      "clinicId": "2",
+      "dentistId": "6300235",
+      "consultationId": "NULL",
+      "status": "NULL",
+      "treatmentClosed": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\tclinicId\tdentistId\tconsultationId\tstatus\ttreatmentClosed\n630001\tTiago Oliveira de Senna Caaetê Chacon\tNULL\t2730042\t870001\tfinalized\tNULL\n630001\tTiago Oliveira de Senna Caaetê Chacon\tNULL\t2730042\t870002\tfinalized\tNULL\n630001\tTiago Oliveira de Senna Caaetê Chacon\tNULL\t2730042\t960001\tfinalized\tNULL\n630001\tTiago Oliveira de Senna Caaetê Chacon\tNULL\t2730042\t1710002\tfinalized\tNULL\n660001\tteste\tNULL\t3090004\t900001\tfinalized\tNULL\n690001\tCarlos\tNULL\t2730052\t930001\tfinalized\tNULL\n720001\tteste Vitito \tNULL\t3570007\t990001\tfinalized\tNULL\n720001\tteste Vitito \tNULL\t3570007\t1320001\ttranscribed\tNULL\n750001\tMarcos Chacon\tNULL\t2730042\t1050001\tfinalized\tNULL\n750001\tMarcos Chacon\tNULL\t2730042\t1020002\tfinalized\tNULL\n750001\tMarcos Chacon\tNULL\t2730042\t1020001\tfinalized\tNULL\n780001\tMario Augusto\tNULL\t2760013\t1050002\tfinalized\tNULL\n780001\tMario Augusto\tNULL\t2760013\t1110001\tfinalized\tNULL\n780001\tMario Augusto\tNULL\t2760013\t1140003\tfinalized\tNULL\n780001\tMario Augusto\tNULL\t2760013\t1230002\tfinalized\tNULL\n780002\tCarla Menezes\tNULL\t2760013\t1050003\tfinalized\tNULL\n780003\tTiago Chacon\tNULL\t2760013\t1050004\tfinalized\tNULL\n780003\tTiago Chacon\tNULL\t2760013\t1050009\tfinalized\tNULL\n780004\tteste 1 \tNULL\t3870063\t1050005\tfinalized\tNULL\n780005\tVictor Hugo\tNULL\t2760013\t1050006\tfinalized\tNULL\n780006\tKarla Chacon\tNULL\t2760013\t1050011\tfinalized\tNULL\n780006\tKarla Chacon\tNULL\t2760013\t1050007\tfinalized\tNULL\n780007\tteste 2 \tNULL\t3870063\t1050008\tfinalized\tNULL\n780008\tteste 3 \tNULL\t3870063\t1050010\tfinalized\tNULL\n780009\tteste 4 \tNULL\t3870063\t1050012\tfinalized\tNULL\n780010\tteste 5 \tNULL\t3870063\t1050014\tfinalized\tNULL\n780011\tteste 6 \tNULL\t3870063\t1050016\tfinalized\tNULL\n780012\tteste 7 \tNULL\t3870063\t1050017\tfinalized\tNULL\n780012\tteste 7 \tNULL\t3870063\t1170001\tfinalized\tNULL\n810001\tteste \tNULL\t4110066\t1080001\tfinalized\tNULL\n810002\tteste 2\tNULL\t4110066\t1080002\tfinalized\tNULL\n810003\tteste 3 \tNULL\t4110066\t1080003\tfinalized\tNULL\n810004\tteste 4 \tNULL\t4110066\t1080004\tfinalized\tNULL\n810005\tteste 5 \tNULL\t4110066\t1080005\tfinalized\tNULL\n810006\tteste 6 \tNULL\t4110066\t1080006\tfinalized\tNULL\n810007\tteste 7 \tNULL\t4110066\t1080007\tfinalized\tNULL\n810008\tteste 8 \tNULL\t4110066\t1080008\tfinalized\tNULL\n840001\tTiago Oliveira de Senna Caaetê Chacon\tNULL\t2730051\t1830001\tfinalized\tNULL\n870002\tteste 8 \tNULL\t3870063\t1140002\tfinalized\tNULL\n870002\tteste 8 \tNULL\t3870063\t1140005\tfinalized\tNULL\n870003\tCarla Menezes\tNULL\t2940092\t1440002\tfinalized\tNULL\n900001\tteste 2\tNULL\t3570007\t1200001\tfinalized\tNULL\n930001\tMarcos Chacon\tNULL\t2760013\t1230001\tfinalized\tNULL\n960001\tFabio Netto\tNULL\t2820001\t1260001\treviewed\tNULL\n990001\tPaciente 1 \tNULL\t4650006\t1290001\tfinalized\tNULL\n1020001\tTiago Chacon\tNULL\t4890018\t1350002\tfinalized\tNULL\n1050001\tteste marcito \tNULL\t3570007\t1380001\tfinalized\tNULL\n1050002\tteste 4 \tNULL\t3570007\t1380002\tfinalized\tNULL\n1050002\tteste 4 \tNULL\t3570007\t1470001\tfinalized\tNULL\n1080001\tTIAGO OLIVEIRA DE SENNA CAAETE CHACON\tNULL\t2940092\t1440001\tfinalized\tNULL\n1110002\tBeltrano da silva\tNULL\t5220001\t1500002\ttranscribed\tNULL\n1140001\tTeste Babi \tNULL\t3570007\t1530001\tfinalized\tNULL\n1170001\tTeste Rodrigo\tNULL\t3570007\t1560001\tfinalized\tNULL\n1200001\tTeste Willi\tNULL\t3570007\t1590001\tfinalized\tNULL\n1230001\tTeste maria julia \tNULL\t3870063\t1620001\tfinalized\tNULL\n1260001\tteste 1\tNULL\t3060001\t1650001\tfinalized\tNULL\n1290001\tteste ana \tNULL\t3570007\t1680001\ttranscribed\tNULL\n1350001\tTeste 1\tNULL\t6030001\t1770001\ttranscribed\tNULL\n1380001\tTIAGO OLIVEIRA DE SENNA CAAETE CHACON\t2\t6300235\tNULL\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 102
+}

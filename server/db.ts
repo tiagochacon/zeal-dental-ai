@@ -858,18 +858,49 @@ export async function getClinicStats(clinicId: number) {
   const totalCalls = allCalls.length;
   const scheduledCalls = allCalls.filter(c => c.schedulingResult === "scheduled").length;
   
-  // Total consultations (from patients in this clinic)
+  // Total consultations - count via two paths:
+  // 1. Patients that belong to this clinic (patients.clinicId)
+  // 2. Dentists that belong to this clinic (users.clinicId) 
+  const clinicMembers = await db.select().from(users).where(eq(users.clinicId, clinicId));
+  const memberIds = clinicMembers.map(m => m.id);
+  
   const clinicPatients = await db.select().from(patients).where(eq(patients.clinicId, clinicId));
-  const patientIds = clinicPatients.map(p => p.id);
+  const clinicPatientIds = new Set(clinicPatients.map(p => p.id));
   
-  let totalConsultations = 0;
-  let closedTreatments = 0;
+  // Get all consultations from clinic dentists
+  const consultationSet = new Map<number, typeof consultations.$inferSelect>();
   
-  if (patientIds.length > 0) {
-    for (const pid of patientIds) {
+  if (memberIds.length > 0) {
+    for (const mid of memberIds) {
+      const dentistConsultations = await db.select().from(consultations).where(eq(consultations.dentistId, mid));
+      for (const c of dentistConsultations) {
+        consultationSet.set(c.id, c);
+      }
+    }
+  }
+  
+  // Also get consultations from clinic patients (in case dentist isn't linked yet)
+  if (clinicPatientIds.size > 0) {
+    for (const pid of Array.from(clinicPatientIds)) {
       const patientConsultations = await db.select().from(consultations).where(eq(consultations.patientId, pid));
-      totalConsultations += patientConsultations.length;
-      closedTreatments += patientConsultations.filter(c => c.treatmentClosed === true).length;
+      for (const c of patientConsultations) {
+        consultationSet.set(c.id, c);
+      }
+    }
+  }
+  
+  const allClinicConsultations = Array.from(consultationSet.values());
+  let totalConsultations = allClinicConsultations.length;
+  let closedTreatments = allClinicConsultations.filter(c => c.treatmentClosed === true).length;
+  
+  // Also check feedbacks for treatmentClosed (some consultations mark closure via feedback)
+  if (totalConsultations > 0 && closedTreatments === 0) {
+    const consultationIds = allClinicConsultations.map(c => c.id);
+    for (const cid of consultationIds) {
+      const fb = await db.select().from(feedbacks).where(eq(feedbacks.consultationId, cid));
+      if (fb.some(f => f.treatmentClosed === true)) {
+        closedTreatments++;
+      }
     }
   }
   

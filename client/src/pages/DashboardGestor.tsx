@@ -138,36 +138,43 @@ export default function DashboardGestor() {
           </div>
 
           {/* Funnel Bar */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-24">Ligações</span>
-              <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-blue-500 rounded-full" style={{ width: "100%" }} />
+          {(() => {
+            // Use the max value across all funnel stages as the 100% reference
+            const maxVal = Math.max(stats.totalCalls, stats.scheduledCalls, stats.totalConsultations, stats.closedTreatments, 1);
+            const pct = (val: number) => maxVal > 0 ? `${Math.round((val / maxVal) * 100)}%` : "0%";
+            return (
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-24">Ligações</span>
+                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: pct(stats.totalCalls) }} />
+                  </div>
+                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.totalCalls}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-24">Agendados</span>
+                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: pct(stats.scheduledCalls) }} />
+                  </div>
+                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.scheduledCalls}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-24">Consultas</span>
+                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: pct(stats.totalConsultations) }} />
+                  </div>
+                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.totalConsultations}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground w-24">Fechamentos</span>
+                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: pct(stats.closedTreatments) }} />
+                  </div>
+                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.closedTreatments}</span>
+                </div>
               </div>
-              <span className="text-xs font-mono text-foreground w-10 text-right">{stats.totalCalls}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-24">Agendados</span>
-              <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: `${leadToScheduled}%` }} />
-              </div>
-              <span className="text-xs font-mono text-foreground w-10 text-right">{stats.scheduledCalls}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-24">Consultas</span>
-              <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: stats.totalCalls > 0 ? `${Math.round((stats.totalConsultations / stats.totalCalls) * 100)}%` : "0%" }} />
-              </div>
-              <span className="text-xs font-mono text-foreground w-10 text-right">{stats.totalConsultations}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground w-24">Fechamentos</span>
-              <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: stats.totalCalls > 0 ? `${Math.round((stats.closedTreatments / stats.totalCalls) * 100)}%` : "0%" }} />
-              </div>
-              <span className="text-xs font-mono text-foreground w-10 text-right">{stats.closedTreatments}</span>
-            </div>
-          </div>
+            );
+          })()}
         </div>
 
         {/* Rankings */}

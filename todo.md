@@ -641,3 +641,12 @@
 - [x] Verificar export PDF
 - [x] TypeScript sem erros (0 erros)
 - [x] Checklist final de qualidade (328 testes passando)
+
+## Fix Painel Gestor - Consultas e Fechamentos Automáticos (v67)
+- [x] Diagnosticar como consultas e fechamentos são contados no backend
+- [x] Corrigir query para contar consultas realizadas pelos dentistas da clínica
+- [x] Corrigir query para contar fechamentos de tratamento da clínica (via consultations + feedbacks)
+- [x] Garantir que DashboardGestor exibe dados corretos automaticamente
+- [x] Propagar clinicId do dentista para pacientes na criação
+- [x] Testar fluxo completo
+- [x] Corrigir barras do funil para usar valor máximo como referência (não hardcoded 100%)

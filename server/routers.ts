@@ -213,8 +213,12 @@ export const appRouter = router({
         if (existing) {
           throw new Error("Já existe um paciente com este nome.");
         }
+        // Propagate clinicId from the dentist to the patient
+        const currentUser = await getUserById(ctx.user.id);
         const patient = await createPatient({
           dentistId: ctx.user.id,
+          clinicId: currentUser?.clinicId || undefined,
+          createdByUserId: ctx.user.id,
           ...input,
         });
         return { success: true, patient };
