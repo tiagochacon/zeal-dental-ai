@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { PaywallGuard } from "./components/PaywallGuard";
+import DashboardLayout from "./components/DashboardLayout";
 import Dashboard from "./pages/Dashboard";
 import NewConsultation from "./pages/NewConsultation";
 import TranscriptionReview from "./pages/TranscriptionReview";
@@ -41,38 +42,47 @@ function Router() {
   return (
     <Suspense fallback={<LazyFallback />}>
       <Switch>
-        {/* Auth */}
+        {/* Public Auth Pages - No DashboardLayout */}
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/pricing" component={Pricing} />
 
-        {/* Clinic Setup */}
-        <Route path="/clinic-setup" component={ClinicSetup} />
+        {/* All authenticated pages wrapped in DashboardLayout */}
+        <Route>
+          <DashboardLayout>
+            <Suspense fallback={<LazyFallback />}>
+              <Switch>
+                {/* Clinic Setup */}
+                <Route path="/clinic-setup" component={ClinicSetup} />
 
-        {/* CRC Pages */}
-        <Route path="/crc" component={DashboardCRC} />
-        <Route path="/leads" component={Leads} />
-        <Route path="/leads/:id" component={LeadDetail} />
-        <Route path="/calls/new" component={NewCall} />
-        <Route path="/calls/:id" component={CallDetail} />
+                {/* CRC Pages */}
+                <Route path="/crc" component={DashboardCRC} />
+                <Route path="/leads" component={Leads} />
+                <Route path="/leads/:id" component={LeadDetail} />
+                <Route path="/calls/new" component={NewCall} />
+                <Route path="/calls/:id" component={CallDetail} />
 
-        {/* Gestor Pages */}
-        <Route path="/gestor" component={DashboardGestor} />
-        <Route path="/team" component={TeamManagement} />
+                {/* Gestor Pages */}
+                <Route path="/gestor" component={DashboardGestor} />
+                <Route path="/team" component={TeamManagement} />
 
-        {/* Dentist Pages (existing) */}
-        <Route path="/" component={Dashboard} />
-        <Route path="/profile" component={Profile} />
-        <Route path="/new-consultation" component={NewConsultation} />
-        <Route path="/consultation/:id/review" component={TranscriptionReview} />
-        <Route path="/consultation/:id" component={ConsultationDetail} />
-        <Route path="/consultations" component={Consultations} />
-        <Route path="/patients" component={Patients} />
-        <Route path="/subscription" component={Subscription} />
+                {/* Dentist Pages (existing) */}
+                <Route path="/" component={Dashboard} />
+                <Route path="/profile" component={Profile} />
+                <Route path="/new-consultation" component={NewConsultation} />
+                <Route path="/consultation/:id/review" component={TranscriptionReview} />
+                <Route path="/consultation/:id" component={ConsultationDetail} />
+                <Route path="/consultations" component={Consultations} />
+                <Route path="/patients" component={Patients} />
+                <Route path="/subscription" component={Subscription} />
 
-        {/* 404 */}
-        <Route path="/404" component={NotFound} />
-        <Route component={NotFound} />
+                {/* 404 */}
+                <Route path="/404" component={NotFound} />
+                <Route component={NotFound} />
+              </Switch>
+            </Suspense>
+          </DashboardLayout>
+        </Route>
       </Switch>
     </Suspense>
   );

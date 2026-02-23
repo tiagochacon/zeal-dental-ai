@@ -1,0 +1,19 @@
+{
+  "query": "SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME LIKE 'clinic%';",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME = 'users' AND COLUMN_NAME LIKE 'clinic%';",
+  "rows": [
+    {
+      "COLUMN_NAME": "clinicAddress"
+    },
+    {
+      "COLUMN_NAME": "clinicId"
+    },
+    {
+      "COLUMN_NAME": "clinicRole"
+    }
+  ],
+  "messages": [],
+  "stdout": "COLUMN_NAME\nclinicAddress\nclinicId\nclinicRole\n",
+  "stderr": "",
+  "execution_time_ms": 56
+}

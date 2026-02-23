@@ -1,0 +1,50 @@
+{
+  "query": "SELECT id, name, email, role, clinicId, clinicRole FROM users WHERE role = 'admin' LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, name, email, role, clinicId, clinicRole FROM users WHERE role = 'admin' LIMIT 5;",
+  "rows": [
+    {
+      "id": "2730042",
+      "name": "Zeal Tecnologia",
+      "email": "zealtecnologia@gmail.com",
+      "role": "admin",
+      "clinicId": "NULL",
+      "clinicRole": "NULL"
+    },
+    {
+      "id": "2730051",
+      "name": "Tiago Oliveira de Senna Caaetê Chacon",
+      "email": "tiagosennachacon@gmail.com",
+      "role": "admin",
+      "clinicId": "NULL",
+      "clinicRole": "NULL"
+    },
+    {
+      "id": "2820001",
+      "name": "Fabio alexandre Rodrigues Netto",
+      "email": "fabionetto81@yahoo.com.br",
+      "role": "admin",
+      "clinicId": "NULL",
+      "clinicRole": "NULL"
+    },
+    {
+      "id": "3030001",
+      "name": "CARLOS  RODRIGUEZ",
+      "email": "drcarlosrodriguezbr@gmail.com",
+      "role": "admin",
+      "clinicId": "NULL",
+      "clinicRole": "NULL"
+    },
+    {
+      "id": "3060001",
+      "name": "leonardo brasil marechal",
+      "email": "leo_brasill@hotmail.com",
+      "role": "admin",
+      "clinicId": "NULL",
+      "clinicRole": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tclinicId\tclinicRole\n2730042\tZeal Tecnologia\tzealtecnologia@gmail.com\tadmin\tNULL\tNULL\n2730051\tTiago Oliveira de Senna Caaetê Chacon\ttiagosennachacon@gmail.com\tadmin\tNULL\tNULL\n2820001\tFabio alexandre Rodrigues Netto\tfabionetto81@yahoo.com.br\tadmin\tNULL\tNULL\n3030001\tCARLOS  RODRIGUEZ\tdrcarlosrodriguezbr@gmail.com\tadmin\tNULL\tNULL\n3060001\tleonardo brasil marechal\tleo_brasill@hotmail.com\tadmin\tNULL\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 49
+}

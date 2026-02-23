@@ -1,17 +1,13 @@
 import { useState, useCallback, memo } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, User, Search, Phone, Mail, Calendar, Trash2, Edit, LayoutDashboard, Users, FileText, Menu, X, LogOut, UserCircle, Sparkles, Crown } from "lucide-react";
-import { UpgradeModal } from "@/components/UpgradeModal";
-import { UsageCounterModal } from "@/components/UsageCounterModal";
-import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
+import { Loader2, Plus, User, Search, Phone, Mail, Trash2, Edit, Users } from "lucide-react";
 import { toast } from "sonner";
 
 interface PatientFormData {
@@ -34,7 +30,6 @@ const initialFormData: PatientFormData = {
   medications: "",
 };
 
-// Componente de formulário movido para fora para evitar re-renderização
 interface PatientFormProps {
   formData: PatientFormData;
   onFieldChange: (field: keyof PatientFormData, value: string) => void;
@@ -162,32 +157,13 @@ const PatientForm = memo(function PatientForm({
 });
 
 export default function Patients() {
-  const [, setLocation] = useLocation();
-  const { user, loading: authLoading, logout } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<number | null>(null);
   const [formData, setFormData] = useState<PatientFormData>(initialFormData);
-  const [showUsageModal, setShowUsageModal] = useState(false);
 
   const utils = trpc.useUtils();
-
-  // Get subscription info to show upgrade CTA
-  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
-  // Admin users are always treated as unlimited/PRO
-  const isAdmin = user?.role === 'admin';
-  const isPro = isAdmin || planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
-  const isBasic = !isAdmin && planInfo?.tier === 'basic';
-  const isTrial = !isAdmin && !isPro && !isBasic && planInfo?.tier === 'trial';
-
-  // Get usage info for counter modal - use correct field names from backend
-  const consultationsUsed = planInfo?.consultationsUsed ?? planInfo?.used ?? 0;
-  const consultationsLimit = planInfo?.consultationsLimit ?? planInfo?.limit ?? 7;
-  const daysRemaining = planInfo?.trialDaysRemaining;
-  const currentTier = isAdmin ? 'admin' : (planInfo?.tier || 'trial') as 'trial' | 'basic' | 'pro' | 'unlimited' | 'admin';
 
   const { data: patients, isLoading } = trpc.patients.list.useQuery(
     undefined,
@@ -228,7 +204,6 @@ export default function Patients() {
     },
   });
 
-  // Callback estável para atualização de campos
   const handleFieldChange = useCallback((field: keyof PatientFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   }, []);
@@ -294,325 +269,134 @@ export default function Patients() {
     patient.phone?.includes(searchQuery)
   );
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    window.location.href = getLoginUrl();
-    return null;
-  }
-
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 border-r border-border bg-sidebar flex flex-col
-        transform transition-transform duration-200 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {/* Logo with Plan Badge */}
-        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
-            <span className="text-xl font-bold text-foreground">Zeal</span>
-            {/* Plan Status Badge - Clickable */}
-            <button
-              onClick={() => setShowUsageModal(true)}
-              className="group"
-              title="Ver uso de consultas"
-            >
-              {user?.role === 'admin' ? (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white mt-0.5 group-hover:bg-amber-400 transition-colors cursor-pointer">
-                  ADMIN
-                </span>
-              ) : isPro ? (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white mt-0.5 group-hover:from-blue-500 group-hover:to-cyan-400 transition-colors cursor-pointer">
-                  PRO
-                </span>
-              ) : isBasic ? (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white mt-0.5 group-hover:bg-slate-400 transition-colors cursor-pointer">
-                  BASIC
-                </span>
-              ) : (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500 text-white mt-0.5 group-hover:bg-emerald-400 transition-colors cursor-pointer">
-                  TRIAL
-                </span>
-              )}
-            </button>
-          </div>
-          <button 
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 hover:bg-sidebar-accent rounded-lg"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl lg:text-2xl font-bold">Pacientes</h1>
+          <p className="text-sm text-muted-foreground">Gerencie os pacientes cadastrados</p>
         </div>
-
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
-            <li>
-              <button
-                onClick={() => { setLocation("/"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-primary-foreground"
-              >
-                <Users className="h-5 w-5" />
-                Pacientes
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <FileText className="h-5 w-5" />
-                Consultas
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <UserCircle className="h-5 w-5" />
-                Meu Perfil
-              </button>
-            </li>
-          </ul>
-
-          {/* Upgrade CTA Button - Only show for Basic and Trial users (not Admin or Pro) */}
-          {user?.role !== 'admin' && !isPro && (
-            <div className="mt-6">
-              <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="
-                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                  bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
-                  hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
-                  shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
-                  transition-all duration-300 transform hover:scale-[1.02]
-                  border border-indigo-400/30
-                  group
-                "
-              >
-                <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <div className="flex flex-col items-start min-w-0">
-                  <span className="text-sm font-semibold text-white truncate">
-                    {isBasic ? 'Upgrade para PRO' : 'Assinar Plano PRO'}
-                  </span>
-                  <span className="text-xs text-indigo-200 truncate">
-                    {isBasic ? 'Desbloqueie Negociação e mais' : 'Desbloqueie todo o potencial'}
-                  </span>
-                </div>
-                <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
-              </button>
-            </div>
-          )}
-
-          {/* Pro/Admin Badge - Show for Pro users or Admin */}
-          {(isPro || user?.role === 'admin') && (
-            <div className="mt-6">
-              <div className={`
-                w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                ${user?.role === 'admin' 
-                  ? 'bg-gradient-to-r from-amber-600/20 to-yellow-600/20 border border-amber-500/30' 
-                  : 'bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30'
-                }
-              `}>
-                <Crown className={`h-5 w-5 shrink-0 ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`} />
-                <span className={`text-sm font-medium truncate ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {user?.role === 'admin' ? 'Acesso Admin' : 'Plano PRO Ativo'}
-                </span>
-              </div>
-            </div>
-          )}
-        </nav>
-
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-              <span className="text-sm font-medium text-primary">
-                {user.name?.charAt(0).toUpperCase() || "U"}
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-            </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => logout()}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
-          </Button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col min-w-0">
-        <header className="border-b border-border bg-card p-4 lg:p-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <button 
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-accent rounded-lg"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div>
-              <h1 className="text-xl lg:text-2xl font-bold">Pacientes</h1>
-              <p className="text-sm text-muted-foreground">Gerencie os pacientes cadastrados</p>
-            </div>
-          </div>
-          
-          <Dialog open={isCreateOpen} onOpenChange={(open) => {
-            setIsCreateOpen(open);
-            if (!open) setFormData(initialFormData);
-          }}>
-            <DialogTrigger asChild>
-              <Button className="shrink-0">
-                <Plus className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Novo Paciente</span>
-                <span className="sm:hidden">Novo</span>
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
-                <DialogDescription className="text-sm">
-                  Preencha os dados do paciente. Apenas o nome é obrigatório.
-                </DialogDescription>
-              </DialogHeader>
-              <PatientForm 
-                formData={formData}
-                onFieldChange={handleFieldChange}
-                onSubmit={handleSubmit}
-                onCancel={handleCancelCreate}
-                isEdit={false}
-                isPending={createMutation.isPending}
-              />
-            </DialogContent>
-          </Dialog>
-        </header>
-
-        <div className="p-4 lg:p-6">
-          {/* Search */}
-          <div className="relative mb-6">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar paciente por nome, email ou telefone..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+        
+        <Dialog open={isCreateOpen} onOpenChange={(open) => {
+          setIsCreateOpen(open);
+          if (!open) setFormData(initialFormData);
+        }}>
+          <DialogTrigger asChild>
+            <Button className="shrink-0">
+              <Plus className="h-4 w-4 mr-2" />
+              <span className="hidden sm:inline">Novo Paciente</span>
+              <span className="sm:hidden">Novo</span>
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Cadastrar Novo Paciente</DialogTitle>
+              <DialogDescription className="text-sm">
+                Preencha os dados do paciente. Apenas o nome é obrigatório.
+              </DialogDescription>
+            </DialogHeader>
+            <PatientForm 
+              formData={formData}
+              onFieldChange={handleFieldChange}
+              onSubmit={handleSubmit}
+              onCancel={handleCancelCreate}
+              isEdit={false}
+              isPending={createMutation.isPending}
             />
-          </div>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-          {/* Patient List */}
-          {isLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : filteredPatients && filteredPatients.length > 0 ? (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredPatients.map((patient) => (
-                <Card key={patient.id} className="hover:shadow-md transition-shadow">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
-                          <User className="h-5 w-5 text-primary" />
-                        </div>
-                        <div className="min-w-0">
-                          <CardTitle className="text-base truncate">{patient.name}</CardTitle>
-                        </div>
-                      </div>
-                      <div className="flex gap-1 shrink-0">
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={() => handleEdit(patient)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(patient.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
+      {/* Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Buscar paciente por nome, email ou telefone..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="pl-10"
+        />
+      </div>
+
+      {/* Patient List */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      ) : filteredPatients && filteredPatients.length > 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredPatients.map((patient) => (
+            <Card key={patient.id} className="hover:shadow-md transition-shadow">
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
+                      <User className="h-5 w-5 text-primary" />
                     </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <div className="space-y-2 text-sm">
-                      {patient.phone && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{patient.phone}</span>
-                        </div>
-                      )}
-                      {patient.email && (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                          <Mail className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{patient.email}</span>
-                        </div>
-                      )}
+                    <div className="min-w-0">
+                      <CardTitle className="text-base truncate">{patient.name}</CardTitle>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <Card className="border-dashed">
-              <CardContent className="flex flex-col items-center justify-center py-12">
-                <Users className="h-12 w-12 text-muted-foreground mb-4" />
-                <p className="text-muted-foreground text-center">
-                  {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado ainda"}
-                </p>
-                {!searchQuery && (
-                  <Button 
-                    variant="outline" 
-                    className="mt-4"
-                    onClick={() => setIsCreateOpen(true)}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Cadastrar Primeiro Paciente
-                  </Button>
-                )}
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8"
+                      onClick={() => handleEdit(patient)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-8 w-8 text-destructive hover:text-destructive"
+                      onClick={() => handleDelete(patient.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="pt-0">
+                <div className="space-y-2 text-sm">
+                  {patient.phone && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Phone className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{patient.phone}</span>
+                    </div>
+                  )}
+                  {patient.email && (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Mail className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{patient.email}</span>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
-          )}
+          ))}
         </div>
-      </main>
+      ) : (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12">
+            <Users className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground text-center">
+              {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente cadastrado ainda"}
+            </p>
+            {!searchQuery && (
+              <Button 
+                variant="outline" 
+                className="mt-4"
+                onClick={() => setIsCreateOpen(true)}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Cadastrar Primeiro Paciente
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Edit Patient Dialog */}
       <Dialog open={editingPatient !== null} onOpenChange={(open) => {
@@ -638,23 +422,6 @@ export default function Patients() {
           />
         </DialogContent>
       </Dialog>
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        trigger={isTrial ? "trial_limit" : isBasic ? "basic_limit" : "feature_gate"}
-      />
-
-      {/* Usage Counter Modal */}
-      <UsageCounterModal
-        open={showUsageModal}
-        onOpenChange={setShowUsageModal}
-        tier={currentTier}
-        consultationsUsed={consultationsUsed}
-        consultationsLimit={consultationsLimit}
-        daysRemaining={daysRemaining}
-      />
     </div>
   );
 }

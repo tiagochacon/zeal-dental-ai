@@ -574,3 +574,14 @@
 - [x] Adicionar probabilidadeAgendamento ao perfilPsicografico
 - [ ] Verificar consistência visual (badges, cores, dark mode)
 - [ ] Testes vitest para novos routers
+
+## Integração Sidebar Multi-Role v65
+- [x] Configurar usuários admin como gestor com clínica no banco
+- [x] Adaptar DashboardLayout sidebar para mostrar menus por papel (Gestor/CRC/Dentista)
+- [x] Garantir navegação funcional para todas as novas rotas
+- [x] Remover sidebars internas de Dashboard.tsx, Patients.tsx, Consultations.tsx, Profile.tsx
+- [x] Remover DashboardLayout wrapper duplicado de Subscription.tsx
+- [x] Centralizar toda navegação no DashboardLayout.tsx
+- [x] Adicionar Assinatura ao menu de todos os papéis
+- [x] Traduzir "Sign out" para "Sair" no DashboardLayout
+- [x] Testar fluxo completo de Gestor, CRC e Dentista

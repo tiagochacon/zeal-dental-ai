@@ -1,0 +1,9 @@
+{
+  "query": "INSERT INTO clinics (name, ownerId) VALUES ('Zeal Tecnologia', 2730042); UPDATE users SET clinicId = LAST_INSERT_ID(), clinicRole = 'gestor' WHERE id = 2730042;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute INSERT INTO clinics (name, ownerId) VALUES ('Zeal Tecnologia', 2730042); UPDATE users SET clinicId = LAST_INSERT_ID(), clinicRole = 'gestor' WHERE id = 2730042;",
+  "rows": [],
+  "messages": [],
+  "stdout": "",
+  "stderr": "",
+  "execution_time_ms": 77
+}

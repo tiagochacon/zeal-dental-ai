@@ -21,21 +21,102 @@ import {
 } from "@/components/ui/sidebar";
 import { getLoginUrl } from "@/const";
 import { useIsMobile } from "@/hooks/useMobile";
-import { Crown, FileText, LayoutDashboard, LogOut, PanelLeft, Sparkles, UserCircle, Users } from "lucide-react";
-import { CSSProperties, useEffect, useRef, useState } from "react";
+import {
+  Building2,
+  CreditCard,
+  Crown,
+  FileText,
+  BarChart3,
+  LayoutDashboard,
+  LogOut,
+  PanelLeft,
+  Phone,
+  Sparkles,
+  UserCircle,
+  Users,
+  UsersRound,
+} from "lucide-react";
+import { CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { DashboardLayoutSkeleton } from './DashboardLayoutSkeleton';
 import { Button } from "./ui/button";
 import { UsageIndicator } from './UsageIndicator';
 import { trpc } from "@/lib/trpc";
 
-// Menu items - removido Assinatura pois será um botão CTA separado
-const menuItems = [
+type MenuItem = {
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  path: string;
+};
+
+// Menu items per role
+const dentistMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: FileText, label: "Consultas", path: "/consultations" },
   { icon: Users, label: "Pacientes", path: "/patients" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
+  { icon: CreditCard, label: "Assinatura", path: "/subscription" },
 ];
+
+const crcMenuItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard CRC", path: "/crc" },
+  { icon: UsersRound, label: "Leads", path: "/leads" },
+  { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
+];
+
+const gestorMenuItems: MenuItem[] = [
+  { icon: BarChart3, label: "Painel Gestor", path: "/gestor" },
+  { icon: UsersRound, label: "Meu Time", path: "/team" },
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: FileText, label: "Consultas", path: "/consultations" },
+  { icon: Users, label: "Pacientes", path: "/patients" },
+  { icon: Phone, label: "Leads", path: "/leads" },
+  { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
+  { icon: CreditCard, label: "Assinatura", path: "/subscription" },
+];
+
+// Admin without clinic gets dentist menu + clinic setup option
+const adminMenuItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: FileText, label: "Consultas", path: "/consultations" },
+  { icon: Users, label: "Pacientes", path: "/patients" },
+  { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
+  { icon: CreditCard, label: "Assinatura", path: "/subscription" },
+  { icon: Building2, label: "Configurar Cl\u00ednica", path: "/clinic-setup" },
+];
+
+function getMenuItemsForUser(user: { role?: string; clinicRole?: string | null; clinicId?: number | null } | null): MenuItem[] {
+  if (!user) return dentistMenuItems;
+  
+  // If user has a clinic role, use that
+  if (user.clinicRole === 'gestor') return gestorMenuItems;
+  if (user.clinicRole === 'crc') return crcMenuItems;
+  if (user.clinicRole === 'dentista') return dentistMenuItems;
+  
+  // Admin without clinic role gets admin menu with clinic setup
+  if (user.role === 'admin') return adminMenuItems;
+  
+  // Default: dentist menu
+  return dentistMenuItems;
+}
+
+function getRoleLabel(user: { role?: string; clinicRole?: string | null } | null): string | null {
+  if (!user) return null;
+  if (user.clinicRole === 'gestor') return 'GESTOR';
+  if (user.clinicRole === 'crc') return 'CRC';
+  if (user.clinicRole === 'dentista') return 'DENTISTA';
+  if (user.role === 'admin') return 'ADMIN';
+  return null;
+}
+
+function getRoleBadgeColor(user: { role?: string; clinicRole?: string | null } | null): string {
+  if (!user) return 'bg-gray-500';
+  if (user.clinicRole === 'gestor') return 'bg-purple-600';
+  if (user.clinicRole === 'crc') return 'bg-blue-600';
+  if (user.clinicRole === 'dentista') return 'bg-emerald-600';
+  if (user.role === 'admin') return 'bg-amber-600';
+  return 'bg-gray-500';
+}
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
 const DEFAULT_WIDTH = 280;
@@ -117,12 +198,23 @@ function DashboardLayoutContent({
   const isCollapsed = state === "collapsed";
   const [isResizing, setIsResizing] = useState(false);
   const sidebarRef = useRef<HTMLDivElement>(null);
-  const activeMenuItem = menuItems.find(item => item.path === location);
   const isMobile = useIsMobile();
   
+  // Get menu items based on user role
+  const menuItems = useMemo(() => getMenuItemsForUser(user), [user]);
+  const roleLabel = useMemo(() => getRoleLabel(user), [user]);
+  const roleBadgeColor = useMemo(() => getRoleBadgeColor(user), [user]);
+  
+  const activeMenuItem = menuItems.find(item => item.path === location);
+  
   // Get subscription info to determine if user needs upgrade CTA
-  const { data: subscriptionInfo } = trpc.billing.getPlanInfo.useQuery();
+  const { data: subscriptionInfo } = trpc.billing.getPlanInfo.useQuery(undefined, {
+    refetchOnWindowFocus: false,
+  });
   const isPro = subscriptionInfo?.tier === 'pro' || subscriptionInfo?.tier === 'unlimited';
+  
+  // CRC users don't need subscription upgrade CTA
+  const showUpgradeCTA = !isPro && user?.clinicRole !== 'crc';
 
   useEffect(() => {
     if (isCollapsed) {
@@ -180,8 +272,13 @@ function DashboardLayoutContent({
               {!isCollapsed ? (
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="font-semibold tracking-tight truncate">
-                    Navigation
+                    Zeal
                   </span>
+                  {roleLabel && (
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${roleBadgeColor} text-white`}>
+                      {roleLabel}
+                    </span>
+                  )}
                 </div>
               ) : null}
             </div>
@@ -209,8 +306,8 @@ function DashboardLayoutContent({
               })}
             </SidebarMenu>
             
-            {/* Upgrade CTA Button - Only show for non-Pro users */}
-            {!isPro && (
+            {/* Upgrade CTA Button - Only show for non-Pro users (not CRC) */}
+            {showUpgradeCTA && (
               <div className="px-2 mt-4">
                 <button
                   onClick={() => setLocation("/subscription")}
@@ -294,7 +391,7 @@ function DashboardLayoutContent({
                   className="cursor-pointer text-destructive focus:text-destructive"
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  <span>Sign out</span>
+                  <span>Sair</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>

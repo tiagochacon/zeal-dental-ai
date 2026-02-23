@@ -1,21 +1,14 @@
-import { useState } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { trpc } from "@/lib/trpc";
-import { Loader2, Plus, Mic, User, Clock, FileText, LayoutDashboard, Users, Menu, X, LogOut, UserCircle, Sparkles, Crown, ArrowRight } from "lucide-react";
+import { Loader2, Plus, Mic, User, Clock, FileText, Users } from "lucide-react";
 import { useLocation } from "wouter";
-import { getLoginUrl } from "@/const";
-import { UpgradeModal } from "@/components/UpgradeModal";
-import { UsageCounterModal } from "@/components/UsageCounterModal";
 
 export default function Dashboard() {
   const [, setLocation] = useLocation();
-  const { user, loading: authLoading, logout } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [showUsageModal, setShowUsageModal] = useState(false);
-  
+  const { user } = useAuth();
+
   const { data: consultations, isLoading } = trpc.consultations.list.useQuery(
     undefined,
     { enabled: !!user }
@@ -25,33 +18,6 @@ export default function Dashboard() {
     undefined,
     { enabled: !!user }
   );
-
-  // Get subscription info to show upgrade CTA
-  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, { enabled: !!user });
-  // Admin users are always treated as unlimited/PRO
-  const isAdmin = user?.role === 'admin';
-  const isPro = isAdmin || planInfo?.tier === 'pro' || planInfo?.tier === 'unlimited';
-  const isBasic = !isAdmin && planInfo?.tier === 'basic';
-  const isTrial = !isAdmin && !isPro && !isBasic && planInfo?.tier === 'trial';
-
-  // Get usage info for counter modal - use correct field names from backend
-  const consultationsUsed = planInfo?.consultationsUsed ?? planInfo?.used ?? 0;
-  const consultationsLimit = planInfo?.consultationsLimit ?? planInfo?.limit ?? 7;
-  const daysRemaining = planInfo?.trialDaysRemaining;
-  const currentTier = isAdmin ? 'admin' : (planInfo?.tier || 'trial') as 'trial' | 'basic' | 'pro' | 'unlimited' | 'admin';
-
-  if (authLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    window.location.href = getLoginUrl();
-    return null;
-  }
 
   const recentConsultations = consultations?.slice(0, 5) || [];
   const totalPatients = patients?.length || 0;
@@ -72,325 +38,120 @@ export default function Dashboard() {
     finalized: "bg-green-500/20 text-green-400",
   };
 
-  // Determine upgrade trigger type
-  const getUpgradeTrigger = () => {
-    if (isTrial) return "trial_limit";
-    if (isBasic) return "basic_limit";
-    return "feature_gate";
-  };
-
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Mobile Sidebar Overlay */}
-      {sidebarOpen && (
-        <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside className={`
-        fixed lg:static inset-y-0 left-0 z-50
-        w-64 border-r border-border bg-sidebar flex flex-col
-        transform transition-transform duration-200 ease-in-out
-        ${sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
-      `}>
-        {/* Logo with Plan Badge */}
-        <div className="p-6 border-b border-sidebar-border flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
-            <span className="text-xl font-bold text-foreground">Zeal</span>
-            {/* Plan Status Badge - Clickable */}
-            <button
-              onClick={() => setShowUsageModal(true)}
-              className="group"
-              title="Ver uso de consultas"
-            >
-              {user?.role === 'admin' ? (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-amber-500 text-white mt-0.5 group-hover:bg-amber-400 transition-colors cursor-pointer">
-                  ADMIN
-                </span>
-              ) : isPro ? (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-gradient-to-r from-blue-600 to-cyan-500 text-white mt-0.5 group-hover:from-blue-500 group-hover:to-cyan-400 transition-colors cursor-pointer">
-                  PRO
-                </span>
-              ) : isBasic ? (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-slate-500 text-white mt-0.5 group-hover:bg-slate-400 transition-colors cursor-pointer">
-                  BASIC
-                </span>
-              ) : (
-                <span className="px-1.5 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500 text-white mt-0.5 group-hover:bg-emerald-400 transition-colors cursor-pointer">
-                  TRIAL
-                </span>
-              )}
-            </button>
-          </div>
-          <button 
-            onClick={() => setSidebarOpen(false)}
-            className="lg:hidden p-2 hover:bg-sidebar-accent rounded-lg"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl lg:text-3xl font-bold">
+            Olá, {user?.name?.split(' ')[0] || 'Doutor(a)'}!
+          </h1>
+          <p className="text-sm text-muted-foreground hidden sm:block">
+            Bem-vindo ao seu painel de controle Zeal
+          </p>
         </div>
+        <Button onClick={() => setLocation("/new-consultation")} size="sm" className="shrink-0">
+          <Plus className="h-4 w-4 mr-1 sm:mr-2" />
+          <span className="hidden sm:inline">Nova</span> Consulta
+        </Button>
+      </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 p-4">
-          <ul className="space-y-2">
-            <li>
-              <button
-                onClick={() => { setLocation("/"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg bg-primary text-primary-foreground font-medium"
-              >
-                <LayoutDashboard className="h-5 w-5" />
-                Dashboard
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/patients"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <Users className="h-5 w-5" />
-                Pacientes
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/consultations"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <FileText className="h-5 w-5" />
-                Consultas
-              </button>
-            </li>
-            <li>
-              <button
-                onClick={() => { setLocation("/profile"); setSidebarOpen(false); }}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-              >
-                <UserCircle className="h-5 w-5" />
-                Meu Perfil
-              </button>
-            </li>
-          </ul>
-
-          {/* Upgrade CTA Button - Only show for Basic and Trial users (not Admin or Pro) */}
-          {user?.role !== 'admin' && !isPro && (
-            <div className="mt-6">
-              <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="
-                  w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                  bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
-                  hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
-                  shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
-                  transition-all duration-300 transform hover:scale-[1.02]
-                  border border-indigo-400/30
-                  group
-                "
-              >
-                <div className="p-1.5 rounded-lg bg-white/20 group-hover:bg-white/30 transition-colors shrink-0">
-                  <Sparkles className="h-4 w-4 text-white" />
-                </div>
-                <div className="flex flex-col items-start min-w-0">
-                  <span className="text-sm font-semibold text-white truncate">
-                    {isBasic ? 'Upgrade para PRO' : 'Assinar Plano PRO'}
-                  </span>
-                  <span className="text-xs text-indigo-200 truncate">
-                    {isBasic ? 'Desbloqueie Negociação e mais' : 'Desbloqueie todo o potencial'}
-                  </span>
-                </div>
-                <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
-              </button>
-            </div>
-          )}
-
-          {/* Pro/Admin Badge - Show for Pro users or Admin */}
-          {(isPro || user?.role === 'admin') && (
-            <div className="mt-6">
-              <div className={`
-                w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                ${user?.role === 'admin' 
-                  ? 'bg-gradient-to-r from-amber-600/20 to-yellow-600/20 border border-amber-500/30' 
-                  : 'bg-gradient-to-r from-emerald-600/20 to-teal-600/20 border border-emerald-500/30'
-                }
-              `}>
-                <Crown className={`h-5 w-5 shrink-0 ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`} />
-                <span className={`text-sm font-medium truncate ${user?.role === 'admin' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                  {user?.role === 'admin' ? 'Acesso Admin' : 'Plano PRO Ativo'}
-                </span>
+      {/* Stats Cards */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
+        <Card className="bg-card border-border">
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-muted-foreground">Total de Pacientes</p>
+                <p className="text-2xl lg:text-3xl font-bold">{totalPatients}</p>
+                <p className="text-xs text-muted-foreground mt-1 hidden sm:block">pacientes cadastrados</p>
               </div>
+              <Users className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
             </div>
-          )}
-        </nav>
+          </CardContent>
+        </Card>
 
-        {/* User Profile */}
-        <div className="p-4 border-t border-sidebar-border">
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center text-primary font-semibold">
-              {user.name?.charAt(0).toUpperCase() || user.email?.charAt(0).toUpperCase() || "U"}
+        <Card className="bg-card border-border">
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-muted-foreground">Consultas Realizadas</p>
+                <p className="text-2xl lg:text-3xl font-bold">{completedConsultations}</p>
+                <p className="text-xs text-muted-foreground mt-1 hidden sm:block">consultas completas</p>
+              </div>
+              <FileText className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium truncate">{user.name || "Usuário"}</p>
-              <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border col-span-2 lg:col-span-1">
+          <CardContent className="p-4 lg:p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-xs sm:text-sm text-muted-foreground">Em Andamento</p>
+                <p className="text-2xl lg:text-3xl font-bold">{pendingConsultations}</p>
+                <p className="text-xs text-muted-foreground mt-1 hidden sm:block">consultas pendentes</p>
+              </div>
+              <Clock className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
             </div>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={logout}
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Sair
-          </Button>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Consultations */}
+      <div>
+        <div className="flex items-center gap-2 mb-4">
+          <Mic className="h-5 w-5 text-muted-foreground" />
+          <h2 className="text-lg font-semibold">Consultas Recentes</h2>
         </div>
-      </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-auto">
-        {/* Header */}
-        <header className="p-4 lg:p-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button 
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 hover:bg-muted rounded-lg"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-            <div>
-              <h1 className="text-xl lg:text-3xl font-bold">
-                Olá, {user.name?.split(' ')[0] || 'Doutor(a)'}!
-              </h1>
-              <p className="text-sm text-muted-foreground hidden sm:block">
-                Bem-vindo ao seu painel de controle Zeal
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          </div>
+        ) : recentConsultations.length === 0 ? (
+          <Card className="bg-card border-border">
+            <CardContent className="p-8 text-center">
+              <Mic className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <h3 className="text-lg font-medium mb-2">Nenhuma consulta ainda</h3>
+              <p className="text-muted-foreground mb-4">
+                Comece gravando sua primeira consulta
               </p>
-            </div>
-          </div>
-          <Button onClick={() => setLocation("/new-consultation")} size="sm" className="shrink-0">
-            <Plus className="h-4 w-4 mr-1 sm:mr-2" />
-            <span className="hidden sm:inline">Nova</span> Consulta
-          </Button>
-        </header>
-
-        {/* Stats Cards */}
-        <div className="px-4 lg:px-6 grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-3">
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Total de Pacientes</p>
-                  <p className="text-2xl lg:text-3xl font-bold">{totalPatients}</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">pacientes cadastrados</p>
-                </div>
-                <Users className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
-              </div>
+              <Button onClick={() => setLocation("/new-consultation")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Consulta
+              </Button>
             </CardContent>
           </Card>
-
-          <Card className="bg-card border-border">
-            <CardContent className="p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Consultas Realizadas</p>
-                  <p className="text-2xl lg:text-3xl font-bold">{completedConsultations}</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">consultas completas</p>
-                </div>
-                <FileText className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border col-span-2 lg:col-span-1">
-            <CardContent className="p-4 lg:p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs sm:text-sm text-muted-foreground">Em Andamento</p>
-                  <p className="text-2xl lg:text-3xl font-bold">{pendingConsultations}</p>
-                  <p className="text-xs text-muted-foreground mt-1 hidden sm:block">consultas pendentes</p>
-                </div>
-                <Clock className="h-8 w-8 lg:h-10 lg:w-10 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Consultations */}
-        <div className="p-4 lg:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <Mic className="h-5 w-5 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Consultas Recentes</h2>
-          </div>
-
-          {isLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-6 w-6 animate-spin text-primary" />
-            </div>
-          ) : recentConsultations.length === 0 ? (
-            <Card className="bg-card border-border">
-              <CardContent className="p-8 text-center">
-                <Mic className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-medium mb-2">Nenhuma consulta ainda</h3>
-                <p className="text-muted-foreground mb-4">
-                  Comece gravando sua primeira consulta
-                </p>
-                <Button onClick={() => setLocation("/new-consultation")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Consulta
-                </Button>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="space-y-3">
-              {recentConsultations.map((consultation) => (
-                <Card 
-                  key={consultation.id} 
-                  className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
-                  onClick={() => setLocation(`/consultation/${consultation.id}`)}
-                >
-                  <CardContent className="p-4 flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                        <User className="h-5 w-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-medium">{consultation.patientName || "Paciente"}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {new Date(consultation.createdAt).toLocaleDateString('pt-BR')}
-                        </p>
-                      </div>
+        ) : (
+          <div className="space-y-3">
+            {recentConsultations.map((consultation) => (
+              <Card 
+                key={consultation.id} 
+                className="bg-card border-border hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => setLocation(`/consultation/${consultation.id}`)}
+              >
+                <CardContent className="p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="h-5 w-5 text-primary" />
                     </div>
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[consultation.status] || statusColors.draft}`}>
-                      {statusLabels[consultation.status] || consultation.status}
-                    </span>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Upgrade Modal */}
-      <UpgradeModal
-        open={showUpgradeModal}
-        onOpenChange={setShowUpgradeModal}
-        trigger={getUpgradeTrigger()}
-        currentPlan={currentTier === 'admin' ? 'unlimited' : currentTier}
-        consultationsUsed={consultationsUsed}
-        consultationsLimit={consultationsLimit}
-      />
-
-      {/* Usage Counter Modal */}
-      <UsageCounterModal
-        open={showUsageModal}
-        onOpenChange={setShowUsageModal}
-        tier={currentTier}
-        consultationsUsed={consultationsUsed}
-        consultationsLimit={consultationsLimit}
-        daysRemaining={daysRemaining}
-      />
+                    <div>
+                      <p className="font-medium">{consultation.patientName || "Paciente"}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(consultation.createdAt).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${statusColors[consultation.status] || statusColors.draft}`}>
+                    {statusLabels[consultation.status] || consultation.status}
+                  </span>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
