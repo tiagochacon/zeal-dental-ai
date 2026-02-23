@@ -585,3 +585,59 @@
 - [x] Adicionar Assinatura ao menu de todos os papéis
 - [x] Traduzir "Sign out" para "Sair" no DashboardLayout
 - [x] Testar fluxo completo de Gestor, CRC e Dentista
+
+## Auditoria UX/UI Completa v66
+### Fase 0 - Diagnóstico
+- [x] Ler e mapear problemas em todos os arquivos frontend
+
+### Fase 1 - Unificação do Layout
+- [x] Verificar se DashboardLayout é o wrapper de todas as páginas autenticadas
+- [x] Remover sidebars inline duplicadas remanescentes
+- [x] Remover verificações de auth duplicadas (DashboardLayout já faz)
+- [x] Alinhar menuItems com rotas reais
+
+### Fase 2 - Polish Visual
+- [x] Padronizar cabeçalhos de página (título + descrição)
+- [x] Padronizar KPI cards no Dashboard
+- [x] Padronizar cards de lista (Consultas, Pacientes)
+- [x] Padronizar empty states (ícone + título + descrição + CTA)
+- [x] Padronizar search bars
+- [x] Centralizar badges de status via consultationStatusConfig
+
+### Fase 3 - Fluxo Nova Consulta
+- [x] Melhorar NewConsultation.tsx (wizard/stepper visual com 2 etapas + mini-card paciente)
+- [x] Melhorar ConsultationDetail.tsx (header, tabs, modal feedback)
+
+### Fase 4 - Feedback e Fechamento
+- [x] Adicionar campo treatmentClosed ao modal de feedback
+- [x] Mostrar badge de fechamento na lista de Consultas
+- [x] Mostrar banner de fechamento no header de ConsultationDetail
+
+### Fase 5 - Tela de Pacientes
+- [x] Grid responsivo com cards profissionais
+- [x] Modal com Accordion para campos clínicos
+- [x] Sheet lateral com dados completos + consultas do paciente
+
+### Fase 6 - Login e Register
+- [x] Garantir cores usando variáveis CSS (sem hardcode)
+- [x] Link "Esqueci minha senha" (toast "Em breve")
+- [x] Responsividade mobile (ocultar lado marketing)
+
+### Fase 7 - Responsividade Mobile
+- [x] Sidebar mobile com Sheet/drawer
+- [x] Grids responsivos em todas as páginas
+- [x] Formulários em modal com scroll
+- [x] Tabs com scroll horizontal em mobile
+
+### Fase 8 - Micro-interações
+- [x] Animações Framer Motion de entrada de página
+- [x] Skeleton loading em todas as listas
+- [x] Botões com estado isPending + Loader2
+- [x] Toasts específicos em português
+- [x] Tooltips em botões de ícone
+
+### Fase 9-10 - Verificação e Checklist
+- [x] Verificar fluxo completo de consulta
+- [x] Verificar export PDF
+- [x] TypeScript sem erros (0 erros)
+- [x] Checklist final de qualidade (328 testes passando)
