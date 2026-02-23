@@ -520,3 +520,57 @@
 
 ## Remover Máscara CRO v63
 - [x] Remover formatCRO e preenchimento automático do campo CRO no perfil
+
+## Sistema Multi-Role Clínica v64
+
+### Fase 1 - Schema DB
+- [x] Criar tabela clinics (id, name, ownerId, timestamps)
+- [x] Alterar tabela users (+clinicId, +clinicRole enum gestor/crc/dentista)
+- [x] Criar tabela leads (14 colunas incluindo neurovendasAnalysis e callProfile)
+- [x] Criar tabela calls (17 colunas incluindo neurovendasAnalysis e schedulingResult)
+- [x] Alterar tabela patients (+clinicId, +createdByUserId, +originLeadId)
+- [x] Alterar tabela consultations (+treatmentClosed, +treatmentClosedNotes)
+- [x] Alterar tabela feedbacks (+treatmentClosed, +treatmentClosedNotes)
+- [x] Executar pnpm db:push (migração 0014 aplicada)
+
+### Fase 2 - Backend
+- [x] Criar funções DB: createClinic, getClinicById, getClinicByOwnerId, getClinicMembers, addClinicMember, updateClinicMember, removeClinicMember
+- [x] Criar funções DB: createLead, getLeadsByClinic, getLeadById, updateLead, deleteLead, convertLeadToPatient
+- [x] Criar funções DB: createCall, getCallsByClinic, getCallById, updateCall, finalizeCall
+- [x] Criar funções DB: getClinicStats (funil de conversão)
+- [x] Criar router tRPC: clinic (createClinic, getMyClinic, updateClinic, getMembers, addMember, updateMember, removeMember, getStats)
+- [x] Criar router tRPC: leads (create, list, getById, update, delete, convertToPatient)
+- [x] Criar router tRPC: calls (create, list, getById, uploadAudio, transcribe, analyzeNeurovendas, finalize)
+- [x] Atualizar feedbacks.create para incluir treatmentClosed e treatmentClosedNotes
+
+### Fase 3-4 - Login/Registro + Roteamento + RoleGuard
+- [ ] Ajustar registro para incluir criação de clínica (Gestor cria clínica no registro)
+- [x] Criar componente RoleGuard.tsx
+- [x] Atualizar App.tsx com novas rotas (lazy loading para novas páginas)
+- [ ] Adaptar DashboardLayout para selecionar sidebar por clinicRole
+
+### Fase 5 - Telas CRC
+- [x] Criar DashboardCRC.tsx (KPI cards + ligações recentes)
+- [x] Criar Leads.tsx (CRUD de leads com busca)
+- [x] Criar LeadDetail.tsx (info + perfil negociação + ligações + converter com seleção de dentista)
+- [ ] Criar Calls.tsx (lista de ligações) - integrado no DashboardCRC
+- [x] Criar NewCall.tsx (gravação de áudio + seleção de lead)
+- [x] Criar CallDetail.tsx (transcrição + análise Neurovendas + finalizar)
+- [ ] Criar CRCProfile.tsx (apenas campo Nome)
+
+### Fase 6 - Modificações Dentista
+- [x] Adicionar dica contextual de lead em NewConsultation.tsx
+- [x] Adicionar treatmentClosed e treatmentClosedNotes no modal de feedback em ConsultationDetail.tsx
+- [ ] Adicionar badge de fechamento em Consultations.tsx
+- [ ] Adicionar indicador de fechamento em ConsultationDetail.tsx
+
+### Fase 7 - Telas Gestor
+- [x] Criar DashboardGestor.tsx (funil visual + KPI cards + rankings)
+- [x] Criar TeamManagement.tsx (CRUD de membros com add/remove/trocar papel)
+- [ ] Criar ProfileGestor.tsx (dados pessoais + dados da clínica)
+
+### Fase 8-9 - Neurovendas para Calls + Consistência
+- [x] Adaptar prompt de Neurovendas para contexto de ligação comercial CRC (LAER, PARE, rapport)
+- [x] Adicionar probabilidadeAgendamento ao perfilPsicografico
+- [ ] Verificar consistência visual (badges, cores, dark mode)
+- [ ] Testes vitest para novos routers

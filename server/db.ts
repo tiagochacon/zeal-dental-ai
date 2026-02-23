@@ -7,6 +7,10 @@ import {
   feedbacks, InsertFeedback, Feedback,
   consultationTemplates, InsertConsultationTemplate, ConsultationTemplate,
   audioChunks, InsertAudioChunk, AudioChunk,
+  clinics, InsertClinic, Clinic,
+  leads, InsertLead, Lead,
+  calls, InsertCall, Call,
+  CallTranscriptSegment,
   SOAPNote,
   TreatmentPlan,
   NeurovendasAnalysis
@@ -579,5 +583,314 @@ export async function resetUserAccount(email: string) {
     success: true,
     message: `Conta ${email} resetada com sucesso`,
     stats,
+  };
+}
+
+
+// ==================== CLINIC FUNCTIONS ====================
+
+export async function createClinic(data: InsertClinic): Promise<Clinic> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(clinics).values(data);
+  const insertId = result[0].insertId;
+  const [clinic] = await db.select().from(clinics).where(eq(clinics.id, insertId));
+  return clinic;
+}
+
+export async function getClinicById(id: number): Promise<Clinic | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(clinics).where(eq(clinics.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function getClinicByOwnerId(ownerId: number): Promise<Clinic | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(clinics).where(eq(clinics.ownerId, ownerId)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateClinic(id: number, data: Partial<InsertClinic>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(clinics).set(data).where(eq(clinics.id, id));
+}
+
+export async function getClinicMembers(clinicId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select({
+    id: users.id,
+    name: users.name,
+    email: users.email,
+    clinicRole: users.clinicRole,
+    createdAt: users.createdAt,
+    lastSignedIn: users.lastSignedIn,
+  }).from(users).where(eq(users.clinicId, clinicId)).orderBy(desc(users.createdAt));
+}
+
+export async function addClinicMember(data: {
+  name: string;
+  email: string;
+  passwordHash: string;
+  clinicId: number;
+  clinicRole: "crc" | "dentista";
+}): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(users).values({
+    name: data.name,
+    email: data.email,
+    passwordHash: data.passwordHash,
+    loginMethod: "email",
+    clinicId: data.clinicId,
+    clinicRole: data.clinicRole,
+    role: "user",
+    lastSignedIn: new Date(),
+    consultationCountResetAt: new Date(),
+  });
+  return result[0].insertId;
+}
+
+export async function updateClinicMember(userId: number, data: {
+  name?: string;
+  clinicRole?: "crc" | "dentista";
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(users).set(data).where(eq(users.id, userId));
+}
+
+export async function removeClinicMember(userId: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Soft remove: just unlink from clinic
+  await db.update(users).set({
+    clinicId: null,
+    clinicRole: null,
+  }).where(eq(users.id, userId));
+}
+
+// ==================== LEAD FUNCTIONS ====================
+
+export async function createLead(data: InsertLead): Promise<Lead> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(leads).values(data);
+  const insertId = result[0].insertId;
+  const [lead] = await db.select().from(leads).where(eq(leads.id, insertId));
+  return lead;
+}
+
+export async function getLeadsByClinic(clinicId: number): Promise<Lead[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select().from(leads)
+    .where(eq(leads.clinicId, clinicId))
+    .orderBy(desc(leads.createdAt));
+}
+
+export async function getLeadsByCRC(crcId: number): Promise<Lead[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select().from(leads)
+    .where(eq(leads.crcId, crcId))
+    .orderBy(desc(leads.createdAt));
+}
+
+export async function getLeadById(id: number): Promise<Lead | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(leads).where(eq(leads.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateLead(id: number, data: Partial<InsertLead>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(leads).set(data).where(eq(leads.id, id));
+}
+
+export async function deleteLead(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.delete(leads).where(eq(leads.id, id));
+}
+
+export async function convertLeadToPatient(leadId: number, dentistId: number): Promise<Patient> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Get lead data
+  const [lead] = await db.select().from(leads).where(eq(leads.id, leadId)).limit(1);
+  if (!lead) throw new Error("Lead not found");
+  
+  // Create patient from lead
+  const patientResult = await db.insert(patients).values({
+    dentistId,
+    name: lead.name,
+    phone: lead.phone,
+    email: lead.email,
+    clinicId: lead.clinicId,
+    createdByUserId: lead.crcId,
+    originLeadId: leadId,
+  });
+  const patientId = patientResult[0].insertId;
+  
+  // Mark lead as converted
+  await db.update(leads).set({
+    isConverted: true,
+    convertedPatientId: patientId,
+  }).where(eq(leads.id, leadId));
+  
+  const [patient] = await db.select().from(patients).where(eq(patients.id, patientId));
+  return patient;
+}
+
+// ==================== CALL FUNCTIONS ====================
+
+export async function createCall(data: InsertCall): Promise<Call> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.insert(calls).values(data);
+  const insertId = result[0].insertId;
+  const [call] = await db.select().from(calls).where(eq(calls.id, insertId));
+  return call;
+}
+
+export async function getCallsByClinic(clinicId: number): Promise<Call[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select().from(calls)
+    .where(eq(calls.clinicId, clinicId))
+    .orderBy(desc(calls.createdAt));
+}
+
+export async function getCallsByCRC(crcId: number): Promise<Call[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select().from(calls)
+    .where(eq(calls.crcId, crcId))
+    .orderBy(desc(calls.createdAt));
+}
+
+export async function getCallsByLead(leadId: number): Promise<Call[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select().from(calls)
+    .where(eq(calls.leadId, leadId))
+    .orderBy(desc(calls.createdAt));
+}
+
+export async function getCallById(id: number): Promise<Call | undefined> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  const result = await db.select().from(calls).where(eq(calls.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateCall(id: number, data: Partial<{
+  audioUrl: string | null;
+  audioFileKey: string | null;
+  audioDurationSeconds: number | null;
+  transcript: string | null;
+  transcriptSegments: CallTranscriptSegment[] | null;
+  neurovendasAnalysis: NeurovendasAnalysis | null;
+  schedulingResult: "scheduled" | "not_scheduled" | "callback" | "no_answer";
+  schedulingNotes: string | null;
+  status: "draft" | "transcribed" | "analyzed" | "finalized";
+  finalizedAt: Date | null;
+}>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(calls).set(data).where(eq(calls.id, id));
+}
+
+export async function finalizeCall(id: number, data: {
+  schedulingResult: "scheduled" | "not_scheduled" | "callback" | "no_answer";
+  schedulingNotes?: string;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  await db.update(calls).set({
+    ...data,
+    status: "finalized",
+    finalizedAt: new Date(),
+  }).where(eq(calls.id, id));
+}
+
+// ==================== CLINIC STATS FUNCTIONS ====================
+
+export async function getClinicStats(clinicId: number) {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Total leads
+  const allLeads = await db.select().from(leads).where(eq(leads.clinicId, clinicId));
+  const totalLeads = allLeads.length;
+  const convertedLeads = allLeads.filter(l => l.isConverted).length;
+  
+  // Total calls
+  const allCalls = await db.select().from(calls).where(eq(calls.clinicId, clinicId));
+  const totalCalls = allCalls.length;
+  const scheduledCalls = allCalls.filter(c => c.schedulingResult === "scheduled").length;
+  
+  // Total consultations (from patients in this clinic)
+  const clinicPatients = await db.select().from(patients).where(eq(patients.clinicId, clinicId));
+  const patientIds = clinicPatients.map(p => p.id);
+  
+  let totalConsultations = 0;
+  let closedTreatments = 0;
+  
+  if (patientIds.length > 0) {
+    for (const pid of patientIds) {
+      const patientConsultations = await db.select().from(consultations).where(eq(consultations.patientId, pid));
+      totalConsultations += patientConsultations.length;
+      closedTreatments += patientConsultations.filter(c => c.treatmentClosed === true).length;
+    }
+  }
+  
+  // Members
+  const members = await getClinicMembers(clinicId);
+  const crcCount = members.filter(m => m.clinicRole === "crc").length;
+  const dentistaCount = members.filter(m => m.clinicRole === "dentista").length;
+  
+  return {
+    funnel: {
+      totalLeads,
+      totalCalls,
+      scheduledCalls,
+      convertedLeads,
+      totalConsultations,
+      closedTreatments,
+    },
+    team: {
+      totalMembers: members.length,
+      crcCount,
+      dentistaCount,
+    },
   };
 }

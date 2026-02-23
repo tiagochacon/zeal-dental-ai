@@ -536,6 +536,22 @@ export default function NewConsultation() {
                   </Select>
                 </div>
               )}
+
+              {/* Lead Profile Tip - shown when selected patient came from a lead */}
+              {selectedPatientId && (() => {
+                const selectedPatient = patients?.find(p => p.id === parseInt(selectedPatientId));
+                if (selectedPatient && (selectedPatient as any).originLeadId) {
+                  return (
+                    <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                      <p className="text-xs font-semibold text-amber-400 mb-1">Dica do CRC:</p>
+                      <p className="text-sm text-foreground">
+                        Este paciente veio de uma prospecção comercial. Consulte o histórico de ligações para entender o perfil.
+                      </p>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </CardContent>
           </Card>
 

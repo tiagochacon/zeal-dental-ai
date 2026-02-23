@@ -35,6 +35,8 @@ export default function ConsultationDetail() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState(0);
   const [feedbackComment, setFeedbackComment] = useState("");
+  const [treatmentClosed, setTreatmentClosed] = useState<boolean | null>(null);
+  const [treatmentClosedNotes, setTreatmentClosedNotes] = useState("");
   const [hoveredStar, setHoveredStar] = useState(0);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [planForm, setPlanForm] = useState({
@@ -155,6 +157,8 @@ export default function ConsultationDetail() {
         consultationId,
         rating: feedbackRating,
         comment: feedbackComment || undefined,
+        treatmentClosed: treatmentClosed ?? undefined,
+        treatmentClosedNotes: treatmentClosedNotes || undefined,
       }, {
         onSuccess: () => {
           finalizeMutation.mutate({ consultationId });
@@ -912,6 +916,40 @@ export default function ConsultationDetail() {
                   </button>
                 ))}
               </div>
+            </div>
+
+            {/* Treatment Closed */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Tratamento Fechado?</label>
+              <div className="flex gap-3">
+                <Button
+                  type="button"
+                  variant={treatmentClosed === true ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTreatmentClosed(true)}
+                  className={treatmentClosed === true ? "bg-green-600 hover:bg-green-700" : ""}
+                >
+                  Sim
+                </Button>
+                <Button
+                  type="button"
+                  variant={treatmentClosed === false ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setTreatmentClosed(false)}
+                  className={treatmentClosed === false ? "bg-red-600 hover:bg-red-700" : ""}
+                >
+                  Não
+                </Button>
+              </div>
+              {treatmentClosed === false && (
+                <Textarea
+                  placeholder="Motivo pelo qual o tratamento não foi fechado..."
+                  value={treatmentClosedNotes}
+                  onChange={(e) => setTreatmentClosedNotes(e.target.value)}
+                  rows={2}
+                  className="mt-2"
+                />
+              )}
             </div>
 
             {/* Comment */}

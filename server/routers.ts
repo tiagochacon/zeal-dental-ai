@@ -1,6 +1,9 @@
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, protectedSubscriptionProcedure, consultationLimitProcedure, negotiationAccessProcedure, router } from "./_core/trpc";
+import { clinicRouter } from "./routers/clinic";
+import { leadsRouter } from "./routers/leads";
+import { callsRouter } from "./routers/calls";
 import { z } from "zod";
 import {
   createPatient,
@@ -936,6 +939,8 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         consultationId: z.number(),
         rating: z.number().min(1).max(5),
         comment: z.string().optional(),
+        treatmentClosed: z.boolean().optional(),
+        treatmentClosedNotes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);
@@ -948,6 +953,8 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
           dentistId: ctx.user.id,
           rating: input.rating,
           comment: input.comment,
+          treatmentClosed: input.treatmentClosed ?? null,
+          treatmentClosedNotes: input.treatmentClosedNotes ?? null,
         });
 
         return { success: true, feedback };
@@ -1367,6 +1374,15 @@ Responda em JSON estruturado.`;
         };
       }),
   }),
+
+  // Clinic management
+  clinic: clinicRouter,
+
+  // Leads management
+  leads: leadsRouter,
+
+  // Calls management
+  calls: callsRouter,
 
   // Admin functions
   admin: router({

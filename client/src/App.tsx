@@ -16,24 +16,65 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Subscription from "./pages/Subscription";
 import Pricing from "./pages/Pricing";
+import { lazy, Suspense } from "react";
+import { Loader2 } from "lucide-react";
+
+// Lazy-loaded pages for multi-role system
+const ClinicSetup = lazy(() => import("./pages/ClinicSetup"));
+const DashboardCRC = lazy(() => import("./pages/DashboardCRC"));
+const DashboardGestor = lazy(() => import("./pages/DashboardGestor"));
+const Leads = lazy(() => import("./pages/Leads"));
+const LeadDetail = lazy(() => import("./pages/LeadDetail"));
+const NewCall = lazy(() => import("./pages/NewCall"));
+const CallDetail = lazy(() => import("./pages/CallDetail"));
+const TeamManagement = lazy(() => import("./pages/TeamManagement"));
+
+function LazyFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-primary" />
+    </div>
+  );
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path="/" component={Dashboard} />
-      <Route path="/login" component={Login} />
-      <Route path="/register" component={Register} />
-      <Route path="/profile" component={Profile} />
-      <Route path="/new-consultation" component={NewConsultation} />
-      <Route path="/consultation/:id/review" component={TranscriptionReview} />
-      <Route path="/consultation/:id" component={ConsultationDetail} />
-      <Route path="/consultations" component={Consultations} />
-      <Route path="/patients" component={Patients} />
-      <Route path="/subscription" component={Subscription} />
-      <Route path="/pricing" component={Pricing} />
-      <Route path="/404" component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<LazyFallback />}>
+      <Switch>
+        {/* Auth */}
+        <Route path="/login" component={Login} />
+        <Route path="/register" component={Register} />
+        <Route path="/pricing" component={Pricing} />
+
+        {/* Clinic Setup */}
+        <Route path="/clinic-setup" component={ClinicSetup} />
+
+        {/* CRC Pages */}
+        <Route path="/crc" component={DashboardCRC} />
+        <Route path="/leads" component={Leads} />
+        <Route path="/leads/:id" component={LeadDetail} />
+        <Route path="/calls/new" component={NewCall} />
+        <Route path="/calls/:id" component={CallDetail} />
+
+        {/* Gestor Pages */}
+        <Route path="/gestor" component={DashboardGestor} />
+        <Route path="/team" component={TeamManagement} />
+
+        {/* Dentist Pages (existing) */}
+        <Route path="/" component={Dashboard} />
+        <Route path="/profile" component={Profile} />
+        <Route path="/new-consultation" component={NewConsultation} />
+        <Route path="/consultation/:id/review" component={TranscriptionReview} />
+        <Route path="/consultation/:id" component={ConsultationDetail} />
+        <Route path="/consultations" component={Consultations} />
+        <Route path="/patients" component={Patients} />
+        <Route path="/subscription" component={Subscription} />
+
+        {/* 404 */}
+        <Route path="/404" component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 

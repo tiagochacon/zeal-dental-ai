@@ -1,6 +1,20 @@
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean } from "drizzle-orm/mysql-core";
 
 /**
+ * Clinics table - stores dental clinic information
+ */
+export const clinics = mysqlTable("clinics", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  ownerId: int("ownerId").notNull(), // FK to users.id (the gestor)
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Clinic = typeof clinics.$inferSelect;
+export type InsertClinic = typeof clinics.$inferInsert;
+
+/**
  * Core user table backing auth flow.
  */
 export const users = mysqlTable("users", {
@@ -19,6 +33,9 @@ export const users = mysqlTable("users", {
   phone: varchar("phone", { length: 30 }),
   specialty: varchar("specialty", { length: 100 }),
   clinicAddress: text("clinicAddress"),
+  // Clinic multi-role fields
+  clinicId: int("clinicId"), // FK to clinics.id
+  clinicRole: mysqlEnum("clinicRole", ["gestor", "crc", "dentista"]),
   // Stripe subscription fields
   stripeCustomerId: varchar("stripeCustomerId", { length: 255 }),
   stripeSubscriptionId: varchar("stripeSubscriptionId", { length: 255 }),
@@ -51,12 +68,88 @@ export const patients = mysqlTable("patients", {
   medicalHistory: text("medicalHistory"),
   allergies: text("allergies"),
   medications: text("medications"),
+  // Clinic multi-role fields
+  clinicId: int("clinicId"), // FK to clinics.id
+  createdByUserId: int("createdByUserId"), // Who created this patient (CRC via lead conversion or dentist)
+  originLeadId: int("originLeadId"), // FK to leads.id if converted from lead
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = typeof patients.$inferInsert;
+
+/**
+ * Leads table - stores prospect information managed by CRC
+ */
+export const leads = mysqlTable("leads", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicId: int("clinicId").notNull(), // FK to clinics.id
+  crcId: int("crcId").notNull(), // FK to users.id (CRC who manages this lead)
+  name: varchar("name", { length: 255 }).notNull(),
+  phone: varchar("phone", { length: 20 }),
+  email: varchar("email", { length: 320 }),
+  source: varchar("source", { length: 100 }), // e.g., "instagram", "indicacao", "google", "site"
+  notes: text("notes"),
+  // Conversion tracking
+  isConverted: boolean("isConverted").default(false).notNull(),
+  convertedPatientId: int("convertedPatientId"), // FK to patients.id after conversion
+  // Neurovendas analysis from calls
+  neurovendasAnalysis: json("neurovendasAnalysis").$type<NeurovendasAnalysis>(),
+  // Aggregated call profile
+  callProfile: json("callProfile").$type<{
+    nivelCerebralDominante?: "neocortex" | "limbico" | "reptiliano";
+    probabilidadeAgendamento?: number;
+    resumo?: string;
+  }>(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Lead = typeof leads.$inferSelect;
+export type InsertLead = typeof leads.$inferInsert;
+
+/**
+ * Calls table - stores CRC phone call records with leads
+ */
+export const calls = mysqlTable("calls", {
+  id: int("id").autoincrement().primaryKey(),
+  clinicId: int("clinicId").notNull(), // FK to clinics.id
+  crcId: int("crcId").notNull(), // FK to users.id (CRC who made the call)
+  leadId: int("leadId").notNull(), // FK to leads.id
+  leadName: varchar("leadName", { length: 255 }).notNull(),
+  // Audio data
+  audioUrl: text("audioUrl"),
+  audioFileKey: text("audioFileKey"),
+  audioDurationSeconds: int("audioDurationSeconds"),
+  // Transcription
+  transcript: text("transcript"),
+  transcriptSegments: json("transcriptSegments").$type<CallTranscriptSegment[]>(),
+  // Neurovendas analysis
+  neurovendasAnalysis: json("neurovendasAnalysis").$type<NeurovendasAnalysis>(),
+  // Scheduling result
+  schedulingResult: mysqlEnum("schedulingResult", ["scheduled", "not_scheduled", "callback", "no_answer"]),
+  schedulingNotes: text("schedulingNotes"),
+  // Status
+  status: mysqlEnum("callStatus", ["draft", "transcribed", "analyzed", "finalized"]).default("draft").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  finalizedAt: timestamp("finalizedAt"),
+});
+
+export type Call = typeof calls.$inferSelect;
+export type InsertCall = typeof calls.$inferInsert;
+
+/**
+ * Call transcript segment structure
+ */
+export interface CallTranscriptSegment {
+  id: number;
+  start: number;
+  end: number;
+  text: string;
+  speaker?: "crc" | "lead";
+}
 
 /**
  * Consultations table - stores consultation records
@@ -84,6 +177,10 @@ export const consultations = mysqlTable("consultations", {
   
   // Neurovendas Analysis
   neurovendasAnalysis: json("neurovendasAnalysis").$type<NeurovendasAnalysis>(),
+
+  // Treatment closed tracking
+  treatmentClosed: boolean("treatmentClosed"),
+  treatmentClosedNotes: text("treatmentClosedNotes"),
   
   // Metadata
   templateUsed: varchar("templateUsed", { length: 50 }),
@@ -125,6 +222,9 @@ export const feedbacks = mysqlTable("feedbacks", {
   dentistId: int("dentistId").notNull(),
   rating: int("rating").notNull(), // 1-5 stars
   comment: text("comment"),
+  // Treatment closed tracking
+  treatmentClosed: boolean("treatmentClosed"),
+  treatmentClosedNotes: text("treatmentClosedNotes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
@@ -271,6 +371,7 @@ export interface NeurovendasAnalysis {
     nivelAnsiedade: number;
     nivelReceptividade: number;
     descricaoPerfil: string;
+    probabilidadeAgendamento?: number; // 0-100, used for CRC calls
   };
   objecoes: {
     verdadeiras: Array<{
