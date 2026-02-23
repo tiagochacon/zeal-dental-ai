@@ -81,9 +81,9 @@ export const clinicRouter = router({
         return [];
       }
       
-      // Only gestor can see all members
-      if (user.clinicRole !== "gestor") {
-        throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o gestor pode ver os membros" });
+      // Gestor and CRC can see clinic members (CRC needs to see dentists for lead conversion)
+      if (user.clinicRole !== "gestor" && user.clinicRole !== "crc") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
       }
       
       return await getClinicMembers(user.clinicId);

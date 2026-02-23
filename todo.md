@@ -671,3 +671,8 @@
 - [x] Diagnosticar fluxo de exclusão de consultas (backend + frontend)
 - [x] Corrigir bug: gestor e admin agora podem excluir consultas de membros da clínica
 - [x] Testar exclusão (328 testes passando)
+
+## Bug: CRC não consegue acessar /leads - erro "Apenas o gestor pode ver os membros" (v71)
+- [x] Diagnosticar: LeadDetail.tsx chama clinic.getMembers (restrito ao gestor) para listar dentistas na conversão
+- [x] Corrigir: permitir CRC ver membros da clínica (necessário para converter leads em pacientes)
+- [x] Testar: 328 testes passando, 0 erros TypeScript
