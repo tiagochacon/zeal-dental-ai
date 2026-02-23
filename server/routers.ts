@@ -625,18 +625,36 @@ export const appRouter = router({
           throw new Error("Acesso negado: você não tem permissão para excluir esta consulta");
         }
 
-        const chunkFiles = await getAudioChunksByConsultation(input.consultationId);
-        const deleteKeys = [
-          consultation.audioFileKey,
-          ...chunkFiles.map(chunk => chunk.fileKey),
-        ].filter(Boolean) as string[];
+        // Delete S3 files (non-blocking - don't fail if S3 delete fails)
+        try {
+          const chunkFiles = await getAudioChunksByConsultation(input.consultationId);
+          const deleteKeys = [
+            consultation.audioFileKey,
+            ...chunkFiles.map(chunk => chunk.fileKey),
+          ].filter(Boolean) as string[];
 
-        for (const key of deleteKeys) {
-          await storageDelete(key);
+          for (const key of deleteKeys) {
+            try {
+              await storageDelete(key);
+            } catch (e) {
+              console.warn(`[Delete] Failed to delete S3 key ${key}:`, e);
+            }
+          }
+        } catch (e) {
+          console.warn(`[Delete] Failed to get audio chunks for consultation ${input.consultationId}:`, e);
         }
 
-        await deleteFeedbacksByConsultation(input.consultationId);
-        await deleteAudioChunksByConsultation(input.consultationId);
+        // Delete database records
+        try {
+          await deleteFeedbacksByConsultation(input.consultationId);
+        } catch (e) {
+          console.warn(`[Delete] Failed to delete feedbacks:`, e);
+        }
+        try {
+          await deleteAudioChunksByConsultation(input.consultationId);
+        } catch (e) {
+          console.warn(`[Delete] Failed to delete audio chunks:`, e);
+        }
         await deleteConsultation(input.consultationId);
 
         return { success: true };
