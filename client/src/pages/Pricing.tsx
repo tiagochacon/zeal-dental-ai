@@ -158,7 +158,7 @@ export default function Pricing() {
       {/* Header */}
       <div className="container max-w-6xl py-8">
         <div className="flex items-center gap-4 mb-8">
-          {user ? (
+          {user && (user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing' || (user.trialEndsAt && new Date(user.trialEndsAt) > new Date())) ? (
             <Link href={user.clinicRole === 'crc' ? '/crc' : user.clinicRole === 'gestor' ? '/gestor' : '/'}>
               <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                 <ArrowLeft className="mr-2 h-4 w-4" />
@@ -169,7 +169,7 @@ export default function Pricing() {
             <Link href="/login">
               <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Já tenho conta
+                Voltar ao Login
               </Button>
             </Link>
           )}

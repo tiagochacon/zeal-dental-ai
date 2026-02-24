@@ -735,3 +735,6 @@
 - [x] Pricing: botão "Já tenho conta" para visitantes
 - [x] Garantir que login normal funciona sem alterações
 - [x] 0 erros TypeScript, 328 testes passando
+
+## Fix: Botão Pricing "Voltar ao Dashboard" → "Voltar ao Login" (v77)
+- [x] Corrigir texto do botão de voltar na Pricing para usuários redirecionados do PaywallGuard
