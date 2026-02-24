@@ -159,19 +159,15 @@ export default function Pricing() {
       <div className="container max-w-6xl py-8">
         <div className="flex items-center gap-4 mb-8">
           {user && (user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing' || (user.trialEndsAt && new Date(user.trialEndsAt) > new Date())) ? (
-            <Link href={user.clinicRole === 'crc' ? '/crc' : user.clinicRole === 'gestor' ? '/gestor' : '/'}>
-              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar ao Dashboard
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white" onClick={() => setLocation(user.clinicRole === 'crc' ? '/crc' : user.clinicRole === 'gestor' ? '/gestor' : '/')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar ao Dashboard
+            </Button>
           ) : (
-            <Link href="/login">
-              <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar ao Login
-              </Button>
-            </Link>
+            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white" onClick={() => setLocation('/login')}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Voltar ao Login
+            </Button>
           )}
         </div>
 

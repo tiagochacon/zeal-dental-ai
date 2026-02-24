@@ -738,3 +738,6 @@
 
 ## Fix: Botão Pricing "Voltar ao Dashboard" → "Voltar ao Login" (v77)
 - [x] Corrigir texto do botão de voltar na Pricing para usuários redirecionados do PaywallGuard
+
+## Fix: Botão "Voltar ao Login" na Pricing não funciona (v78)
+- [x] Corrigir botão "Voltar ao Login" na Pricing - Link+Button causava nested anchor, trocado para onClick+setLocation
