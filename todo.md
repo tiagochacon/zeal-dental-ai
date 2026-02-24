@@ -795,3 +795,6 @@
 ## Ajustes v85
 - [x] Renomear "Consultas" para "Comparecimento" no card e barra do funil do Painel Gestor
 - [x] Corrigir ficha do paciente (Sheet) cortada - adicionado wrapper scrollável com overflow-y-auto e largura !max-w-2xl
+
+## Fix: Texto truncado no Briefing CRC (v86)
+- [x] Corrigir texto do resumo de Neurovendas truncado com "..." na ficha do paciente (removido line-clamp-3)

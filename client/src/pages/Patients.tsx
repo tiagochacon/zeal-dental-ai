@@ -332,7 +332,7 @@ function PatientDetailSheet({
                 )}
 
                 {(crcCallProfile?.resumo || crcNeurovendas?.resumoGeral) && (
-                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed line-clamp-3">
+                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
                     {crcCallProfile?.resumo || crcNeurovendas?.resumoGeral}
                   </p>
                 )}
