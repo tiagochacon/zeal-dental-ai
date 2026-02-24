@@ -106,7 +106,7 @@ export default function DashboardGestor() {
             <div className="bg-gradient-to-br from-purple-600/10 to-purple-600/5 border border-purple-500/20 rounded-xl p-4 text-center">
               <Users className="h-8 w-8 text-purple-400 mx-auto mb-2" />
               <p className="text-3xl font-bold text-foreground">{stats.totalConsultations}</p>
-              <p className="text-xs text-muted-foreground">Comparecimento</p>
+              <p className="text-xs text-muted-foreground">Comparecimentos</p>
               {stats.scheduledCalls > 0 && (
                 <p className="text-xs text-purple-400 mt-1">{scheduledToConsultation}% dos agendamentos</p>
               )}
