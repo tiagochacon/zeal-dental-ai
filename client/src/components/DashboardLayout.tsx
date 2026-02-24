@@ -62,6 +62,7 @@ const dentistMenuItems: MenuItem[] = [
 const crcMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard CRC", path: "/crc" },
   { icon: UsersRound, label: "Leads", path: "/leads" },
+  { icon: Phone, label: "Ligações", path: "/calls" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
 ];
 
@@ -215,7 +216,7 @@ function DashboardLayoutContent({
   const isPro = subscriptionInfo?.tier === 'pro' || subscriptionInfo?.tier === 'unlimited';
   
   // CRC users don't need subscription upgrade CTA
-  const showUpgradeCTA = !isPro && user?.clinicRole !== 'crc';
+  const showUpgradeCTA = !isPro && user?.clinicRole !== 'crc' && user?.clinicRole !== 'gestor';
 
   useEffect(() => {
     if (isCollapsed) {
@@ -365,7 +366,7 @@ function DashboardLayoutContent({
             )}
           </SidebarContent>
 
-          <UsageIndicator />
+          {user?.clinicRole !== 'crc' && <UsageIndicator />}
 
           <SidebarFooter className="p-3">
             <DropdownMenu>

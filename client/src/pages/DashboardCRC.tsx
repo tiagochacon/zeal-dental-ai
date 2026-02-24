@@ -1,7 +1,7 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Loader2, Phone, Users, CalendarCheck, PhoneOff, TrendingUp, Plus, ArrowRight, LogOut } from "lucide-react";
+import { Loader2, Phone, Users, CalendarCheck, PhoneOff, TrendingUp, Plus, LogOut } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { toast } from "sonner";
 
@@ -123,39 +123,32 @@ export default function DashboardCRC() {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
-          <Link href="/leads/new">
-            <div className="bg-gradient-to-r from-blue-600/20 to-cyan-600/20 border border-blue-500/30 rounded-xl p-5 hover:border-blue-500/50 transition-all cursor-pointer group">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-blue-600/30 flex items-center justify-center">
-                    <Plus className="w-5 h-5 text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">Novo Lead</h3>
-                    <p className="text-sm text-muted-foreground">Cadastrar novo prospect</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-blue-400 group-hover:translate-x-1 transition-transform" />
-              </div>
+          <Button
+            className="h-auto p-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-start gap-3"
+            onClick={() => setLocation("/leads/new")}
+          >
+            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
+              <Plus className="w-5 h-5" />
             </div>
-          </Link>
+            <div className="text-left">
+              <p className="font-semibold">Novo Lead</p>
+              <p className="text-sm opacity-80">Cadastrar novo prospect</p>
+            </div>
+          </Button>
 
-          <Link href="/leads">
-            <div className="bg-gradient-to-r from-green-600/20 to-emerald-600/20 border border-green-500/30 rounded-xl p-5 hover:border-green-500/50 transition-all cursor-pointer group">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-green-600/30 flex items-center justify-center">
-                    <Users className="w-5 h-5 text-green-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-foreground">Meus Leads</h3>
-                    <p className="text-sm text-muted-foreground">Ver todos os leads</p>
-                  </div>
-                </div>
-                <ArrowRight className="w-5 h-5 text-green-400 group-hover:translate-x-1 transition-transform" />
-              </div>
+          <Button
+            variant="outline"
+            className="h-auto p-5 rounded-xl flex items-center justify-start gap-3 border-border hover:border-primary/50"
+            onClick={() => setLocation("/leads")}
+          >
+            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+              <Users className="w-5 h-5 text-muted-foreground" />
             </div>
-          </Link>
+            <div className="text-left">
+              <p className="font-semibold text-foreground">Meus Leads</p>
+              <p className="text-sm text-muted-foreground">Ver todos os leads</p>
+            </div>
+          </Button>
         </div>
 
         {/* Recent Activity */}

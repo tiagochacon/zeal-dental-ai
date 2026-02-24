@@ -2,11 +2,132 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck, Brain, Shield, Heart } from "lucide-react";
 import { useLocation, Link, useParams } from "wouter";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+// ---- Profile config for Neurovendas display ----
+const profileDisplayConfig: Record<string, {
+  label: string;
+  badgeClass: string;
+  description: string;
+  keyApproach: string[];
+  Icon: React.ComponentType<{ className?: string }>;
+}> = {
+  reptilian: {
+    label: "Reptiliano",
+    badgeClass: "bg-green-600/20 text-green-400 border-green-500/30",
+    description: "Opera principalmente pelo instinto de sobrevivência. Priorize segurança, controle e eliminação de medos.",
+    keyApproach: ["Ambiente calmo e controlado", "Explicações simples e diretas", "Garantias de segurança"],
+    Icon: Shield,
+  },
+  neocortex: {
+    label: "Neocórtex",
+    badgeClass: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+    description: "Analítico, busca dados concretos. Apresente estatísticas, comparações e evidências científicas.",
+    keyApproach: ["Dados e estatísticas de sucesso", "Comparação de opções", "Análise custo-benefício"],
+    Icon: Brain,
+  },
+  limbic: {
+    label: "Límbico",
+    badgeClass: "bg-amber-600/20 text-amber-400 border-amber-500/30",
+    description: "Movido por emoções e aspirações. Foque na transformação, autoestima e impacto social.",
+    keyApproach: ["Histórias de transformação", "Visualização do resultado", "Conexão emocional"],
+    Icon: Heart,
+  },
+};
+
+function NeurovendasProfileCard({ callProfile }: { callProfile: unknown }) {
+  let parsed: Record<string, unknown> | null = null;
+  let plainText: string | null = null;
+
+  try {
+    if (typeof callProfile === "string") {
+      parsed = JSON.parse(callProfile) as Record<string, unknown>;
+    } else if (typeof callProfile === "object" && callProfile !== null) {
+      parsed = callProfile as Record<string, unknown>;
+    }
+  } catch {
+    plainText = typeof callProfile === "string" ? callProfile : null;
+  }
+
+  if (!parsed && !plainText) {
+    plainText = typeof callProfile === "string" ? callProfile : String(callProfile);
+  }
+
+  const profileType = parsed
+    ? ((parsed.profileType || parsed.perfilPrincipal) as string | undefined)
+    : undefined;
+  const profileKey = profileType?.toLowerCase();
+  const config = profileKey ? profileDisplayConfig[profileKey] : undefined;
+  const rapport = parsed?.rapport as { nivel?: number; justificativa?: string } | undefined;
+  const resumo = (parsed?.resumo || parsed?.resumoGeral) as string | undefined;
+
+  return (
+    <div className="bg-card border border-border rounded-xl p-6 mt-6">
+      <h2 className="text-lg font-semibold text-foreground mb-4">Perfil de Neurovendas</h2>
+
+      {config ? (
+        <div className="space-y-4">
+          {/* Profile Badge + Icon */}
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
+              <config.Icon className="w-5 h-5 text-muted-foreground" />
+            </div>
+            <div>
+              <Badge className={`${config.badgeClass} border text-sm font-semibold`}>
+                {config.label}
+              </Badge>
+              <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
+            </div>
+          </div>
+
+          {/* Rapport */}
+          {rapport?.nivel !== undefined && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rapport:</span>
+              <span className={`text-sm font-semibold ${
+                rapport.nivel >= 7 ? "text-green-400" :
+                rapport.nivel >= 4 ? "text-amber-400" : "text-red-400"
+              }`}>
+                {rapport.nivel}/10
+              </span>
+            </div>
+          )}
+
+          {/* How to approach */}
+          <div className="bg-secondary/50 rounded-lg p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+              Como abordar
+            </p>
+            <ul className="space-y-1.5">
+              {config.keyApproach.map((tip, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
+                  <span className="text-primary mt-0.5">•</span>
+                  {tip}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resumo */}
+          {resumo && (
+            <div className="border-l-4 border-primary pl-4 bg-primary/5 rounded-r-lg p-3">
+              <p className="text-sm text-foreground">{resumo}</p>
+            </div>
+          )}
+        </div>
+      ) : (
+        <p className="text-sm text-foreground bg-secondary/50 rounded-lg p-4">
+          {plainText ?? (parsed ? JSON.stringify(parsed, null, 2) : "")}
+        </p>
+      )}
+    </div>
+  );
+}
 
 export default function LeadDetail() {
   const { user, loading } = useAuth();
@@ -276,12 +397,9 @@ export default function LeadDetail() {
           )}
         </div>
 
-        {/* Call Profile (from Neurovendas analysis) */}
+        {/* Neurovendas Profile */}
         {lead.callProfile && (
-          <div className="bg-card border border-border rounded-xl p-6 mt-6">
-            <h2 className="text-lg font-semibold text-foreground mb-3">Perfil Psicológico do Lead</h2>
-            <p className="text-sm text-foreground bg-secondary/50 rounded-lg p-4">{typeof lead.callProfile === 'string' ? lead.callProfile : JSON.stringify(lead.callProfile)}</p>
-          </div>
+          <NeurovendasProfileCard callProfile={lead.callProfile} />
         )}
       </main>
 

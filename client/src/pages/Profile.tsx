@@ -1,7 +1,12 @@
 import { motion } from "framer-motion";
 import DentistProfile from "@/components/DentistProfile";
+import CRCProfile from "@/components/CRCProfile";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 export default function Profile() {
+  const { user } = useAuth();
+  const isCRC = user?.clinicRole === "crc";
+
   return (
     <motion.div
       className="space-y-6"
@@ -12,16 +17,16 @@ export default function Profile() {
       {/* Header */}
       <div>
         <h1 className="text-xl lg:text-3xl font-bold">
-          Meu Perfil Profissional
+          {isCRC ? "Meu Perfil" : "Meu Perfil Profissional"}
         </h1>
         <p className="text-sm text-muted-foreground hidden sm:block">
-          Gerencie suas informações profissionais
+          {isCRC ? "Gerencie suas informações de contato" : "Gerencie suas informações profissionais"}
         </p>
       </div>
 
       {/* Content */}
       <div className="max-w-2xl">
-        <DentistProfile />
+        {isCRC ? <CRCProfile /> : <DentistProfile />}
       </div>
     </motion.div>
   );

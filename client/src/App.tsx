@@ -28,6 +28,7 @@ const Leads = lazy(() => import("./pages/Leads"));
 const LeadDetail = lazy(() => import("./pages/LeadDetail"));
 const NewCall = lazy(() => import("./pages/NewCall"));
 const CallDetail = lazy(() => import("./pages/CallDetail"));
+const Calls = lazy(() => import("./pages/Calls"));
 const TeamManagement = lazy(() => import("./pages/TeamManagement"));
 
 function LazyFallback() {
@@ -59,6 +60,7 @@ function Router() {
                 <Route path="/crc" component={DashboardCRC} />
                 <Route path="/leads" component={Leads} />
                 <Route path="/leads/:id" component={LeadDetail} />
+                <Route path="/calls" component={Calls} />
                 <Route path="/calls/new" component={NewCall} />
                 <Route path="/calls/:id" component={CallDetail} />
 
