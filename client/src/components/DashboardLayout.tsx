@@ -51,12 +51,21 @@ type MenuItem = {
 };
 
 // Menu items per role
+// Dentista standalone (conta individual — mantém Assinatura)
 const dentistMenuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+  { icon: LayoutDashboard, label: "Dashboard Dentista", path: "/" },
   { icon: FileText, label: "Consultas", path: "/consultations" },
   { icon: Users, label: "Pacientes", path: "/patients" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
   { icon: CreditCard, label: "Assinatura", path: "/subscription" },
+];
+
+// Dentista dentro de uma clínica (SEM Assinatura — plano é responsabilidade do Gestor)
+const clinicDentistMenuItems: MenuItem[] = [
+  { icon: LayoutDashboard, label: "Dashboard Dentista", path: "/" },
+  { icon: FileText, label: "Consultas", path: "/consultations" },
+  { icon: Users, label: "Pacientes", path: "/patients" },
+  { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
 ];
 
 const crcMenuItems: MenuItem[] = [
@@ -93,7 +102,7 @@ function getMenuItemsForUser(user: { role?: string; clinicRole?: string | null; 
   // If user has a clinic role, use that
   if (user.clinicRole === 'gestor') return gestorMenuItems;
   if (user.clinicRole === 'crc') return crcMenuItems;
-  if (user.clinicRole === 'dentista') return dentistMenuItems;
+  if (user.clinicRole === 'dentista') return clinicDentistMenuItems;
   
   // Admin without clinic role gets admin menu with clinic setup
   if (user.role === 'admin') return adminMenuItems;
@@ -216,7 +225,10 @@ function DashboardLayoutContent({
   const isPro = subscriptionInfo?.tier === 'pro' || subscriptionInfo?.tier === 'unlimited';
   
   // CRC users don't need subscription upgrade CTA
-  const showUpgradeCTA = !isPro && user?.clinicRole !== 'crc' && user?.clinicRole !== 'gestor';
+  const showUpgradeCTA = !isPro
+    && user?.clinicRole !== 'crc'
+    && user?.clinicRole !== 'gestor'
+    && user?.clinicRole !== 'dentista';
 
   useEffect(() => {
     if (isCollapsed) {
@@ -344,8 +356,8 @@ function DashboardLayoutContent({
               </div>
             )}
             
-            {/* Pro Badge - Show for Pro users */}
-            {isPro && (
+            {/* Pro Badge - Show for Pro users (not for clinic dentists — plan is Gestor's) */}
+            {isPro && user?.clinicRole !== 'dentista' && (
               <div className="px-2 mt-4">
                 <div
                   className={`
@@ -366,7 +378,7 @@ function DashboardLayoutContent({
             )}
           </SidebarContent>
 
-          {user?.clinicRole !== 'crc' && <UsageIndicator />}
+          {user?.clinicRole !== 'crc' && user?.clinicRole !== 'dentista' && <UsageIndicator />}
 
           <SidebarFooter className="p-3">
             <DropdownMenu>

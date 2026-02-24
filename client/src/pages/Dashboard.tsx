@@ -80,7 +80,7 @@ export default function Dashboard() {
             Olá, {user?.name?.split(' ')[0] || 'Doutor(a)'}!
           </h1>
           <p className="text-sm text-muted-foreground hidden sm:block">
-            Bem-vindo ao seu painel de controle Zeal
+            Dashboard Dentista — Painel de controle
           </p>
         </div>
         <Button onClick={() => setLocation("/new-consultation")} size="sm" className="shrink-0">

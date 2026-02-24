@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { Loader2, Plus, User, Search, Phone, Mail, Trash2, Edit, Users, ChevronRight, FileText, Calendar } from "lucide-react";
+import { Loader2, Plus, User, Search, Phone, Mail, Trash2, Edit, Users, ChevronRight, FileText, Calendar, Brain } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { consultationStatusConfig } from "@/lib/utils";
@@ -39,6 +39,8 @@ interface Patient {
   allergies?: string | null;
   medications?: string | null;
   createdAt?: string | Date;
+  originLeadId?: number | null;
+  clinicId?: number | null;
 }
 
 const initialFormData: PatientFormData = {
@@ -189,6 +191,50 @@ const PatientForm = memo(function PatientForm({
   );
 });
 
+// ---- CRC Neurovendas Profile helpers ----
+const crcProfileConfig: Record<string, {
+  label: string;
+  badgeClass: string;
+  dica: string;
+}> = {
+  reptiliano: {
+    label: "Reptiliano",
+    badgeClass: "bg-green-600/20 text-green-400 border-green-500/30",
+    dica: "Use linguagem simples e direta. Transmita segurança e controle. Elimine medos e incertezas antes de falar de valores.",
+  },
+  neocortex: {
+    label: "Neocórtex",
+    badgeClass: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+    dica: "Apresente dados, comparações e evidências. Este paciente decide com lógica — tenha números de sucesso em mãos.",
+  },
+  limbico: {
+    label: "Límbico",
+    badgeClass: "bg-amber-600/20 text-amber-400 border-amber-500/30",
+    dica: "Conecte-se emocionalmente. Fale sobre transformação, autoestima e como o tratamento mudará a vida dele(a).",
+  },
+};
+
+function ProfileBadge({ profile }: { profile: string }) {
+  const config = crcProfileConfig[profile.toLowerCase()];
+  if (!config) return null;
+  return (
+    <Badge className={`${config.badgeClass} border text-xs font-semibold mt-1`}>
+      {config.label}
+    </Badge>
+  );
+}
+
+function AbordagemDica({ profile }: { profile: string }) {
+  const config = crcProfileConfig[profile.toLowerCase()];
+  if (!config) return null;
+  return (
+    <div className="mt-3 bg-card border border-border rounded-lg p-3">
+      <p className="text-xs font-semibold text-foreground mb-1">💡 Dica de Abordagem</p>
+      <p className="text-xs text-muted-foreground leading-relaxed">{config.dica}</p>
+    </div>
+  );
+}
+
 // Patient Detail Sheet
 function PatientDetailSheet({ 
   patient, 
@@ -215,11 +261,27 @@ function PatientDetailSheet({
   ) as any;
   const neurovendas = lastAnalyzedConsultation?.neurovendasAnalysis as any;
 
+  // Buscar perfil do CRC via lead de origem (quando paciente veio do CRC)
+  const leadQuery = trpc.leads.getById.useQuery(
+    { id: patient?.originLeadId ?? 0 },
+    {
+      enabled: open && !!patient?.originLeadId,
+      refetchOnWindowFocus: false,
+    }
+  );
+  const leadData = leadQuery.data as any;
+  const crcCallProfile = leadData?.callProfile as {
+    nivelCerebralDominante?: "neocortex" | "limbico" | "reptiliano";
+    probabilidadeAgendamento?: number;
+    resumo?: string;
+  } | null | undefined;
+  const crcNeurovendas = leadData?.neurovendasAnalysis as any;
+
   if (!patient) return null;
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
+      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
         <SheetHeader className="mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
@@ -233,6 +295,75 @@ function PatientDetailSheet({
             </div>
           </div>
         </SheetHeader>
+
+        {/* Briefing do CRC — só aparece quando paciente veio de um lead do CRC */}
+        {patient.originLeadId && (
+          <div className="mb-6 bg-primary/5 border border-primary/20 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="w-6 h-6 rounded-full bg-primary/20 flex items-center justify-center">
+                <Brain className="w-3.5 h-3.5 text-primary" />
+              </div>
+              <p className="text-xs font-bold text-primary uppercase tracking-wider">
+                Briefing do CRC — Análise de Neurovendas
+              </p>
+            </div>
+
+            {leadQuery.isLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ) : (
+              <>
+                {crcCallProfile?.nivelCerebralDominante && (
+                  <ProfileBadge profile={crcCallProfile.nivelCerebralDominante} />
+                )}
+
+                {crcNeurovendas?.rapport?.nivel !== undefined && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-muted-foreground">Rapport na ligação:</span>
+                    <span className={`text-xs font-bold ${
+                      crcNeurovendas.rapport.nivel >= 7 ? "text-green-400" :
+                      crcNeurovendas.rapport.nivel >= 4 ? "text-amber-400" :
+                      "text-red-400"
+                    }`}>
+                      {crcNeurovendas.rapport.nivel}/10
+                    </span>
+                  </div>
+                )}
+
+                {(crcCallProfile?.resumo || crcNeurovendas?.resumoGeral) && (
+                  <p className="text-xs text-muted-foreground mt-2 leading-relaxed line-clamp-3">
+                    {crcCallProfile?.resumo || crcNeurovendas?.resumoGeral}
+                  </p>
+                )}
+
+                {crcCallProfile?.nivelCerebralDominante && (
+                  <AbordagemDica profile={crcCallProfile.nivelCerebralDominante} />
+                )}
+
+                {crcCallProfile?.probabilidadeAgendamento !== undefined && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-xs text-muted-foreground">Probabilidade de fechamento:</span>
+                    <span className={`text-xs font-semibold ${
+                      crcCallProfile.probabilidadeAgendamento >= 70 ? "text-green-400" :
+                      crcCallProfile.probabilidadeAgendamento >= 40 ? "text-amber-400" :
+                      "text-red-400"
+                    }`}>
+                      {crcCallProfile.probabilidadeAgendamento}%
+                    </span>
+                  </div>
+                )}
+
+                {!crcCallProfile && !crcNeurovendas && !leadQuery.isLoading && (
+                  <p className="text-xs text-muted-foreground">
+                    Análise de neurovendas ainda não disponível para este paciente.
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        )}
 
         {/* Contact Info */}
         <div className="space-y-3 mb-6">
