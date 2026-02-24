@@ -112,32 +112,37 @@ export default function DashboardCRC() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Button
-            className="h-auto p-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-start gap-3"
+          <button
+            className="group relative h-auto p-4 bg-card border border-border rounded-xl flex items-center gap-4 transition-all duration-200 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/5 cursor-pointer text-left"
             onClick={() => setLocation("/calls/new")}
           >
-            <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-              <Phone className="w-5 h-5" />
+            <div className="w-11 h-11 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 transition-colors group-hover:bg-blue-500/25">
+              <Phone className="w-5 h-5 text-blue-400" />
             </div>
-            <div className="text-left">
-              <p className="font-semibold">Nova Ligação</p>
-              <p className="text-sm opacity-80">Registrar ligação com lead</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-foreground text-sm">Nova Ligação</p>
+              <p className="text-xs text-muted-foreground">Registrar ligação com lead</p>
             </div>
-          </Button>
+            <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <Plus className="w-4 h-4 text-blue-400" />
+            </div>
+          </button>
 
-          <Button
-            variant="outline"
-            className="h-auto p-5 rounded-xl flex items-center justify-start gap-3 border-border hover:border-primary/50"
+          <button
+            className="group relative h-auto p-4 bg-card border border-border rounded-xl flex items-center gap-4 transition-all duration-200 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5 cursor-pointer text-left"
             onClick={() => setLocation("/leads")}
           >
-            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-              <Users className="w-5 h-5 text-muted-foreground" />
+            <div className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0 transition-colors group-hover:bg-purple-500/25">
+              <Users className="w-5 h-5 text-purple-400" />
             </div>
-            <div className="text-left">
-              <p className="font-semibold text-foreground">Meus Leads</p>
-              <p className="text-sm text-muted-foreground">Ver todos os leads</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-semibold text-foreground text-sm">Meus Leads</p>
+              <p className="text-xs text-muted-foreground">Ver todos os leads</p>
             </div>
-          </Button>
+            <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <TrendingUp className="w-4 h-4 text-purple-400" />
+            </div>
+          </button>
       </div>
 
       {/* Recent Activity */}

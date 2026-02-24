@@ -788,3 +788,6 @@
   - Leitura correta de nivelCerebralDominante (campo real do schema)
   - Fallback estruturado quando perfil não é reconhecido
 - [x] 0 erros TypeScript, 328 testes passando
+
+## Redesign Botões DashboardCRC (v84)
+- [x] Redesenhar botões "Nova Ligação" e "Meus Leads" - cards com borda sutil, ícones coloridos, hover com glow e ícone de ação reveal
