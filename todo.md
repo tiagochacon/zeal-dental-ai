@@ -741,3 +741,7 @@
 
 ## Fix: Botão "Voltar ao Login" na Pricing não funciona (v78)
 - [x] Corrigir botão "Voltar ao Login" na Pricing - Link+Button causava nested anchor, trocado para onClick+setLocation
+
+## Fix: Botão "Voltar ao Login" ainda não funciona (v79)
+- [x] Investigar por que o botão não navega - Login.tsx redireciona usuário logado de volta
+- [x] Corrigir navegação - botão agora faz logout antes de navegar para /login com window.location.href

@@ -81,6 +81,7 @@ const PLANS = [
 export default function Pricing() {
   const { user, refresh } = useAuth();
   const [location, setLocation] = useLocation();
+  const logoutMutation = trpc.auth.logout.useMutation();
 
   // Check for successful payment return
   useEffect(() => {
@@ -164,7 +165,12 @@ export default function Pricing() {
               Voltar ao Dashboard
             </Button>
           ) : (
-            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white" onClick={() => setLocation('/login')}>
+            <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white" onClick={async () => {
+              if (user) {
+                await logoutMutation.mutateAsync();
+              }
+              window.location.href = '/login';
+            }}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Voltar ao Login
             </Button>
