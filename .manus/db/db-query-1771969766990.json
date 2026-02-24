@@ -1,0 +1,17 @@
+{
+  "query": "SELECT id, LENGTH(transcript) as transcript_len, LENGTH(CAST(transcriptSegments AS CHAR)) as segments_len, LENGTH(CAST(neurovendasAnalysis AS CHAR)) as analysis_len, callStatus FROM calls WHERE id = 150001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, LENGTH(transcript) as transcript_len, LENGTH(CAST(transcriptSegments AS CHAR)) as segments_len, LENGTH(CAST(neurovendasAnalysis AS CHAR)) as analysis_len, callStatus FROM calls WHERE id = 150001;",
+  "rows": [
+    {
+      "id": "150001",
+      "transcript_len": "NULL",
+      "segments_len": "NULL",
+      "analysis_len": "NULL",
+      "callStatus": "draft"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttranscript_len\tsegments_len\tanalysis_len\tcallStatus\n150001\tNULL\tNULL\tNULL\tdraft\n",
+  "stderr": "",
+  "execution_time_ms": 64
+}

@@ -798,3 +798,9 @@
 
 ## Fix: Texto truncado no Briefing CRC (v86)
 - [x] Corrigir texto do resumo de Neurovendas truncado com "..." na ficha do paciente (removido line-clamp-3)
+
+## Fix: PayloadTooLargeError em /calls/:id (v87)
+- [x] Diagnosticado: body parser limit de 10MB rejeitando requests grandes (upload de áudio base64)
+- [x] Aumentado MAX_UPLOAD_SIZE de 10mb para 50mb em server/constants.ts
+- [x] Verificar se a página /calls/150001 carrega corretamente
+- [x] Testar upload de áudio grande (limite agora 50MB)

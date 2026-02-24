@@ -4,8 +4,8 @@
  */
 
 export const SERVER_CONFIG = {
-  /** Maximum size for JSON/URL-encoded request bodies */
-  MAX_UPLOAD_SIZE: "10mb",
+  /** Maximum size for JSON/URL-encoded request bodies (50MB for base64 audio uploads) */
+  MAX_UPLOAD_SIZE: "50mb",
   
   /** Number of ports to scan when finding available port */
   PORT_SCAN_RANGE: 20,

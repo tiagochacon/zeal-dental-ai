@@ -1,0 +1,8 @@
+{
+  "query": "SELECT id, LENGTH(transcript) as transcript_len, LENGTH(CAST(transcriptSegments AS CHAR)) as segments_len, LENGTH(CAST(neurovendasAnalysis AS CHAR)) as analysis_len, status FROM calls WHERE id = 150001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, LENGTH(transcript) as transcript_len, LENGTH(CAST(transcriptSegments AS CHAR)) as segments_len, LENGTH(CAST(neurovendasAnalysis AS CHAR)) as analysis_len, status FROM calls WHERE id = 150001;",
+  "returncode": 1,
+  "logs": [
+    "ERROR 1054 (42S22) at line 1: Unknown column 'status' in 'field list'"
+  ]
+}
