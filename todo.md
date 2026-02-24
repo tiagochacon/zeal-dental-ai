@@ -804,3 +804,16 @@
 - [x] Aumentado MAX_UPLOAD_SIZE de 10mb para 50mb em server/constants.ts
 - [x] Verificar se a página /calls/150001 carrega corretamente
 - [x] Testar upload de áudio grande (limite agora 50MB)
+
+## Aumento de Capacidade de Áudio - Ligações CRC (v88)
+- [x] Calcular tamanho máximo de arquivo para 30 minutos de áudio
+- [x] Implementar rota multipart /api/calls/upload-audio (multer, até 100MB)
+- [x] Ajustar validação de tamanho no frontend (NewCall.tsx) — até 100MB
+- [x] Ajustar validação de duração no frontend para aceitar até 30 minutos
+- [x] Aumentar limite de transcrição de 16MB para 25MB no voiceTranscription.ts
+- [x] Adicionar feedback visual de progresso (progress bar com XHR)
+- [x] Auto-stop de gravação ao atingir 30 minutos
+- [x] Aviso visual quando próximo do limite de tempo
+- [x] Aviso para arquivos grandes (>25MB) sugerindo formato comprimido
+- [x] Testes unitários para audioUpload (19 testes passando)
+- [x] Todos os 347 testes passando (18 arquivos)

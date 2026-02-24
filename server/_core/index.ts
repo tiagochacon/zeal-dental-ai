@@ -9,6 +9,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import { SERVER_CONFIG, HTTP_STATUS } from "../constants";
 import stripeWebhook from "../stripe/webhook";
+import audioUploadRouter from "../routes/audioUpload";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -43,6 +44,8 @@ async function startServer() {
   app.use(express.urlencoded({ limit: SERVER_CONFIG.MAX_UPLOAD_SIZE, extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
+  // Audio upload route (multipart, supports large files up to 100MB)
+  app.use("/api/calls/upload-audio", audioUploadRouter);
   // tRPC API
   app.use(
     "/api/trpc",

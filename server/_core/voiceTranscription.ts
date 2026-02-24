@@ -106,13 +106,15 @@ export async function transcribeAudio(
       audioBuffer = Buffer.from(await response.arrayBuffer());
       mimeType = response.headers.get('content-type') || 'audio/mpeg';
       
-      // Check file size (16MB limit)
+      // Check file size (25MB limit for Whisper API)
+      // WebM/Opus at 32kbps: 30min ≈ 7MB, MP3 at 128kbps: 30min ≈ 29MB
+      // Most compressed formats for 30min calls will be under 25MB
       const sizeMB = audioBuffer.length / (1024 * 1024);
-      if (sizeMB > 16) {
+      if (sizeMB > 25) {
         return {
-          error: "Audio file exceeds maximum size limit",
+          error: "Arquivo de áudio excede o limite de tamanho para transcrição",
           code: "FILE_TOO_LARGE",
-          details: `File size is ${sizeMB.toFixed(2)}MB, maximum allowed is 16MB`
+          details: `Tamanho do arquivo: ${sizeMB.toFixed(2)}MB, máximo permitido: 25MB. Para áudios longos, use formato WebM ou MP3 com taxa de bits mais baixa.`
         };
       }
     } catch (error) {
