@@ -204,6 +204,16 @@ export async function deletePatient(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
+  // First, delete feedbacks for all consultations of this patient
+  const patientConsultations = await db.select({ id: consultations.id }).from(consultations)
+    .where(eq(consultations.patientId, id));
+  for (const c of patientConsultations) {
+    await db.delete(feedbacks).where(eq(feedbacks.consultationId, c.id));
+    await db.delete(audioChunks).where(eq(audioChunks.consultationId, c.id));
+  }
+  // Then delete consultations
+  await db.delete(consultations).where(eq(consultations.patientId, id));
+  // Finally delete the patient
   await db.delete(patients).where(eq(patients.id, id));
 }
 

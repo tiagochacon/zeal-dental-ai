@@ -326,7 +326,10 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ ctx, input }) => {
         const patient = await getPatientById(input.id);
-        if (!patient || patient.dentistId !== ctx.user.id) {
+        if (!patient) throw new Error("Paciente não encontrado");
+        const isOwner = patient.dentistId === ctx.user.id;
+        const isClinicGestor = ctx.user.clinicId && patient.clinicId === ctx.user.clinicId && (ctx.user.clinicRole === 'gestor' || ctx.user.role === 'admin');
+        if (!isOwner && !isClinicGestor) {
           throw new Error("Paciente não encontrado ou acesso negado");
         }
         await deletePatient(input.id);

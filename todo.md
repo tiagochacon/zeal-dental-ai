@@ -719,3 +719,9 @@
 - [x] Verificar rotas, navegação e permissões
 - [x] Garantir fluxo organizado entre CRC, Dentista e Gestor
 - [x] 0 erros TypeScript, 328 testes passando
+
+## Fix: Erro ao Remover Paciente (v75)
+- [x] Investigar causa do erro ao deletar paciente (gestor não tinha permissão)
+- [x] Corrigir procedure de delete para permitir gestores/admins da clínica
+- [x] Corrigir deletePatient para deletar feedbacks, audioChunks e consultas vinculadas antes
+- [x] 0 erros TypeScript, 328 testes passando

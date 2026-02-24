@@ -1,0 +1,255 @@
+{
+  "query": "SELECT p.id as patientId, p.name, COUNT(c.id) as consultationCount FROM patients p LEFT JOIN consultations c ON c.patientId = p.id GROUP BY p.id, p.name;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT p.id as patientId, p.name, COUNT(c.id) as consultationCount FROM patients p LEFT JOIN consultations c ON c.patientId = p.id GROUP BY p.id, p.name;",
+  "rows": [
+    {
+      "patientId": "1260001",
+      "name": "teste 1",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1470002",
+      "name": "sebastiao tenorio",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "780011",
+      "name": "teste 6 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1290001",
+      "name": "teste ana ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1050002",
+      "name": "teste 4 ",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "1380001",
+      "name": "TIAGO OLIVEIRA DE SENNA CAAETE CHACON",
+      "consultationCount": "0"
+    },
+    {
+      "patientId": "810006",
+      "name": "teste 6 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "990001",
+      "name": "Paciente 1 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1230001",
+      "name": "Teste maria julia ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "960001",
+      "name": "Fabio Netto",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "780012",
+      "name": "teste 7 ",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "660001",
+      "name": "teste",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "780002",
+      "name": "Carla Menezes",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1110002",
+      "name": "Beltrano da silva",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1200001",
+      "name": "Teste Willi",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "930001",
+      "name": "Marcos Chacon",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "780009",
+      "name": "teste 4 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1350001",
+      "name": "Teste 1",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "810002",
+      "name": "teste 2",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1410001",
+      "name": "Victor Hugo",
+      "consultationCount": "0"
+    },
+    {
+      "patientId": "810004",
+      "name": "teste 4 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "810007",
+      "name": "teste 7 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1140001",
+      "name": "Teste Babi ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "840001",
+      "name": "Tiago Oliveira de Senna Caaetê Chacon",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "720001",
+      "name": "teste Vitito ",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "780007",
+      "name": "teste 2 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "900001",
+      "name": "teste 2",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "780006",
+      "name": "Karla Chacon",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "690001",
+      "name": "Carlos",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "870002",
+      "name": "teste 8 ",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "780001",
+      "name": "Mario Augusto",
+      "consultationCount": "4"
+    },
+    {
+      "patientId": "1080001",
+      "name": "TIAGO OLIVEIRA DE SENNA CAAETE CHACON",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1410003",
+      "name": "TIAGO OLIVEIRA DE SENNA CAAETE CHACON",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "780008",
+      "name": "teste 3 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "810005",
+      "name": "teste 5 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1440001",
+      "name": "Syer",
+      "consultationCount": "0"
+    },
+    {
+      "patientId": "1050001",
+      "name": "teste marcito ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "870003",
+      "name": "Carla Menezes",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "780003",
+      "name": "Tiago Chacon",
+      "consultationCount": "2"
+    },
+    {
+      "patientId": "780004",
+      "name": "teste 1 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "810003",
+      "name": "teste 3 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1440002",
+      "name": "Victor",
+      "consultationCount": "0"
+    },
+    {
+      "patientId": "780010",
+      "name": "teste 5 ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "780005",
+      "name": "Victor Hugo",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "810001",
+      "name": "teste ",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1020001",
+      "name": "Tiago Chacon",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1470001",
+      "name": "teste allana",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "1170001",
+      "name": "Teste Rodrigo",
+      "consultationCount": "1"
+    },
+    {
+      "patientId": "810008",
+      "name": "teste 8 ",
+      "consultationCount": "1"
+    }
+  ],
+  "messages": [],
+  "stdout": "patientId\tname\tconsultationCount\n1260001\tteste 1\t1\n1470002\tsebastiao tenorio\t1\n780011\tteste 6 \t1\n1290001\tteste ana \t1\n1050002\tteste 4 \t2\n1380001\tTIAGO OLIVEIRA DE SENNA CAAETE CHACON\t0\n810006\tteste 6 \t1\n990001\tPaciente 1 \t1\n1230001\tTeste maria julia \t1\n960001\tFabio Netto\t1\n780012\tteste 7 \t2\n660001\tteste\t1\n780002\tCarla Menezes\t1\n1110002\tBeltrano da silva\t1\n1200001\tTeste Willi\t1\n930001\tMarcos Chacon\t1\n780009\tteste 4 \t1\n1350001\tTeste 1\t1\n810002\tteste 2\t1\n1410001\tVictor Hugo\t0\n810004\tteste 4 \t1\n810007\tteste 7 \t1\n1140001\tTeste Babi \t1\n840001\tTiago Oliveira de Senna Caaetê Chacon\t2\n720001\tteste Vitito \t2\n780007\tteste 2 \t1\n900001\tteste 2\t1\n780006\tKarla Chacon\t2\n690001\tCarlos\t1\n870002\tteste 8 \t2\n780001\tMario Augusto\t4\n1080001\tTIAGO OLIVEIRA DE SENNA CAAETE CHACON\t1\n1410003\tTIAGO OLIVEIRA DE SENNA CAAETE CHACON\t2\n780008\tteste 3 \t1\n810005\tteste 5 \t1\n1440001\tSyer\t0\n1050001\tteste marcito \t1\n870003\tCarla Menezes\t1\n780003\tTiago Chacon\t2\n780004\tteste 1 \t1\n810003\tteste 3 \t1\n1440002\tVictor\t0\n780010\tteste 5 \t1\n780005\tVictor Hugo\t1\n810001\tteste \t1\n1020001\tTiago Chacon\t1\n1470001\tteste allana\t1\n1170001\tTeste Rodrigo\t1\n810008\tteste 8 \t1\n",
+  "stderr": "",
+  "execution_time_ms": 63
+}
