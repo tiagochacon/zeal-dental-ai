@@ -697,11 +697,48 @@ export async function removeClinicMember(userId: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   
-  // Soft remove: just unlink from clinic
-  await db.update(users).set({
-    clinicId: null,
-    clinicRole: null,
-  }).where(eq(users.id, userId));
+  // Hard delete: remove user and all associated data completely
+  // This allows the same email to be re-added later
+  
+  // 1. Delete feedbacks created by this user
+  await db.delete(feedbacks).where(eq(feedbacks.dentistId, userId));
+  
+  // 2. Delete consultations created by this user (and their feedbacks/audioChunks)
+  const userConsultations = await db.select({ id: consultations.id })
+    .from(consultations)
+    .where(eq(consultations.dentistId, userId));
+  
+  for (const c of userConsultations) {
+    await db.delete(feedbacks).where(eq(feedbacks.consultationId, c.id));
+    await db.delete(audioChunks).where(eq(audioChunks.consultationId, c.id));
+  }
+  await db.delete(consultations).where(eq(consultations.dentistId, userId));
+  
+  // 3. Delete patients owned by this user (and their remaining consultations)
+  const userPatients = await db.select({ id: patients.id })
+    .from(patients)
+    .where(eq(patients.dentistId, userId));
+  
+  for (const p of userPatients) {
+    const patientConsultations = await db.select({ id: consultations.id })
+      .from(consultations)
+      .where(eq(consultations.patientId, p.id));
+    for (const pc of patientConsultations) {
+      await db.delete(feedbacks).where(eq(feedbacks.consultationId, pc.id));
+      await db.delete(audioChunks).where(eq(audioChunks.consultationId, pc.id));
+    }
+    await db.delete(consultations).where(eq(consultations.patientId, p.id));
+    await db.delete(patients).where(eq(patients.id, p.id));
+  }
+  
+  // 4. Delete calls made by this user (CRC)
+  await db.delete(calls).where(eq(calls.crcId, userId));
+  
+  // 5. Delete leads managed by this user (CRC)
+  await db.delete(leads).where(eq(leads.crcId, userId));
+  
+  // 6. Delete the user record completely
+  await db.delete(users).where(eq(users.id, userId));
 }
 
 // ==================== LEAD FUNCTIONS ====================

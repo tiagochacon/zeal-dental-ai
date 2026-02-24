@@ -745,3 +745,10 @@
 ## Fix: Botão "Voltar ao Login" ainda não funciona (v79)
 - [x] Investigar por que o botão não navega - Login.tsx redireciona usuário logado de volta
 - [x] Corrigir navegação - botão agora faz logout antes de navegar para /login com window.location.href
+
+## Exclusão Completa de Membro do Time (v80)
+- [x] Investigar como remoção de membro funciona atualmente (era soft remove: só setava clinicId/clinicRole null)
+- [x] Implementar exclusão completa do usuário do banco (hard delete do registro users)
+- [x] Limpar dados vinculados (feedbacks, audioChunks, consultas, pacientes, calls, leads)
+- [x] Garantir que o e-mail possa ser reutilizado após exclusão (registro é deletado)
+- [x] 0 erros TypeScript, 328 testes passando
