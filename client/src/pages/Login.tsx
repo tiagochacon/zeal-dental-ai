@@ -206,8 +206,8 @@ export default function Login() {
               {/* Register Link */}
               <div className="text-center">
                 <span className="text-muted-foreground">Não tem conta? </span>
-                <Link href="/register" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
-                  Cadastre-se gratuitamente
+                <Link href="/pricing" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                  Veja nossos planos
                 </Link>
               </div>
             </form>

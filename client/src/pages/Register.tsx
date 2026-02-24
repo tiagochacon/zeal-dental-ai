@@ -1,11 +1,39 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Loader2, Eye, EyeOff, AlertCircle, CheckCircle, Crown, Zap, CreditCard } from "lucide-react";
 import { useLocation, Link } from "wouter";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
+
+// Stripe Payment Links
+const PAYMENT_LINKS: Record<string, string> = {
+  BASIC: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
+  PRO: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
+};
+
+const PLAN_INFO: Record<string, { name: string; price: string; icon: React.ReactNode; color: string }> = {
+  TRIAL: {
+    name: "Trial Gratuito",
+    price: "Grátis por 7 dias",
+    icon: <Zap className="h-4 w-4 text-emerald-400" />,
+    color: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+  },
+  BASIC: {
+    name: "ZEAL Básico",
+    price: "R$ 99,90/mês",
+    icon: <CreditCard className="h-4 w-4 text-blue-400" />,
+    color: "bg-blue-500/10 text-blue-400 border-blue-500/30",
+  },
+  PRO: {
+    name: "ZEAL Pro",
+    price: "R$ 199,90/mês",
+    icon: <Crown className="h-4 w-4 text-purple-400" />,
+    color: "bg-purple-500/10 text-purple-400 border-purple-500/30",
+  },
+};
 
 export default function Register() {
   const [, setLocation] = useLocation();
@@ -17,13 +45,59 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
+  const [isProcessingPlan, setIsProcessingPlan] = useState(false);
+
+  // Get selected plan from URL query params
+  const selectedPlan = useMemo(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const plan = urlParams.get("plan");
+    if (plan && ["TRIAL", "BASIC", "PRO"].includes(plan)) return plan;
+    return "TRIAL"; // Default to trial if no plan specified
+  }, []);
+
+  const planInfo = PLAN_INFO[selectedPlan];
+
+  const startTrial = trpc.billing.startTrial.useMutation({
+    onSuccess: () => {
+      toast.success("Trial ativado com sucesso! Bem-vindo ao ZEAL!");
+      refresh().then(() => {
+        window.location.href = "/";
+      });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+      setIsProcessingPlan(false);
+    },
+  });
+
+  const getPaymentLinkWithEmail = (baseUrl: string, userEmail: string) => {
+    const url = new URL(baseUrl);
+    url.searchParams.set('prefilled_email', userEmail);
+    return url.toString();
+  };
 
   const registerMutation = trpc.auth.register.useMutation({
-    onSuccess: async () => {
+    onSuccess: async (data) => {
       toast.success("Conta criada com sucesso!");
       await refresh();
-      // Redirect to pricing page after registration for sales funnel
-      setLocation("/pricing");
+
+      // Handle plan activation after registration
+      if (selectedPlan === "TRIAL") {
+        setIsProcessingPlan(true);
+        startTrial.mutate();
+      } else if (selectedPlan === "BASIC" || selectedPlan === "PRO") {
+        // Redirect to Stripe payment
+        const paymentUrl = getPaymentLinkWithEmail(
+          PAYMENT_LINKS[selectedPlan],
+          email
+        );
+        toast.info("Redirecionando para a página de pagamento...");
+        window.open(paymentUrl, "_blank");
+        // Send user to pricing page to wait for payment confirmation
+        setLocation("/pricing");
+      } else {
+        setLocation("/");
+      }
     },
     onError: (err) => {
       setError(err.message || "Erro ao criar conta. Tente novamente.");
@@ -31,10 +105,11 @@ export default function Register() {
   });
 
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && !isProcessingPlan) {
+      // If user is already logged in and not processing a plan, redirect
       setLocation("/");
     }
-  }, [user, loading, setLocation]);
+  }, [user, loading, setLocation, isProcessingPlan]);
 
   if (loading) {
     return (
@@ -132,7 +207,21 @@ export default function Register() {
 
           <div className="bg-card/90 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-border shadow-2xl">
             <h2 className="text-2xl font-bold text-foreground mb-2">Criar sua conta</h2>
-            <p className="text-muted-foreground mb-6">Preencha os dados abaixo para começar</p>
+            <p className="text-muted-foreground mb-4">Preencha os dados abaixo para começar</p>
+
+            {/* Selected Plan Badge */}
+            {planInfo && (
+              <div className={`mb-6 p-3 rounded-xl border flex items-center gap-3 ${planInfo.color}`}>
+                {planInfo.icon}
+                <div>
+                  <p className="text-sm font-semibold">{planInfo.name}</p>
+                  <p className="text-xs opacity-80">{planInfo.price}</p>
+                </div>
+                <Link href="/pricing" className="ml-auto text-xs underline opacity-70 hover:opacity-100 transition-opacity">
+                  Trocar
+                </Link>
+              </div>
+            )}
 
             {/* Error Message */}
             {error && (
@@ -152,7 +241,7 @@ export default function Register() {
                   placeholder="Dr. João Silva"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  disabled={registerMutation.isPending}
+                  disabled={registerMutation.isPending || isProcessingPlan}
                   className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
                 />
               </div>
@@ -165,7 +254,7 @@ export default function Register() {
                   placeholder="seu@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  disabled={registerMutation.isPending}
+                  disabled={registerMutation.isPending || isProcessingPlan}
                   className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
                 />
               </div>
@@ -178,7 +267,7 @@ export default function Register() {
                   placeholder="Mínimo 6 caracteres"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  disabled={registerMutation.isPending}
+                  disabled={registerMutation.isPending || isProcessingPlan}
                   className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
                 />
                 <button
@@ -224,7 +313,7 @@ export default function Register() {
                   placeholder="Digite a senha novamente"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  disabled={registerMutation.isPending}
+                  disabled={registerMutation.isPending || isProcessingPlan}
                   className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
                 />
                 <button
@@ -259,16 +348,18 @@ export default function Register() {
               {/* Register Button */}
               <Button 
                 type="submit"
-                disabled={registerMutation.isPending}
+                disabled={registerMutation.isPending || isProcessingPlan}
                 className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-base rounded-xl mt-4 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
               >
-                {registerMutation.isPending ? (
+                {registerMutation.isPending || isProcessingPlan ? (
                   <>
                     <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Criando conta...
+                    {isProcessingPlan ? "Ativando plano..." : "Criando conta..."}
                   </>
+                ) : selectedPlan === "TRIAL" ? (
+                  "Criar conta e começar Trial"
                 ) : (
-                  "Começar minha Revolução Clínica"
+                  "Criar conta e assinar"
                 )}
               </Button>
 

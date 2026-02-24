@@ -725,3 +725,13 @@
 - [x] Corrigir procedure de delete para permitir gestores/admins da clínica
 - [x] Corrigir deletePatient para deletar feedbacks, audioChunks e consultas vinculadas antes
 - [x] 0 erros TypeScript, 328 testes passando
+
+## Alterar Fluxo de Cadastro: Login → Pricing → Registro (v76)
+- [x] Login: "Não tem conta?" redireciona para /pricing (não /register)
+- [x] Pricing: mostrar planos para visitantes (sem exigir login)
+- [x] Pricing: ao escolher plano, redirecionar para /register?plan=TRIAL|BASIC|PRO
+- [x] Register: receber plano escolhido e iniciar trial ou redirecionar para pagamento após cadastro
+- [x] Register: mostrar badge do plano selecionado com opção de trocar
+- [x] Pricing: botão "Já tenho conta" para visitantes
+- [x] Garantir que login normal funciona sem alterações
+- [x] 0 erros TypeScript, 328 testes passando

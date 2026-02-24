@@ -4,7 +4,6 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Check, Crown, CreditCard, Loader2, UserPlus, Zap, X } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
@@ -91,11 +90,8 @@ export default function Pricing() {
 
     if (paymentSuccess === "true" && sessionId) {
       toast.success("Pagamento realizado com sucesso! Ativando sua assinatura...");
-      // Refresh user data to get updated subscription status
       refresh().then(() => {
-        // Clear URL params
         window.history.replaceState({}, "", "/pricing");
-        // Redirect to dashboard after a short delay
         setTimeout(() => {
           setLocation("/");
         }, 1500);
@@ -123,20 +119,39 @@ export default function Pricing() {
   };
 
   const handlePlanAction = (planKey: string) => {
-    if (planKey === "TRIAL") {
-      if (!user) {
-        setLocation("/register");
-        return;
+    // If user is already logged in, handle directly
+    if (user) {
+      if (planKey === "TRIAL") {
+        startTrial.mutate();
+      } else if (planKey === "BASIC") {
+        window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.BASIC), "_blank");
+        toast.info("Você será redirecionado para a página de pagamento.");
+      } else if (planKey === "PRO") {
+        window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.PRO), "_blank");
+        toast.info("Você será redirecionado para a página de pagamento.");
       }
-      startTrial.mutate();
-    } else if (planKey === "BASIC") {
-      window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.BASIC), "_blank");
-      toast.info("Você será redirecionado para a página de pagamento.");
-    } else if (planKey === "PRO") {
-      window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.PRO), "_blank");
-      toast.info("Você será redirecionado para a página de pagamento.");
+      return;
     }
+
+    // If not logged in, redirect to register with selected plan
+    setLocation(`/register?plan=${planKey}`);
   };
+
+  // Determine which plans to show based on user's current subscription
+  const visiblePlans = (() => {
+    if (!user) return PLANS; // Show all plans for visitors
+    
+    const tier = user.subscriptionTier;
+    if (tier === "basic") {
+      // Only show Pro for basic users
+      return PLANS.filter(p => p.key === "PRO");
+    }
+    if (tier === "pro" || tier === "unlimited") {
+      // Show nothing or current plan info
+      return PLANS.filter(p => p.key === "PRO");
+    }
+    return PLANS; // trial/free users see all
+  })();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
@@ -154,7 +169,7 @@ export default function Pricing() {
             <Link href="/login">
               <Button variant="ghost" size="sm" className="text-slate-400 hover:text-white">
                 <ArrowLeft className="mr-2 h-4 w-4" />
-                Voltar para Login
+                Já tenho conta
               </Button>
             </Link>
           )}
@@ -168,11 +183,16 @@ export default function Pricing() {
           <p className="text-slate-400 text-lg max-w-2xl mx-auto">
             Automatize sua rotina clínica e aumente o faturamento com inteligência artificial
           </p>
+          {!user && (
+            <p className="text-slate-500 text-sm mt-3">
+              Escolha seu plano e crie sua conta em seguida
+            </p>
+          )}
         </div>
 
         {/* Plans Grid */}
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {PLANS.map((plan) => (
+        <div className={`grid gap-6 max-w-5xl mx-auto ${visiblePlans.length === 1 ? 'md:grid-cols-1 max-w-md' : visiblePlans.length === 2 ? 'md:grid-cols-2 max-w-3xl' : 'md:grid-cols-3'}`}>
+          {visiblePlans.map((plan) => (
             <Card
               key={plan.key}
               className={`relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${
