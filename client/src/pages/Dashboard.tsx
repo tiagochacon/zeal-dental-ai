@@ -80,7 +80,7 @@ export default function Dashboard() {
             Olá, {user?.name?.split(' ')[0] || 'Doutor(a)'}!
           </h1>
           <p className="text-sm text-muted-foreground hidden sm:block">
-            Dashboard Dentista — Painel de controle
+            {user?.clinicRole === 'gestor' ? 'Visão geral da clínica' : 'Painel de controle'}
           </p>
         </div>
         <Button onClick={() => setLocation("/new-consultation")} size="sm" className="shrink-0">

@@ -752,3 +752,18 @@
 - [x] Limpar dados vinculados (feedbacks, audioChunks, consultas, pacientes, calls, leads)
 - [x] Garantir que o e-mail possa ser reutilizado após exclusão (registro é deletado)
 - [x] 0 erros TypeScript, 328 testes passando
+
+## Auditoria Geral v81 - Pós-Sincronização GitHub
+- [x] Verificar compilação TypeScript e testes (0 erros, 328 testes)
+- [x] Auditar DashboardLayout.tsx (alterações GitHub: menu clinicDentist)
+- [x] Auditar Dashboard.tsx (alteração GitHub: subtítulo)
+- [x] Auditar Patients.tsx (alteração GitHub: briefing CRC Neurovendas)
+- [x] Fix: Dashboard.tsx mostra "Dashboard Dentista" para gestor → agora mostra título contextual
+- [x] Fix: consultations.list não mostra consultas da clínica para gestor → getConsultationsByClinic
+- [x] Fix: consultations.getById bloqueia gestor → agora permite gestor/admin da clínica
+- [x] Fix: consultations.getByPatient bloqueia gestor → agora usa getConsultationsByPatientAll
+- [x] Fix: consultations.getTreatmentPlan bloqueia gestor → agora permite gestor/admin
+- [x] Fix: PatientDetailSheet filtra consultas por nome → agora usa getByPatient com patientId
+- [x] Verificar consistência visual entre todas as páginas
+- [x] Verificar fluxos de cada papel (Gestor, Dentista standalone, Dentista clínica, CRC)
+- [x] 0 erros TypeScript, 328 testes passando

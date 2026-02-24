@@ -248,12 +248,10 @@ function PatientDetailSheet({
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  const { data: consultations } = trpc.consultations.list.useQuery(
-    undefined,
+  const { data: patientConsultations = [] } = trpc.consultations.getByPatient.useQuery(
+    { patientId: patient?.id ?? 0 },
     { enabled: !!user && open && !!patient }
   );
-
-  const patientConsultations = consultations?.filter(c => c.patientName === patient?.name) || [];
 
   // Extrair dados de neurovendas da última consulta que tem análise
   const lastAnalyzedConsultation = patientConsultations.find(

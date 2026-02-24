@@ -31,6 +31,8 @@ import {
   deleteAudioChunksByConsultation,
   deleteConsultation,
   resetUserAccount,
+  getConsultationsByClinic,
+  getConsultationsByPatientAll,
 } from "./db";
 import { storagePut, storageDelete } from "./storage";
 import { transcribeAudio } from "./_core/voiceTranscription";
@@ -356,6 +358,11 @@ export const appRouter = router({
       }),
 
     list: protectedProcedure.query(async ({ ctx }) => {
+      const user = ctx.user;
+      // Gestor e admin veem todas as consultas da clínica
+      if (user.clinicId && (user.clinicRole === 'gestor' || user.role === 'admin')) {
+        return await getConsultationsByClinic(user.clinicId);
+      }
       return await getConsultationsByDentist(ctx.user.id);
     }),
 
@@ -363,7 +370,10 @@ export const appRouter = router({
       .input(z.object({ id: z.number() }))
       .query(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.id);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
+        if (!consultation) throw new Error("Consulta não encontrada");
+        const isOwner = consultation.dentistId === ctx.user.id;
+        const isClinicGestor = ctx.user.clinicId && (ctx.user.clinicRole === 'gestor' || ctx.user.role === 'admin');
+        if (!isOwner && !isClinicGestor) {
           throw new Error("Consulta não encontrada ou acesso negado");
         }
         return consultation;
@@ -372,6 +382,10 @@ export const appRouter = router({
     getByPatient: protectedProcedure
       .input(z.object({ patientId: z.number() }))
       .query(async ({ ctx, input }) => {
+        // Gestor e admin veem todas as consultas do paciente
+        if (ctx.user.clinicId && (ctx.user.clinicRole === 'gestor' || ctx.user.role === 'admin')) {
+          return await getConsultationsByPatientAll(input.patientId);
+        }
         return await getConsultationsByPatient(input.patientId, ctx.user.id);
       }),
 
@@ -379,7 +393,10 @@ export const appRouter = router({
       .input(z.object({ consultationId: z.number() }))
       .query(async ({ ctx, input }) => {
         const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
+        if (!consultation) throw new Error("Consulta não encontrada");
+        const isOwner = consultation.dentistId === ctx.user.id;
+        const isClinicGestor = ctx.user.clinicId && (ctx.user.clinicRole === 'gestor' || ctx.user.role === 'admin');
+        if (!isOwner && !isClinicGestor) {
           throw new Error("Consulta não encontrada ou acesso negado");
         }
         return consultation.treatmentPlan || null;

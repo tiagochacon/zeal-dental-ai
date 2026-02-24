@@ -236,6 +236,25 @@ export async function getConsultationsByDentist(dentistId: number): Promise<Cons
     .orderBy(desc(consultations.createdAt));
 }
 
+export async function getConsultationsByClinic(clinicId: number): Promise<Consultation[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  // Get all dentists in the clinic
+  const clinicDentists = await db.select({ id: users.id }).from(users)
+    .where(and(
+      eq(users.clinicId, clinicId),
+    ));
+  
+  if (clinicDentists.length === 0) return [];
+  
+  const dentistIds = clinicDentists.map(d => d.id);
+  
+  return await db.select().from(consultations)
+    .where(sql`${consultations.dentistId} IN (${sql.join(dentistIds.map(id => sql`${id}`), sql`, `)})`)
+    .orderBy(desc(consultations.createdAt));
+}
+
 export async function getConsultationById(id: number): Promise<Consultation | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -253,6 +272,15 @@ export async function getConsultationsByPatient(patientId: number, dentistId: nu
       eq(consultations.patientId, patientId),
       eq(consultations.dentistId, dentistId)
     ))
+    .orderBy(desc(consultations.createdAt));
+}
+
+export async function getConsultationsByPatientAll(patientId: number): Promise<Consultation[]> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  
+  return await db.select().from(consultations)
+    .where(eq(consultations.patientId, patientId))
     .orderBy(desc(consultations.createdAt));
 }
 
