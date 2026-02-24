@@ -27,7 +27,7 @@ export default function ClinicSetup() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -39,7 +39,7 @@ export default function ClinicSetup() {
   }
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-background via-[#0d1a2d] to-background relative overflow-hidden">
+    <div className="min-h-[calc(100vh-4rem)] flex bg-gradient-to-br from-background via-[#0d1a2d] to-background relative overflow-hidden -m-6 p-6">
       {/* Background */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-blue-600/15 rounded-full blur-[180px] -translate-x-1/2 -translate-y-1/2 animate-pulse" />

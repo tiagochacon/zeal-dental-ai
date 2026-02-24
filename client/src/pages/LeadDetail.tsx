@@ -196,7 +196,7 @@ export default function LeadDetail() {
 
   if (loading || leadQuery.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -204,7 +204,7 @@ export default function LeadDetail() {
 
   if (!lead) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <h2 className="text-xl font-bold text-foreground mb-2">Lead não encontrado</h2>
           <Link href="/leads">
@@ -218,47 +218,43 @@ export default function LeadDetail() {
   const leadCalls = (callsQuery.data || []).filter((c: any) => c.leadId === leadId);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <Link href="/leads">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Leads
-              </Button>
-            </Link>
-            <h1 className="text-lg font-bold text-foreground truncate">{lead.name}</h1>
-            <span className={`text-xs px-2 py-0.5 rounded-full ${
-              lead.isConverted ? "bg-green-600/20 text-green-400" : "bg-amber-600/20 text-amber-400"
-            }`}>
-              {lead.isConverted ? "Convertido" : "Ativo"}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            {!lead.isConverted && (
-              <Button
-                onClick={() => {
-                  if (dentists.length === 0) {
-                    toast.error("Nenhum dentista cadastrado na clínica. Peça ao gestor para adicionar.");
-                    return;
-                  }
-                  setShowConvertDialog(true);
-                }}
-                disabled={convertLead.isPending}
-                className="bg-green-600 hover:bg-green-700"
-                size="sm"
-              >
-                {convertLead.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCheck className="h-4 w-4 mr-1" />}
-                Converter em Paciente
-              </Button>
-            )}
-          </div>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Link href="/leads">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-1" />
+              Leads
+            </Button>
+          </Link>
+          <h1 className="text-lg lg:text-2xl font-bold text-foreground truncate">{lead.name}</h1>
+          <span className={`text-xs px-2 py-0.5 rounded-full ${
+            lead.isConverted ? "bg-green-600/20 text-green-400" : "bg-amber-600/20 text-amber-400"
+          }`}>
+            {lead.isConverted ? "Convertido" : "Ativo"}
+          </span>
         </div>
-      </header>
-
-      <main className="container px-4 py-6 max-w-4xl mx-auto">
+        <div className="flex items-center gap-2">
+          {!lead.isConverted && (
+            <Button
+              onClick={() => {
+                if (dentists.length === 0) {
+                  toast.error("Nenhum dentista cadastrado na cl\u00ednica. Pe\u00e7a ao gestor para adicionar.");
+                  return;
+                }
+                setShowConvertDialog(true);
+              }}
+              disabled={convertLead.isPending}
+              className="bg-green-600 hover:bg-green-700"
+              size="sm"
+            >
+              {convertLead.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <UserCheck className="h-4 w-4 mr-1" />}
+              Converter em Paciente
+            </Button>
+          )}
+        </div>
+      </div>
         {/* Lead Info Card */}
         <div className="bg-card border border-border rounded-xl p-6 mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -401,8 +397,6 @@ export default function LeadDetail() {
         {lead.callProfile && (
           <NeurovendasProfileCard callProfile={lead.callProfile} />
         )}
-      </main>
-
       {/* Convert Lead Dialog */}
       <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>
         <DialogContent className="bg-card border-border max-w-md">

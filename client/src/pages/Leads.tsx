@@ -40,14 +40,6 @@ export default function Leads() {
     onError: (err) => toast.error(err.message),
   });
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const leads = leadsQuery.data || [];
   const filtered = leads.filter((l: any) =>
     l.name?.toLowerCase().includes(search.toLowerCase()) ||
@@ -56,27 +48,18 @@ export default function Leads() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Voltar
-              </Button>
-            </Link>
-            <h1 className="text-lg font-bold text-foreground">Meus Leads</h1>
-          </div>
-          <Button onClick={() => setShowNewLead(true)} className="bg-blue-600 hover:bg-blue-700">
-            <Plus className="h-4 w-4 mr-1" />
-            Novo Lead
-          </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl lg:text-3xl font-bold text-foreground">Meus Leads</h1>
+          <p className="text-sm text-muted-foreground hidden sm:block">Gerencie seus leads e prospects</p>
         </div>
-      </header>
-
-      <main className="container px-4 py-6 max-w-5xl mx-auto">
+        <Button onClick={() => setShowNewLead(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Plus className="h-4 w-4 mr-1" />
+          Novo Lead
+        </Button>
+      </div>
         {/* Search */}
         <div className="relative mb-6">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -165,8 +148,6 @@ export default function Leads() {
             ))}
           </div>
         )}
-      </main>
-
       {/* New Lead Dialog */}
       <Dialog open={showNewLead} onOpenChange={setShowNewLead}>
         <DialogContent className="bg-card border-border max-w-md">

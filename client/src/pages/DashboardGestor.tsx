@@ -1,15 +1,13 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Loader2, Users, Phone, CalendarCheck, TrendingUp, UserPlus, PhoneCall, BarChart3, LogOut } from "lucide-react";
+import { Loader2, Users, Phone, CalendarCheck, TrendingUp, UserPlus, PhoneCall, BarChart3 } from "lucide-react";
 import { useLocation, Link } from "wouter";
+import { motion } from "framer-motion";
 
 export default function DashboardGestor() {
   const { user, loading } = useAuth();
   const [, setLocation] = useLocation();
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => setLocation("/"),
-  });
 
   const clinicQuery = trpc.clinic.getMyClinic.useQuery(undefined, {
     enabled: !!user,
@@ -28,7 +26,7 @@ export default function DashboardGestor() {
 
   if (loading || clinicQuery.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -60,37 +58,25 @@ export default function DashboardGestor() {
   const consultationToClosed = stats.totalConsultations > 0 ? Math.round((stats.closedTreatments / stats.totalConsultations) * 100) : 0;
 
   return (
-    <div className="min-h-screen bg-background">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
-              <BarChart3 className="h-4 w-4 text-white" />
-            </div>
-            <div>
-              <h1 className="text-lg font-bold text-foreground">{clinicQuery.data.name}</h1>
-              <p className="text-xs text-muted-foreground">Painel do Gestor</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Link href="/team">
-              <Button variant="outline" size="sm">
-                <Users className="h-4 w-4 mr-1" />
-                Meu Time
-              </Button>
-            </Link>
-            <Link href="/profile">
-              <Button variant="ghost" size="sm">Perfil</Button>
-            </Link>
-            <Button variant="ghost" size="sm" onClick={() => logoutMutation.mutate()}>
-              <LogOut className="h-4 w-4" />
-            </Button>
-          </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl lg:text-3xl font-bold text-foreground">{clinicQuery.data?.name || 'Painel Gestor'}</h1>
+          <p className="text-sm text-muted-foreground hidden sm:block">Painel do Gestor</p>
         </div>
-      </header>
-
-      <main className="container px-4 py-6 max-w-6xl mx-auto">
+        <Link href="/team">
+          <Button variant="outline" size="sm">
+            <Users className="h-4 w-4 mr-1" />
+            Meu Time
+          </Button>
+        </Link>
+      </div>
         {/* Funnel de Conversão */}
         <div className="bg-card border border-border rounded-xl p-6 mb-6">
           <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
@@ -254,7 +240,6 @@ export default function DashboardGestor() {
             </div>
           </Link>
         </div>
-      </main>
-    </div>
+    </motion.div>
   );
 }

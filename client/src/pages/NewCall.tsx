@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, ArrowLeft, Mic, Square, Upload, Phone, FileAudio } from "lucide-react";
+import { Loader2, Mic, Square, Upload, Phone, FileAudio } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useRef, useEffect } from "react";
 import { toast } from "sonner";
@@ -164,32 +164,15 @@ export default function NewCall() {
 
   const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
   const leads = (leadsQuery.data || []).filter((l: any) => !l.isConverted);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex items-center h-16 px-4 gap-3">
-          <Link href="/">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Voltar
-            </Button>
-          </Link>
-          <h1 className="text-lg font-bold text-foreground">Nova Ligação</h1>
-        </div>
-      </header>
-
-      <main className="container px-4 py-6 max-w-2xl mx-auto">
+      <div>
+        <h1 className="text-xl lg:text-3xl font-bold text-foreground">Nova Ligação</h1>
+        <p className="text-sm text-muted-foreground">Registre uma ligação com um lead</p>
+      </div>
         {/* Select Lead */}
         <div className="bg-card border border-border rounded-xl p-6 mb-6">
           <h2 className="text-lg font-semibold text-foreground mb-4">Selecionar Lead</h2>
@@ -360,10 +343,9 @@ export default function NewCall() {
           )}
         </Button>
 
-        <p className="text-xs text-muted-foreground text-center mt-3">
-          A gravação será transcrita e analisada automaticamente pela IA
-        </p>
-      </main>
+      <p className="text-xs text-muted-foreground text-center mt-3">
+        A gravação será transcrita e analisada automaticamente pela IA
+      </p>
     </div>
   );
 }

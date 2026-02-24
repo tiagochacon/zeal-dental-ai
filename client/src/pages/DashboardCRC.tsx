@@ -1,12 +1,13 @@
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
-import { Loader2, Phone, Users, CalendarCheck, PhoneOff, TrendingUp, Plus, LogOut } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Phone, Users, CalendarCheck, PhoneOff, TrendingUp, Plus } from "lucide-react";
 import { useLocation, Link } from "wouter";
-import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 export default function DashboardCRC() {
-  const { user, loading, logout } = useAuth();
+  const { user } = useAuth();
   const [, setLocation] = useLocation();
 
   const leadsQuery = trpc.leads.list.useQuery(undefined, {
@@ -19,21 +20,9 @@ export default function DashboardCRC() {
     refetchOnWindowFocus: false,
   });
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
-
-  if (!user) {
-    setLocation("/login");
-    return null;
-  }
-
   const leads = leadsQuery.data || [];
   const calls = callsQuery.data || [];
+  const isLoading = leadsQuery.isLoading || callsQuery.isLoading;
 
   const totalLeads = leads.length;
   const convertedLeads = leads.filter((l: any) => l.isConverted).length;
@@ -44,42 +33,41 @@ export default function DashboardCRC() {
   const recentLeads = leads.slice(0, 5);
   const recentCalls = calls.slice(0, 5);
 
-  const handleLogout = async () => {
-    await logout();
-    setLocation("/login");
-  };
-
   return (
-    <div className="min-h-screen bg-background">
+    <motion.div
+      className="space-y-6"
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+    >
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <img src="/logo.png" alt="ZEAL" className="h-8 w-auto" />
-            <span className="text-xl font-bold text-foreground">ZEAL</span>
-            <span className="text-xs bg-cyan-600/20 text-cyan-400 px-2 py-0.5 rounded-full font-medium">CRC</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground hidden sm:block">{user.name}</span>
-            <Button variant="ghost" size="sm" onClick={handleLogout}>
-              <LogOut className="h-4 w-4 mr-1" />
-              Sair
-            </Button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container px-4 py-6 max-w-7xl mx-auto">
-        {/* Welcome */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground">
-            Olá, {user.name?.split(" ")[0]}!
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl lg:text-3xl font-bold text-foreground">
+            Olá, {user?.name?.split(" ")[0]}!
           </h1>
-          <p className="text-muted-foreground">Painel de Relacionamento com Leads</p>
+          <p className="text-sm text-muted-foreground hidden sm:block">
+            Painel de Relacionamento com Leads
+          </p>
         </div>
+        <Button
+          className="bg-blue-600 hover:bg-blue-700"
+          onClick={() => setLocation("/leads")}
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Novo Lead
+        </Button>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      {/* Stats Cards */}
+      {isLoading ? (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-28 w-full rounded-xl" />
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
@@ -120,19 +108,20 @@ export default function DashboardCRC() {
             <p className="text-2xl font-bold text-foreground">{conversionRate}%</p>
           </div>
         </div>
+      )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
             className="h-auto p-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-start gap-3"
-            onClick={() => setLocation("/leads/new")}
+            onClick={() => setLocation("/calls/new")}
           >
             <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
-              <Plus className="w-5 h-5" />
+              <Phone className="w-5 h-5" />
             </div>
             <div className="text-left">
-              <p className="font-semibold">Novo Lead</p>
-              <p className="text-sm opacity-80">Cadastrar novo prospect</p>
+              <p className="font-semibold">Nova Ligação</p>
+              <p className="text-sm opacity-80">Registrar ligação com lead</p>
             </div>
           </Button>
 
@@ -149,10 +138,10 @@ export default function DashboardCRC() {
               <p className="text-sm text-muted-foreground">Ver todos os leads</p>
             </div>
           </Button>
-        </div>
+      </div>
 
-        {/* Recent Activity */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Recent Activity */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Leads */}
           <div className="bg-card border border-border rounded-xl p-5">
             <div className="flex items-center justify-between mb-4">
@@ -227,8 +216,7 @@ export default function DashboardCRC() {
               </div>
             )}
           </div>
-        </div>
-      </main>
-    </div>
+      </div>
+    </motion.div>
   );
 }

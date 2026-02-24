@@ -49,7 +49,7 @@ export default function CallDetail() {
 
   if (!user || callQuery.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -58,7 +58,7 @@ export default function CallDetail() {
   const call = callQuery.data;
   if (!call) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <div className="text-center">
           <h2 className="text-xl font-bold text-foreground mb-2">Ligação não encontrada</h2>
           <Link href="/calls"><Button variant="outline">Voltar</Button></Link>
@@ -101,7 +101,7 @@ export default function CallDetail() {
   const statusBadge = statusBadgeConfig[call.status] ?? { label: "Pendente", className: "bg-gray-600/20 text-gray-400" };
 
   return (
-    <div className="min-h-[calc(100vh-4rem)]">
+    <div className="max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href={`/leads/${call.leadId}`}>

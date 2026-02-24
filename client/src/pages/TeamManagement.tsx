@@ -59,7 +59,7 @@ export default function TeamManagement() {
 
   if (loading || clinicQuery.isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
+      <div className="flex items-center justify-center py-20">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
@@ -94,27 +94,18 @@ export default function TeamManagement() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="max-w-3xl mx-auto space-y-6">
       {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container flex items-center justify-between h-16 px-4">
-          <div className="flex items-center gap-3">
-            <Link href="/">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-4 w-4 mr-1" />
-                Voltar
-              </Button>
-            </Link>
-            <h1 className="text-lg font-bold text-foreground">Meu Time</h1>
-          </div>
-          <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-blue-600 hover:bg-blue-700">
-            <UserPlus className="h-4 w-4 mr-1" />
-            Adicionar Membro
-          </Button>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-xl lg:text-3xl font-bold text-foreground">Meu Time</h1>
+          <p className="text-sm text-muted-foreground hidden sm:block">Gerencie os membros da cl\u00ednica</p>
         </div>
-      </header>
-
-      <main className="container px-4 py-6 max-w-3xl mx-auto">
+        <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-blue-600 hover:bg-blue-700">
+          <UserPlus className="h-4 w-4 mr-1" />
+          Adicionar
+        </Button>
+      </div>
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-card border border-border rounded-xl p-4 text-center">
@@ -193,8 +184,6 @@ export default function TeamManagement() {
         <p className="text-xs text-muted-foreground text-center mt-4">
           O membro precisa ter uma conta no ZEAL. Adicione pelo e-mail de cadastro.
         </p>
-      </main>
-
       {/* Add Member Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent className="bg-card border-border max-w-md">

@@ -695,3 +695,27 @@
 - [x] CallDetail.tsx reescrito com gauge visual, cards de insights, objeções detalhadas
 - [x] Informações de neurovendas disponíveis no PatientDetailSheet para dentista
 - [x] 0 erros TS, 328 testes passando
+
+## Auditoria Geral - Bugs, Visual e Fluxo (v74)
+- [x] Verificar compilação TypeScript e corrigir erros (0 erros)
+- [x] Verificar testes e corrigir falhas (328 testes passando)
+- [x] Verificar logs do servidor para erros runtime
+- [x] Auditar páginas novas do GitHub (Calls, CRCProfile, DashboardCRC, NewCall, CallDetail, LeadDetail)
+- [x] Corrigir layout duplicado em DashboardCRC (remover header/min-h-screen/container)
+- [x] Corrigir layout duplicado em NewCall (remover header/min-h-screen)
+- [x] Corrigir layout duplicado em CallDetail (remover min-h-[calc])
+- [x] Corrigir layout duplicado em LeadDetail (remover header/min-h-screen/container)
+- [x] Corrigir layout duplicado em Leads (remover header/min-h-screen/container)
+- [x] Corrigir layout duplicado em DashboardGestor (remover header/min-h-screen/container)
+- [x] Corrigir layout duplicado em TeamManagement (remover header/min-h-screen/container)
+- [x] Corrigir ClinicSetup para funcionar dentro do DashboardLayout
+- [x] Corrigir ComponentShowcase para funcionar dentro do DashboardLayout
+- [x] Corrigir NotFound para tema dark e português
+- [x] Corrigir LazyFallback para não usar min-h-screen
+- [x] Traduzir DashboardLayout sign-in page para português
+- [x] Redirecionar DashboardLayout sign-in para /login ao invés de OAuth
+- [x] Corrigir botão Novo Lead no DashboardCRC (/leads/new não existe -> /leads)
+- [x] Melhorar padding do main content no DashboardLayout (p-4 lg:p-6)
+- [x] Verificar rotas, navegação e permissões
+- [x] Garantir fluxo organizado entre CRC, Dentista e Gestor
+- [x] 0 erros TypeScript, 328 testes passando
