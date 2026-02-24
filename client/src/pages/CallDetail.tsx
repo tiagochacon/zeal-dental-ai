@@ -86,9 +86,9 @@ export default function CallDetail() {
 
   const rapportBarClass =
     rapportNivel !== undefined
-      ? rapportNivel >= 7
+      ? rapportNivel >= 70
         ? "[&>div]:bg-green-500"
-        : rapportNivel >= 4
+        : rapportNivel >= 40
         ? "[&>div]:bg-amber-500"
         : "[&>div]:bg-red-500"
       : "";
@@ -371,14 +371,14 @@ export default function CallDetail() {
                 <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-foreground">Rapport</span>
                   <span className={`text-sm font-bold ${
-                    rapportNivel >= 7 ? "text-green-400" :
-                    rapportNivel >= 4 ? "text-amber-400" : "text-red-400"
+                    rapportNivel >= 70 ? "text-green-400" :
+                    rapportNivel >= 40 ? "text-amber-400" : "text-red-400"
                   }`}>
-                    {rapportNivel}/10
+                    {rapportNivel}/100
                   </span>
                 </div>
                 <Progress
-                  value={rapportNivel * 10}
+                  value={rapportNivel}
                   className={`h-2 ${rapportBarClass}`}
                 />
                 {rapportJustificativa && (

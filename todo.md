@@ -776,3 +776,15 @@
 - [x] Assinatura: título "Assinatura da Clínica", "Consultas do time", contagem restante
 - [x] Remover item Dashboard duplicado da sidebar do gestor
 - [x] 0 erros TypeScript
+
+## Ajustes UX/UI v83
+- [x] Ajustar cor do botão "Nova Ligação" no DashboardCRC (bg-emerald-600 harmônico)
+- [x] Corrigir nota de rapport de /10 para /100 em LeadDetail, CallDetail e Patients
+- [x] Redesenhar card "Perfil de Neurovendas" no LeadDetail:
+  - Header com gradiente e badge do perfil cerebral
+  - Barra de progresso visual para probabilidade de agendamento
+  - Cards numerados para dicas de abordagem
+  - Resumo com destaque visual
+  - Leitura correta de nivelCerebralDominante (campo real do schema)
+  - Fallback estruturado quando perfil não é reconhecido
+- [x] 0 erros TypeScript, 328 testes passando

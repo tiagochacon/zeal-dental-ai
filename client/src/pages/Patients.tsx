@@ -321,11 +321,11 @@ function PatientDetailSheet({
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-muted-foreground">Rapport na ligação:</span>
                     <span className={`text-xs font-bold ${
-                      crcNeurovendas.rapport.nivel >= 7 ? "text-green-400" :
-                      crcNeurovendas.rapport.nivel >= 4 ? "text-amber-400" :
+                      crcNeurovendas.rapport.nivel >= 70 ? "text-green-400" :
+                      crcNeurovendas.rapport.nivel >= 40 ? "text-amber-400" :
                       "text-red-400"
                     }`}>
-                      {crcNeurovendas.rapport.nivel}/10
+                      {crcNeurovendas.rapport.nivel}/100
                     </span>
                   </div>
                 )}
@@ -432,11 +432,11 @@ function PatientDetailSheet({
                     <div className="flex items-center gap-2">
                       <span>Rapport</span>
                       <Badge variant="outline" className={`text-xs ${
-                        neurovendas.rapport.nivel >= 7 ? "text-green-400 border-green-500/30" :
-                        neurovendas.rapport.nivel >= 4 ? "text-yellow-400 border-yellow-500/30" :
+                        neurovendas.rapport.nivel >= 70 ? "text-green-400 border-green-500/30" :
+                        neurovendas.rapport.nivel >= 40 ? "text-yellow-400 border-yellow-500/30" :
                         "text-red-400 border-red-500/30"
                       }`}>
-                        {neurovendas.rapport.nivel}/10
+                        {neurovendas.rapport.nivel}/100
                       </Badge>
                     </div>
                   </AccordionTrigger>

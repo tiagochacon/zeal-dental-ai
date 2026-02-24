@@ -3,7 +3,8 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck, Brain, Shield, Heart } from "lucide-react";
+import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck, Brain, Shield, Heart, TrendingUp, Target } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 import { useLocation, Link, useParams } from "wouter";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -13,27 +14,35 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 const profileDisplayConfig: Record<string, {
   label: string;
   badgeClass: string;
+  bgGradient: string;
+  iconBg: string;
   description: string;
   keyApproach: string[];
   Icon: React.ComponentType<{ className?: string }>;
 }> = {
-  reptilian: {
+  reptiliano: {
     label: "Reptiliano",
     badgeClass: "bg-green-600/20 text-green-400 border-green-500/30",
-    description: "Opera principalmente pelo instinto de sobrevivência. Priorize segurança, controle e eliminação de medos.",
+    bgGradient: "from-green-600/10 to-green-600/5",
+    iconBg: "bg-green-500/20 text-green-400",
+    description: "Opera pelo instinto de sobrevivência. Priorize segurança, controle e eliminação de medos.",
     keyApproach: ["Ambiente calmo e controlado", "Explicações simples e diretas", "Garantias de segurança"],
     Icon: Shield,
   },
   neocortex: {
     label: "Neocórtex",
     badgeClass: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+    bgGradient: "from-blue-600/10 to-blue-600/5",
+    iconBg: "bg-blue-500/20 text-blue-400",
     description: "Analítico, busca dados concretos. Apresente estatísticas, comparações e evidências científicas.",
     keyApproach: ["Dados e estatísticas de sucesso", "Comparação de opções", "Análise custo-benefício"],
     Icon: Brain,
   },
-  limbic: {
+  limbico: {
     label: "Límbico",
     badgeClass: "bg-amber-600/20 text-amber-400 border-amber-500/30",
+    bgGradient: "from-amber-600/10 to-amber-600/5",
+    iconBg: "bg-amber-500/20 text-amber-400",
     description: "Movido por emoções e aspirações. Foque na transformação, autoestima e impacto social.",
     keyApproach: ["Histórias de transformação", "Visualização do resultado", "Conexão emocional"],
     Icon: Heart,
@@ -58,73 +67,133 @@ function NeurovendasProfileCard({ callProfile }: { callProfile: unknown }) {
     plainText = typeof callProfile === "string" ? callProfile : String(callProfile);
   }
 
-  const profileType = parsed
-    ? ((parsed.profileType || parsed.perfilPrincipal) as string | undefined)
+  // Extract fields from the callProfile JSON
+  const nivelCerebral = parsed
+    ? ((parsed.nivelCerebralDominante || parsed.profileType || parsed.perfilPrincipal) as string | undefined)
     : undefined;
-  const profileKey = profileType?.toLowerCase();
+  const profileKey = nivelCerebral?.toLowerCase();
   const config = profileKey ? profileDisplayConfig[profileKey] : undefined;
-  const rapport = parsed?.rapport as { nivel?: number; justificativa?: string } | undefined;
+  const probabilidade = parsed?.probabilidadeAgendamento as number | undefined;
   const resumo = (parsed?.resumo || parsed?.resumoGeral) as string | undefined;
 
-  return (
-    <div className="bg-card border border-border rounded-xl p-6 mt-6">
-      <h2 className="text-lg font-semibold text-foreground mb-4">Perfil de Neurovendas</h2>
+  // Fallback: if no config matched but we have parsed data, show structured view
+  if (!config && parsed && !plainText) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="h-5 w-5 text-purple-400" />
+          <h2 className="text-lg font-semibold text-foreground">Perfil de Neurovendas</h2>
+        </div>
 
-      {config ? (
-        <div className="space-y-4">
-          {/* Profile Badge + Icon */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-              <config.Icon className="w-5 h-5 text-muted-foreground" />
-            </div>
-            <div>
-              <Badge className={`${config.badgeClass} border text-sm font-semibold`}>
-                {config.label}
-              </Badge>
-              <p className="text-xs text-muted-foreground mt-1">{config.description}</p>
-            </div>
-          </div>
-
-          {/* Rapport */}
-          {rapport?.nivel !== undefined && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Rapport:</span>
-              <span className={`text-sm font-semibold ${
-                rapport.nivel >= 7 ? "text-green-400" :
-                rapport.nivel >= 4 ? "text-amber-400" : "text-red-400"
-              }`}>
-                {rapport.nivel}/10
-              </span>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+          {nivelCerebral && (
+            <div className="bg-secondary/50 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Nível Cerebral</p>
+              <p className="text-sm font-semibold text-foreground capitalize">{nivelCerebral}</p>
             </div>
           )}
-
-          {/* How to approach */}
-          <div className="bg-secondary/50 rounded-lg p-4">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
-              Como abordar
-            </p>
-            <ul className="space-y-1.5">
-              {config.keyApproach.map((tip, i) => (
-                <li key={i} className="flex items-start gap-2 text-sm text-foreground">
-                  <span className="text-primary mt-0.5">•</span>
-                  {tip}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* Resumo */}
-          {resumo && (
-            <div className="border-l-4 border-primary pl-4 bg-primary/5 rounded-r-lg p-3">
-              <p className="text-sm text-foreground">{resumo}</p>
+          {probabilidade !== undefined && (
+            <div className="bg-secondary/50 rounded-lg p-4">
+              <p className="text-xs text-muted-foreground uppercase tracking-wide mb-1">Prob. Agendamento</p>
+              <p className={`text-sm font-bold ${
+                probabilidade >= 70 ? "text-green-400" :
+                probabilidade >= 40 ? "text-amber-400" : "text-red-400"
+              }`}>{probabilidade}%</p>
             </div>
           )}
         </div>
-      ) : (
-        <p className="text-sm text-foreground bg-secondary/50 rounded-lg p-4">
-          {plainText ?? (parsed ? JSON.stringify(parsed, null, 2) : "")}
+
+        {resumo && (
+          <div className="border-l-4 border-purple-500 pl-4 bg-purple-500/5 rounded-r-lg p-3">
+            <p className="text-sm text-foreground leading-relaxed">{resumo}</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!config) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 mt-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Brain className="h-5 w-5 text-purple-400" />
+          <h2 className="text-lg font-semibold text-foreground">Perfil de Neurovendas</h2>
+        </div>
+        <p className="text-sm text-foreground bg-secondary/50 rounded-lg p-4 leading-relaxed">
+          {plainText ?? ""}
         </p>
-      )}
+      </div>
+    );
+  }
+
+  const probColor = probabilidade !== undefined
+    ? probabilidade >= 70 ? "text-green-400" : probabilidade >= 40 ? "text-amber-400" : "text-red-400"
+    : "";
+  const probBarClass = probabilidade !== undefined
+    ? probabilidade >= 70 ? "[&>div]:bg-green-500" : probabilidade >= 40 ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500"
+    : "";
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden mt-6">
+      {/* Header with gradient */}
+      <div className={`bg-gradient-to-r ${config.bgGradient} border-b border-border px-6 py-4`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-lg ${config.iconBg} flex items-center justify-center`}>
+            <config.Icon className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-lg font-semibold text-foreground">Perfil de Neurovendas</h2>
+              <Badge className={`${config.badgeClass} border text-xs font-semibold`}>
+                {config.label}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">{config.description}</p>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-5">
+        {/* Metrics Row */}
+        {probabilidade !== undefined && (
+          <div className="bg-secondary/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Target className="h-4 w-4 text-muted-foreground" />
+              <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Probabilidade de Agendamento</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <Progress value={probabilidade} className={`h-2.5 flex-1 ${probBarClass}`} />
+              <span className={`text-lg font-bold ${probColor} min-w-[3rem] text-right`}>{probabilidade}%</span>
+            </div>
+          </div>
+        )}
+
+        {/* How to approach */}
+        <div className="bg-secondary/30 rounded-xl p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+              Como abordar este perfil
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            {config.keyApproach.map((tip, i) => (
+              <div key={i} className="flex items-start gap-2 bg-card border border-border rounded-lg p-3">
+                <span className="text-primary font-bold text-sm mt-0.5">{i + 1}</span>
+                <span className="text-sm text-foreground">{tip}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Resumo */}
+        {resumo && (
+          <div className="border-l-4 border-primary pl-4 bg-primary/5 rounded-r-lg p-4">
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Resumo da Análise</p>
+            <p className="text-sm text-foreground leading-relaxed">{resumo}</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

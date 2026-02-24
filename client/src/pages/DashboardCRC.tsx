@@ -113,7 +113,7 @@ export default function DashboardCRC() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Button
-            className="h-auto p-5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl flex items-center justify-start gap-3"
+            className="h-auto p-5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl flex items-center justify-start gap-3"
             onClick={() => setLocation("/calls/new")}
           >
             <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
