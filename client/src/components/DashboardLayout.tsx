@@ -31,7 +31,9 @@ import {
   LogOut,
   PanelLeft,
   Phone,
+  PhoneCall,
   Sparkles,
+  Target,
   UserCircle,
   Users,
   UsersRound,
@@ -78,10 +80,10 @@ const crcMenuItems: MenuItem[] = [
 const gestorMenuItems: MenuItem[] = [
   { icon: BarChart3, label: "Painel Gestor", path: "/gestor" },
   { icon: UsersRound, label: "Meu Time", path: "/team" },
-  { icon: LayoutDashboard, label: "Dashboard", path: "/" },
   { icon: FileText, label: "Consultas", path: "/consultations" },
   { icon: Users, label: "Pacientes", path: "/patients" },
-  { icon: Phone, label: "Leads", path: "/leads" },
+  { icon: PhoneCall, label: "Ligações", path: "/calls" },
+  { icon: Target, label: "Leads", path: "/leads" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
   { icon: CreditCard, label: "Assinatura", path: "/subscription" },
 ];

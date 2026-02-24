@@ -767,3 +767,12 @@
 - [x] Verificar consistência visual entre todas as páginas
 - [x] Verificar fluxos de cada papel (Gestor, Dentista standalone, Dentista clínica, CRC)
 - [x] 0 erros TypeScript, 328 testes passando
+
+## Sidebar do Gestor - Ajuste Completo (v82)
+- [x] Sidebar gestor: Painel Gestor, Meu Time, Consultas, Pacientes, Ligações, Leads, Meu Perfil, Assinatura
+- [x] Adicionar Ligações e Leads na sidebar do gestor (com ícones PhoneCall e Target)
+- [x] Garantir que Ligações mostre todas as ligações do time (já implementado via getCallsByClinic)
+- [x] Garantir que Leads mostre todos os leads do time (já implementado via getLeadsByClinic)
+- [x] Assinatura: título "Assinatura da Clínica", "Consultas do time", contagem restante
+- [x] Remover item Dashboard duplicado da sidebar do gestor
+- [x] 0 erros TypeScript

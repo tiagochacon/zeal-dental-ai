@@ -111,6 +111,8 @@ export default function Subscription() {
   const { data: subscriptionInfo, isLoading, refetch } = trpc.stripe.getSubscriptionInfo.useQuery();
   const { data: planInfo } = trpc.billing.getPlanInfo.useQuery();
   
+  const isGestor = user?.clinicRole === 'gestor';
+  
   const createPortal = trpc.stripe.createPortalSession.useMutation({
     onSuccess: (data) => {
       if (data.portalUrl) {
@@ -139,6 +141,7 @@ export default function Subscription() {
   const planDetails = PLAN_DETAILS[currentTier as keyof typeof PLAN_DETAILS] || PLAN_DETAILS.trial;
   const usedConsultations = planInfo?.used || 0;
   const maxConsultations = planInfo?.limit || 7;
+  const remainingConsultations = maxConsultations === Infinity ? Infinity : Math.max(0, maxConsultations - usedConsultations);
   const usagePercent = maxConsultations === Infinity ? 0 : Math.min((usedConsultations / maxConsultations) * 100, 100);
 
   const handleManageSubscription = () => {
@@ -167,10 +170,13 @@ export default function Subscription() {
         <div className="space-y-2">
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <CreditCard className="h-8 w-8 text-primary" />
-            Minha Assinatura
+            {isGestor ? "Assinatura da Clínica" : "Minha Assinatura"}
           </h1>
           <p className="text-muted-foreground">
-            Gerencie seu plano e acompanhe seu uso do ZEAL
+            {isGestor 
+              ? "Gerencie o plano da clínica e acompanhe o uso do time"
+              : "Gerencie seu plano e acompanhe seu uso do ZEAL"
+            }
           </p>
         </div>
 
@@ -206,9 +212,11 @@ export default function Subscription() {
           <CardContent className="space-y-6">
             {/* Usage Progress */}
             {!isAdmin && currentTier !== "unlimited" && (
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Consultas utilizadas</span>
+                  <span className="text-muted-foreground">
+                    {isGestor ? "Consultas do time" : "Consultas utilizadas"}
+                  </span>
                   <span className={planDetails.color}>
                     {usedConsultations} / {maxConsultations}
                   </span>
@@ -217,12 +225,20 @@ export default function Subscription() {
                   value={usagePercent} 
                   className="h-2"
                 />
-                {usagePercent >= 80 && (
-                  <p className="text-xs text-amber-400 flex items-center gap-1">
-                    <AlertTriangle className="h-3 w-3" />
-                    Você está próximo do limite do seu plano
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    {remainingConsultations === Infinity 
+                      ? "Consultas ilimitadas"
+                      : `${remainingConsultations} consulta${remainingConsultations !== 1 ? 's' : ''} restante${remainingConsultations !== 1 ? 's' : ''}`
+                    }
                   </p>
-                )}
+                  {usagePercent >= 80 && (
+                    <p className="text-xs text-amber-400 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Próximo do limite
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
