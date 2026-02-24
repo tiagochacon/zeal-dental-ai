@@ -279,7 +279,8 @@ function PatientDetailSheet({
 
   return (
     <Sheet open={open} onOpenChange={(o) => !o && onClose()}>
-      <SheetContent className="w-full sm:max-w-2xl overflow-y-auto">
+      <SheetContent className="w-full sm:!max-w-2xl p-0 flex flex-col h-full">
+        <div className="flex-1 overflow-y-auto p-6">
         <SheetHeader className="mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center shrink-0">
@@ -604,6 +605,7 @@ function PatientDetailSheet({
               })}
             </div>
           )}
+        </div>
         </div>
       </SheetContent>
     </Sheet>

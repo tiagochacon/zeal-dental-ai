@@ -102,11 +102,11 @@ export default function DashboardGestor() {
               )}
             </div>
 
-            {/* Consultas */}
+            {/* Comparecimento */}
             <div className="bg-gradient-to-br from-purple-600/10 to-purple-600/5 border border-purple-500/20 rounded-xl p-4 text-center">
               <Users className="h-8 w-8 text-purple-400 mx-auto mb-2" />
               <p className="text-3xl font-bold text-foreground">{stats.totalConsultations}</p>
-              <p className="text-xs text-muted-foreground">Consultas</p>
+              <p className="text-xs text-muted-foreground">Comparecimento</p>
               {stats.scheduledCalls > 0 && (
                 <p className="text-xs text-purple-400 mt-1">{scheduledToConsultation}% dos agendamentos</p>
               )}
@@ -145,7 +145,7 @@ export default function DashboardGestor() {
                   <span className="text-xs font-mono text-foreground w-10 text-right">{stats.scheduledCalls}</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-24">Consultas</span>
+                  <span className="text-xs text-muted-foreground w-24">Comparecim.</span>
                   <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
                     <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: pct(stats.totalConsultations) }} />
                   </div>

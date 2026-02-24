@@ -791,3 +791,7 @@
 
 ## Redesign Botões DashboardCRC (v84)
 - [x] Redesenhar botões "Nova Ligação" e "Meus Leads" - cards com borda sutil, ícones coloridos, hover com glow e ícone de ação reveal
+
+## Ajustes v85
+- [x] Renomear "Consultas" para "Comparecimento" no card e barra do funil do Painel Gestor
+- [x] Corrigir ficha do paciente (Sheet) cortada - adicionado wrapper scrollável com overflow-y-auto e largura !max-w-2xl
