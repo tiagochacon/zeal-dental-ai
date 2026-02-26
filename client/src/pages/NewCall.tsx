@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Mic, Square, Upload, Phone, FileAudio, Clock, AlertTriangle, CheckCircle } from "lucide-react";
+import { Loader2, Mic, Square, Upload, Phone, FileAudio, Clock, AlertTriangle, CheckCircle, Monitor, Headphones } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -35,6 +35,7 @@ export default function NewCall() {
   const [isDragging, setIsDragging] = useState(false);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
   const [recordingMode, setRecordingMode] = useState<'microphone-only' | 'full-call' | null>(null);
+  const [isStartingRecording, setIsStartingRecording] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -70,54 +71,77 @@ export default function NewCall() {
     }
   }, []);
 
+  /**
+   * Inicia a gravação combinando microfone + áudio do sistema.
+   * O fluxo é:
+   * 1. Solicita compartilhamento de tela COM áudio (necessário para capturar áudio do sistema)
+   * 2. Captura o microfone separadamente
+   * 3. Mixa os dois streams usando Web Audio API
+   * 4. Se o usuário cancelar o compartilhamento ou não marcar "áudio do sistema",
+   *    faz fallback para gravação apenas do microfone
+   */
   const startRecording = async () => {
+    setIsStartingRecording(true);
     try {
-      // Step 1: Capturar microfone (requisito mínimo obrigatório)
-      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      micStreamRef.current = micStream;
-
-      let recordStream: MediaStream = micStream;
-      let mode: 'microphone-only' | 'full-call' = 'microphone-only';
+      // Step 1: Tentar capturar áudio do sistema via getDisplayMedia
+      // video: true é necessário para Chrome/Edge exibirem a checkbox "Compartilhar áudio do sistema"
+      let displayStream: MediaStream | null = null;
+      let hasSystemAudio = false;
 
       try {
-        // Step 2: Tentar capturar áudio do sistema via dialog de compartilhamento
-        // video: true é necessário para Chrome/Edge exibirem a checkbox 'Compartilhar áudio do sistema'
-        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        displayStream = await navigator.mediaDevices.getDisplayMedia({
           audio: true,
           video: true,
         });
         displayStreamRef.current = displayStream;
 
-        // Step 3: Parar vídeo imediatamente — só precisamos do canal de áudio
+        // Parar vídeo imediatamente — só precisamos do canal de áudio
         displayStream.getVideoTracks().forEach((t) => t.stop());
 
-        const displayAudioTracks = displayStream.getAudioTracks();
-
-        if (displayAudioTracks.length > 0) {
-          // Step 4: Misturar microfone + áudio do sistema com Web Audio API
-          const audioContext = new AudioContext();
-          audioContextRef.current = audioContext;
-          const destination = audioContext.createMediaStreamDestination();
-
-          const micSource = audioContext.createMediaStreamSource(micStream);
-          micSource.connect(destination);
-
-          const displaySource = audioContext.createMediaStreamSource(displayStream);
-          displaySource.connect(destination);
-
-          recordStream = destination.stream;
-          mode = 'full-call';
-          toast.success('Gravação completa ativada — capturando microfone e áudio do fone.');
-        } else {
-          // Usuário não marcou 'Compartilhar áudio do sistema' no dialog
-          toast.warning('Áudio do sistema não detectado. Gravando apenas o microfone. No dialog do navegador, marque a opção "Compartilhar áudio do sistema".');
-        }
+        hasSystemAudio = displayStream.getAudioTracks().length > 0;
       } catch {
-        // Usuário cancelou o dialog ou navegador não suporta getDisplayMedia com áudio
-        toast.warning('Gravando apenas o microfone. Para capturar o áudio completo da ligação, permita o compartilhamento de tela com áudio quando solicitado.');
+        // Usuário cancelou o dialog ou navegador não suporta
+        // Vamos continuar apenas com microfone
       }
 
-      // Step 5: Detectar mimeType suportado pelo navegador em runtime
+      // Step 2: Capturar microfone
+      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = micStream;
+
+      let recordStream: MediaStream;
+      let mode: 'microphone-only' | 'full-call';
+
+      if (hasSystemAudio && displayStream) {
+        // Step 3: Misturar microfone + áudio do sistema com Web Audio API
+        const audioContext = new AudioContext();
+        audioContextRef.current = audioContext;
+        const destination = audioContext.createMediaStreamDestination();
+
+        const micSource = audioContext.createMediaStreamSource(micStream);
+        micSource.connect(destination);
+
+        const displaySource = audioContext.createMediaStreamSource(displayStream);
+        displaySource.connect(destination);
+
+        recordStream = destination.stream;
+        mode = 'full-call';
+        toast.success("Gravação completa ativada — capturando sua voz e o áudio da ligação.");
+      } else {
+        // Fallback: apenas microfone
+        recordStream = micStream;
+        mode = 'microphone-only';
+
+        if (displayStream) {
+          // Usuário compartilhou tela mas não marcou "áudio do sistema"
+          displayStream.getTracks().forEach((t) => t.stop());
+          displayStreamRef.current = null;
+          toast.warning("Áudio do sistema não foi compartilhado. Gravando apenas o microfone. Na próxima vez, marque \"Compartilhar áudio do sistema\" no dialog.");
+        } else {
+          toast.info("Gravando apenas o microfone. Para capturar a ligação completa, permita o compartilhamento quando solicitado.");
+        }
+      }
+
+      // Step 4: Detectar mimeType suportado pelo navegador
       const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
         ? 'audio/webm;codecs=opus'
         : 'audio/webm';
@@ -136,7 +160,7 @@ export default function NewCall() {
         const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
-        // Liberar todos os recursos de áudio após a gravação finalizar
+        // Liberar todos os recursos de áudio
         micStreamRef.current?.getTracks().forEach((t) => t.stop());
         displayStreamRef.current?.getTracks().forEach((t) => t.stop());
         audioContextRef.current?.close();
@@ -145,14 +169,13 @@ export default function NewCall() {
         audioContextRef.current = null;
       };
 
-      mediaRecorder.start(1000); // Collect data every second for progressive recording
+      mediaRecorder.start(1000);
       setIsRecording(true);
       setRecordingTime(0);
       setAudioDuration(null);
       timerRef.current = setInterval(() => {
         setRecordingTime((t) => {
           const newTime = t + 1;
-          // Auto-stop at 30 minutes
           if (newTime >= MAX_DURATION_SECONDS) {
             stopRecording();
             toast.info("Gravação encerrada automaticamente — limite de 30 minutos atingido.");
@@ -163,8 +186,12 @@ export default function NewCall() {
     } catch {
       // Erro fatal: microfone não disponível ou permissão negada
       micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      displayStreamRef.current?.getTracks().forEach((t) => t.stop());
       micStreamRef.current = null;
-      toast.error('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
+      displayStreamRef.current = null;
+      toast.error("Não foi possível acessar o microfone. Verifique as permissões do navegador.");
+    } finally {
+      setIsStartingRecording(false);
     }
   };
 
@@ -177,7 +204,6 @@ export default function NewCall() {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
-      // Streams e AudioContext são liberados no handler onstop do MediaRecorder
     }
   };
 
@@ -187,7 +213,6 @@ export default function NewCall() {
       return;
     }
     
-    // Validate file size
     if (file.size > MAX_FILE_SIZE_BYTES) {
       toast.error(`Arquivo muito grande (${formatFileSize(file.size)}). Tamanho máximo: ${MAX_FILE_SIZE_MB}MB`);
       return;
@@ -224,7 +249,6 @@ export default function NewCall() {
   const uploadAudioMultipart = async (callId: number, blob: Blob, durationSec: number): Promise<void> => {
     const formData = new FormData();
     
-    // Determine filename
     const ext = blob.type.includes("webm") ? "webm" : 
                 blob.type.includes("mp3") || blob.type.includes("mpeg") ? "mp3" :
                 blob.type.includes("wav") ? "wav" :
@@ -267,7 +291,6 @@ export default function NewCall() {
       });
 
       xhr.open("POST", "/api/calls/upload-audio");
-      // Cookies are sent automatically (same-origin)
       xhr.send(formData);
     });
   };
@@ -278,7 +301,6 @@ export default function NewCall() {
       return;
     }
 
-    // Validate duration for uploaded files
     if (audioDuration && audioDuration > MAX_DURATION_SECONDS) {
       toast.error(`Duração máxima permitida: ${MAX_DURATION_MINUTES} minutos. Este áudio tem ${Math.ceil(audioDuration / 60)} minutos.`);
       return;
@@ -287,13 +309,11 @@ export default function NewCall() {
     setUploading(true);
     setUploadProgress(0);
     try {
-      // Step 1: Create the call record
       const call = await createCall.mutateAsync({
         leadId,
         leadName: leadName.trim(),
       });
 
-      // Step 2: Upload audio using multipart (supports large files)
       if (audioBlob && call.id) {
         const duration = audioDuration || recordingTime || 0;
         await uploadAudioMultipart(call.id, audioBlob, duration);
@@ -315,9 +335,8 @@ export default function NewCall() {
 
   const leads = (leadsQuery.data || []).filter((l: any) => !l.isConverted);
 
-  // Calculate remaining recording time
   const remainingTime = MAX_DURATION_SECONDS - recordingTime;
-  const isNearLimit = remainingTime <= 60; // Last minute warning
+  const isNearLimit = remainingTime <= 60;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
@@ -326,169 +345,182 @@ export default function NewCall() {
         <h1 className="text-xl lg:text-3xl font-bold text-foreground">Nova Ligação</h1>
         <p className="text-sm text-muted-foreground">Registre uma ligação com um lead — suporta áudios de até {MAX_DURATION_MINUTES} minutos</p>
       </div>
-        {/* Select Lead */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Selecionar Lead</h2>
-          
-          {preLeadId ? (
-            <div className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
-              <Phone className="h-5 w-5 text-blue-400" />
-              <span className="font-medium text-foreground">{leadName}</span>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {leads.length === 0 ? (
-                <p className="text-muted-foreground text-sm text-center py-4">
-                  Nenhum lead ativo. <Link href="/leads" className="text-blue-400">Cadastre um lead primeiro</Link>.
-                </p>
-              ) : (
-                leads.map((lead: any) => (
-                  <div
-                    key={lead.id}
-                    onClick={() => { setLeadId(lead.id); setLeadName(lead.name); }}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      leadId === lead.id
-                        ? "border-blue-500 bg-blue-500/10"
-                        : "border-border hover:border-blue-500/30"
-                    }`}
-                  >
-                    <p className="font-medium text-foreground text-sm">{lead.name}</p>
-                    <p className="text-xs text-muted-foreground">{lead.phone || lead.email || "Sem contato"}</p>
+
+      {/* Select Lead */}
+      <div className="bg-card border border-border rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Selecionar Lead</h2>
+        
+        {preLeadId ? (
+          <div className="flex items-center gap-3 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+            <Phone className="h-5 w-5 text-blue-400" />
+            <span className="font-medium text-foreground">{leadName}</span>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {leads.length === 0 ? (
+              <p className="text-muted-foreground text-sm text-center py-4">
+                Nenhum lead ativo. <Link href="/leads" className="text-blue-400">Cadastre um lead primeiro</Link>.
+              </p>
+            ) : (
+              leads.map((lead: any) => (
+                <div
+                  key={lead.id}
+                  onClick={() => { setLeadId(lead.id); setLeadName(lead.name); }}
+                  className={`p-3 rounded-lg border cursor-pointer transition-all ${
+                    leadId === lead.id
+                      ? "border-blue-500 bg-blue-500/10"
+                      : "border-border hover:border-blue-500/30"
+                  }`}
+                >
+                  <p className="font-medium text-foreground text-sm">{lead.name}</p>
+                  <p className="text-xs text-muted-foreground">{lead.phone || lead.email || "Sem contato"}</p>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Audio Recording */}
+      <div className="bg-card border border-border rounded-xl p-6">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Áudio da Ligação</h2>
+
+        <Tabs defaultValue="record">
+          <TabsList className="w-full mb-4">
+            <TabsTrigger value="record" className="flex-1">
+              <Mic className="h-4 w-4 mr-2" />
+              Gravar Agora
+            </TabsTrigger>
+            <TabsTrigger value="upload" className="flex-1">
+              <Upload className="h-4 w-4 mr-2" />
+              Enviar Arquivo
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Tab: Gravar Agora */}
+          <TabsContent value="record">
+            <div className="flex flex-col items-center gap-4">
+              {/* Instruções antes de gravar */}
+              {!isRecording && !audioBlob && !isStartingRecording && (
+                <div className="w-full space-y-3">
+                  <div className="bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Headphones className="h-4 w-4 text-blue-400" />
+                      <p className="text-sm font-medium text-blue-300">Gravação de Ligação Completa</p>
+                    </div>
+                    <p className="text-xs text-blue-200/70 mb-3">
+                      Para capturar tanto a sua voz quanto o áudio da ligação (fone/alto-falante), siga os passos:
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-blue-400 bg-blue-500/20 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">1</span>
+                        <p className="text-xs text-blue-200/80">Clique no botão de gravação abaixo</p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-blue-400 bg-blue-500/20 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">2</span>
+                        <p className="text-xs text-blue-200/80">Na janela que abrir, selecione <strong className="text-blue-300">qualquer aba ou tela</strong></p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-blue-400 bg-blue-500/20 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">3</span>
+                        <p className="text-xs text-blue-200/80">
+                          <strong className="text-amber-300">Importante:</strong> Marque a opção{" "}
+                          <span className="bg-blue-500/30 px-1.5 py-0.5 rounded text-blue-200 font-medium">"Compartilhar áudio do sistema"</span>
+                        </p>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="text-xs font-bold text-blue-400 bg-blue-500/20 rounded-full w-5 h-5 flex items-center justify-center shrink-0 mt-0.5">4</span>
+                        <p className="text-xs text-blue-200/80">Clique em <strong className="text-blue-300">Compartilhar</strong> e inicie sua ligação normalmente</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 pt-2 border-t border-blue-500/20">
+                      <p className="text-[10px] text-blue-200/40">
+                        Compatível com Chrome e Edge no Windows. No macOS, apenas o microfone será capturado.
+                        Se você cancelar o dialog, a gravação continuará apenas com o microfone.
+                      </p>
+                    </div>
                   </div>
-                ))
+                </div>
               )}
-            </div>
-          )}
-        </div>
 
-        {/* Audio Recording */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Áudio da Ligação</h2>
+              {/* Loading state while starting */}
+              {isStartingRecording && (
+                <div className="flex flex-col items-center gap-3 py-6">
+                  <Loader2 className="h-10 w-10 text-blue-400 animate-spin" />
+                  <p className="text-sm text-muted-foreground">Aguardando permissões...</p>
+                </div>
+              )}
 
-          <Tabs defaultValue="record">
-            <TabsList className="w-full mb-4">
-              <TabsTrigger value="record" className="flex-1">
-                <Mic className="h-4 w-4 mr-2" />
-                Gravar Agora
-              </TabsTrigger>
-              <TabsTrigger value="upload" className="flex-1">
-                <Upload className="h-4 w-4 mr-2" />
-                Enviar Arquivo
-              </TabsTrigger>
-            </TabsList>
-
-            {/* Tab: Gravar Agora */}
-            <TabsContent value="record">
-              <div className="flex flex-col items-center gap-4">
-                {!isRecording && !audioBlob && (
-                  <div className="w-full bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
-                    <p className="text-xs text-blue-300 font-medium mb-1">📋 Como gravar a ligação completa:</p>
-                    <ol className="text-xs text-blue-200/80 space-y-1 list-decimal list-inside">
-                      <li>Clique no botão de gravação abaixo</li>
-                      <li>O navegador abrirá um dialog de compartilhamento de tela</li>
-                      <li>Selecione qualquer tela ou janela disponível</li>
-                      <li>Marque obrigatoriamente <strong className="text-blue-300">"Compartilhar áudio do sistema"</strong></li>
-                      <li>Clique em Compartilhar e inicie sua ligação normalmente</li>
-                    </ol>
-                    <p className="text-xs text-blue-200/50 mt-2">Compatível com Chrome e Edge no Windows. No macOS pode gravar apenas o microfone.</p>
-                  </div>
-                )}
-                {!audioBlob || audioFileName ? (
-                  <>
+              {!audioBlob || audioFileName ? (
+                <>
+                  {!isStartingRecording && (
                     <div className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${
                       isRecording
                         ? isNearLimit
                           ? "bg-amber-500/20 border-2 border-amber-500 animate-pulse"
                           : "bg-red-500/20 border-2 border-red-500 animate-pulse"
-                        : "bg-blue-600/20 border-2 border-blue-500"
+                        : "bg-blue-600/20 border-2 border-blue-500 hover:bg-blue-600/30 cursor-pointer"
                     }`}>
                       {isRecording ? (
                         <button onClick={stopRecording} className="w-full h-full flex items-center justify-center">
                           <Square className="h-8 w-8 text-red-400" />
                         </button>
                       ) : (
-                        <button onClick={startRecording} className="w-full h-full flex items-center justify-center">
+                        <button onClick={startRecording} disabled={isStartingRecording} className="w-full h-full flex items-center justify-center">
                           <Mic className="h-8 w-8 text-blue-400" />
                         </button>
                       )}
                     </div>
-                    {isRecording ? (
-                      <div className="text-center space-y-2">
-                        <p className={`text-2xl font-mono ${isNearLimit ? "text-amber-400" : "text-red-400"}`}>
-                          {formatTime(recordingTime)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">Gravando...</p>
-                        
-                        {/* Recording progress bar */}
-                        <div className="w-64">
-                          <Progress 
-                            value={(recordingTime / MAX_DURATION_SECONDS) * 100} 
-                            className={`h-1.5 ${isNearLimit ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500"}`}
-                          />
-                          <div className="flex justify-between mt-1">
-                            <span className="text-[10px] text-muted-foreground">0:00</span>
-                            <span className={`text-[10px] ${isNearLimit ? "text-amber-400 font-semibold" : "text-muted-foreground"}`}>
-                              {isNearLimit && <AlertTriangle className="inline h-3 w-3 mr-0.5" />}
-                              Restam {formatTime(remainingTime)}
-                            </span>
-                            <span className="text-[10px] text-muted-foreground">{MAX_DURATION_MINUTES}:00</span>
-                          </div>
-                        </div>
-                        {recordingMode === 'full-call' && (
-                          <p className="text-xs text-green-400 mt-1">🎧 Ligação completa (mic + fone)</p>
-                        )}
-                        {recordingMode === 'microphone-only' && (
-                          <p className="text-xs text-yellow-400 mt-1">🎤 Somente microfone</p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center">
-                        <p className="text-sm text-muted-foreground">Clique para iniciar a gravação</p>
-                        <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Máximo: {MAX_DURATION_MINUTES} minutos
-                        </p>
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <audio 
-                      ref={audioRef}
-                      controls 
-                      src={audioUrl || undefined} 
-                      className="w-full" 
-                      onLoadedMetadata={handleAudioLoaded}
-                    />
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); setAudioDuration(null); }}
-                      >
-                        Gravar novamente
-                      </Button>
-                    </div>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <span>Duração: {formatTime(recordingTime || audioDuration || 0)}</span>
-                      {audioBlob && <span>Tamanho: {formatFileSize(audioBlob.size)}</span>}
-                    </div>
-                  </>
-                )}
-              </div>
-            </TabsContent>
+                  )}
 
-            {/* Tab: Enviar Arquivo */}
-            <TabsContent value="upload">
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="audio/*"
-                className="hidden"
-                onChange={handleFileChange}
-              />
-              {audioBlob && audioFileName ? (
-                <div className="space-y-3">
+                  {isRecording ? (
+                    <div className="text-center space-y-2">
+                      <p className={`text-2xl font-mono ${isNearLimit ? "text-amber-400" : "text-red-400"}`}>
+                        {formatTime(recordingTime)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">Gravando...</p>
+                      
+                      {/* Recording progress bar */}
+                      <div className="w-64">
+                        <Progress 
+                          value={(recordingTime / MAX_DURATION_SECONDS) * 100} 
+                          className={`h-1.5 ${isNearLimit ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500"}`}
+                        />
+                        <div className="flex justify-between mt-1">
+                          <span className="text-[10px] text-muted-foreground">0:00</span>
+                          <span className={`text-[10px] ${isNearLimit ? "text-amber-400 font-semibold" : "text-muted-foreground"}`}>
+                            {isNearLimit && <AlertTriangle className="inline h-3 w-3 mr-0.5" />}
+                            Restam {formatTime(remainingTime)}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground">{MAX_DURATION_MINUTES}:00</span>
+                        </div>
+                      </div>
+
+                      {/* Recording mode indicator */}
+                      {recordingMode === 'full-call' && (
+                        <div className="flex items-center justify-center gap-1.5 mt-1">
+                          <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                          <p className="text-xs text-green-400 font-medium">Ligação completa (microfone + áudio do sistema)</p>
+                        </div>
+                      )}
+                      {recordingMode === 'microphone-only' && (
+                        <div className="flex items-center justify-center gap-1.5 mt-1">
+                          <div className="w-2 h-2 rounded-full bg-yellow-400 animate-pulse" />
+                          <p className="text-xs text-yellow-400">Somente microfone</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : !isStartingRecording ? (
+                    <div className="text-center">
+                      <p className="text-sm text-muted-foreground">Clique para iniciar a gravação</p>
+                      <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        Máximo: {MAX_DURATION_MINUTES} minutos
+                      </p>
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <>
                   <audio 
                     ref={audioRef}
                     controls 
@@ -496,113 +528,149 @@ export default function NewCall() {
                     className="w-full" 
                     onLoadedMetadata={handleAudioLoaded}
                   />
-                  <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <FileAudio className="h-4 w-4 text-primary" />
-                      <span className="text-sm text-foreground truncate max-w-[200px]">{audioFileName}</span>
-                      <span className="text-xs text-muted-foreground">
-                        — {formatFileSize((audioBlob as File).size ?? 0)}
-                      </span>
-                    </div>
+                  <div className="flex gap-2">
                     <Button
-                      variant="ghost"
+                      variant="outline"
                       size="sm"
-                      onClick={() => { setAudioBlob(null); setAudioUrl(null); setAudioFileName(null); setAudioDuration(null); }}
-                      className="text-muted-foreground hover:text-foreground"
+                      onClick={() => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); setAudioDuration(null); }}
                     >
-                      Remover
+                      Gravar novamente
                     </Button>
                   </div>
-                  
-                  {/* Duration info */}
-                  {audioDuration !== null && (
-                    <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
-                      audioDuration > MAX_DURATION_SECONDS 
-                        ? "bg-red-500/10 text-red-400 border border-red-500/30" 
-                        : "bg-secondary/30 text-muted-foreground"
-                    }`}>
-                      <Clock className="h-3 w-3" />
-                      <span>
-                        Duração: {formatTime(audioDuration)}
-                        {audioDuration > MAX_DURATION_SECONDS && (
-                          <> — <AlertTriangle className="inline h-3 w-3 mx-0.5" /> Excede o limite de {MAX_DURATION_MINUTES} minutos</>
-                        )}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* File size warning for very large files */}
-                  {audioBlob.size > 25 * 1024 * 1024 && (
-                    <div className="flex items-start gap-2 text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30">
-                      <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
-                      <span>
-                        Arquivo grande ({formatFileSize(audioBlob.size)}). Para melhor performance na transcrição, 
-                        considere usar formato MP3 ou WebM com taxa de bits mais baixa.
-                      </span>
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div
-                  className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 transition-colors cursor-pointer ${
-                    isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
-                  }`}
-                  onClick={() => fileInputRef.current?.click()}
-                  onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                  onDragLeave={() => setIsDragging(false)}
-                  onDrop={handleDrop}
-                >
-                  <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
-                    <Upload className="h-6 w-6 text-muted-foreground" />
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>Duração: {formatTime(recordingTime || audioDuration || 0)}</span>
+                    {audioBlob && <span>Tamanho: {formatFileSize(audioBlob.size)}</span>}
                   </div>
-                  <div className="text-center">
-                    <p className="text-sm font-medium text-foreground">Arraste um arquivo de áudio ou clique para selecionar</p>
-                    <p className="text-xs text-muted-foreground mt-1">Formatos: MP3, M4A, WAV, OGG, WebM — até {MAX_FILE_SIZE_MB}MB ({MAX_DURATION_MINUTES} min)</p>
-                  </div>
-                </div>
+                </>
               )}
-            </TabsContent>
-          </Tabs>
-        </div>
-
-        {/* Upload Progress */}
-        {uploading && uploadProgress > 0 && (
-          <div className="bg-card border border-border rounded-xl p-4 mb-6">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
-                Enviando áudio...
-              </span>
-              <span className="text-sm font-mono text-blue-400">{uploadProgress}%</span>
             </div>
-            <Progress value={uploadProgress} className="h-2 [&>div]:bg-blue-500" />
-            {uploadProgress === 100 && (
-              <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                <CheckCircle className="h-3 w-3 text-green-400" />
-                Upload concluído, processando...
-              </p>
-            )}
-          </div>
-        )}
+          </TabsContent>
 
-        {/* Submit */}
-        <Button
-          onClick={handleSubmit}
-          disabled={!leadId || uploading || createCall.isPending || (audioDuration !== null && audioDuration > MAX_DURATION_SECONDS)}
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl"
-        >
-          {uploading || createCall.isPending ? (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin mr-2" />
-              {uploading ? "Enviando áudio..." : "Registrando..."}
-            </>
-          ) : (
-            <>
-              <Upload className="h-5 w-5 mr-2" />
-              Registrar Ligação
-            </>
+          {/* Tab: Enviar Arquivo */}
+          <TabsContent value="upload">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="audio/*"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            {audioBlob && audioFileName ? (
+              <div className="space-y-3">
+                <audio 
+                  ref={audioRef}
+                  controls 
+                  src={audioUrl || undefined} 
+                  className="w-full" 
+                  onLoadedMetadata={handleAudioLoaded}
+                />
+                <div className="flex items-center justify-between bg-secondary/50 rounded-lg px-4 py-3">
+                  <div className="flex items-center gap-2">
+                    <FileAudio className="h-4 w-4 text-primary" />
+                    <span className="text-sm text-foreground truncate max-w-[200px]">{audioFileName}</span>
+                    <span className="text-xs text-muted-foreground">
+                      — {formatFileSize((audioBlob as File).size ?? 0)}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => { setAudioBlob(null); setAudioUrl(null); setAudioFileName(null); setAudioDuration(null); }}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    Remover
+                  </Button>
+                </div>
+                
+                {/* Duration info */}
+                {audioDuration !== null && (
+                  <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${
+                    audioDuration > MAX_DURATION_SECONDS 
+                      ? "bg-red-500/10 text-red-400 border border-red-500/30" 
+                      : "bg-secondary/30 text-muted-foreground"
+                  }`}>
+                    <Clock className="h-3 w-3" />
+                    <span>
+                      Duração: {formatTime(audioDuration)}
+                      {audioDuration > MAX_DURATION_SECONDS && (
+                        <> — <AlertTriangle className="inline h-3 w-3 mx-0.5" /> Excede o limite de {MAX_DURATION_MINUTES} minutos</>
+                      )}
+                    </span>
+                  </div>
+                )}
+
+                {/* File size warning for very large files */}
+                {audioBlob.size > 25 * 1024 * 1024 && (
+                  <div className="flex items-start gap-2 text-xs px-3 py-2 rounded-lg bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                    <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+                    <span>
+                      Arquivo grande ({formatFileSize(audioBlob.size)}). Para melhor performance na transcrição, 
+                      considere usar formato MP3 ou WebM com taxa de bits mais baixa.
+                    </span>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div
+                className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center gap-3 transition-colors cursor-pointer ${
+                  isDragging ? "border-primary bg-primary/5" : "border-border hover:border-primary/50"
+                }`}
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+              >
+                <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center">
+                  <Upload className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-foreground">Arraste um arquivo de áudio ou clique para selecionar</p>
+                  <p className="text-xs text-muted-foreground mt-1">Formatos: MP3, M4A, WAV, OGG, WebM — até {MAX_FILE_SIZE_MB}MB ({MAX_DURATION_MINUTES} min)</p>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
+
+      {/* Upload Progress */}
+      {uploading && uploadProgress > 0 && (
+        <div className="bg-card border border-border rounded-xl p-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-foreground flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+              Enviando áudio...
+            </span>
+            <span className="text-sm font-mono text-blue-400">{uploadProgress}%</span>
+          </div>
+          <Progress value={uploadProgress} className="h-2 [&>div]:bg-blue-500" />
+          {uploadProgress === 100 && (
+            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+              <CheckCircle className="h-3 w-3 text-green-400" />
+              Upload concluído, processando...
+            </p>
           )}
-        </Button>
+        </div>
+      )}
+
+      {/* Submit */}
+      <Button
+        onClick={handleSubmit}
+        disabled={!leadId || uploading || createCall.isPending || isStartingRecording || (audioDuration !== null && audioDuration > MAX_DURATION_SECONDS)}
+        className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl"
+      >
+        {uploading || createCall.isPending ? (
+          <>
+            <Loader2 className="h-5 w-5 animate-spin mr-2" />
+            {uploading ? "Enviando áudio..." : "Registrando..."}
+          </>
+        ) : (
+          <>
+            <Upload className="h-5 w-5 mr-2" />
+            Registrar Ligação
+          </>
+        )}
+      </Button>
 
       <p className="text-xs text-muted-foreground text-center mt-3">
         A gravação será transcrita e analisada automaticamente pela IA

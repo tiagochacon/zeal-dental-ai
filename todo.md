@@ -896,3 +896,14 @@
 - [x] showUpgradeCTA não mostrava para gestores com plano básico/trial → corrigido
 - [x] Register.tsx redirecionava para / em vez de /gestor → corrigido
 - [x] Encoding Unicode errado em 3 arquivos → corrigido
+
+## Captura de Áudio Completo - Ligações CRC (v93)
+- [x] Analisar código atual de gravação no NewCall.tsx
+- [x] Implementar captura automática mic + sistema via getDisplayMedia + Web Audio API mixing
+- [x] Manter gravação do dentista (NewConsultation) apenas com microfone — não alterado
+- [x] Fallback automático para microfone quando usuário cancela ou não marca "áudio do sistema"
+- [x] UX: instruções visuais com passos numerados e destaque no checkbox
+- [x] Indicador de modo (verde = completa, amarelo = só mic)
+- [x] Loading state enquanto aguarda permissões
+- [x] Toast feedback por modo (sucesso/warning/info)
+- [x] 374 testes passando, zero erros TypeScript
