@@ -948,3 +948,9 @@
 - [x] Criar 28 testes vitest para validateNeurovendasAnalysis
 - [x] 402 testes passando (20 arquivos), zero erros TypeScript
 - [x] Checklist de verificação final concluído
+
+## Sincronização GitHub + Fix callInsights (v96)
+- [x] Sincronizar alterações remotas do GitHub (extractAndSaveCallInsights no calls.ts)
+- [x] Corrigir erro TS2353: adicionar callInsights ao tipo Partial do updateCall no db.ts
+- [x] Schema do banco já continha a coluna callInsights — sem migração necessária
+- [x] 402 testes passando, zero erros TypeScript, servidor respondendo HTTP 200

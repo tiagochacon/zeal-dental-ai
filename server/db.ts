@@ -954,6 +954,7 @@ export async function updateCall(id: number, data: Partial<{
   transcript: string | null;
   transcriptSegments: CallTranscriptSegment[] | null;
   neurovendasAnalysis: NeurovendasAnalysis | null;
+  callInsights: { dor: string; busca: string; trabalha: string; geradoEm: string } | null;
   schedulingResult: "scheduled" | "not_scheduled" | "callback" | "no_answer";
   schedulingNotes: string | null;
   status: "draft" | "transcribed" | "analyzed" | "finalized";
