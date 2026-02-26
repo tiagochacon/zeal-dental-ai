@@ -61,16 +61,31 @@ export default function NewCall() {
     }
   }, []);
 
+  const isMac = typeof navigator !== 'undefined' && (
+    navigator.platform?.toUpperCase().includes('MAC') ||
+    (navigator.userAgent?.includes('Mac') && !navigator.userAgent?.includes('Windows'))
+  );
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
 
-      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
-        ? 'audio/webm;codecs=opus'
-        : 'audio/webm';
+      const MIME_TYPES = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/ogg;codecs=opus',
+        'audio/ogg',
+        'audio/mp4;codecs=mp4a.40.2',
+        'audio/mp4',
+        'audio/aac',
+        '',
+      ];
+      const mimeType = MIME_TYPES.find(type => type === '' || MediaRecorder.isTypeSupported(type)) ?? '';
+      console.log('[Recording] mimeType selecionado:', mimeType || 'browser default');
 
-      const mediaRecorder = new MediaRecorder(stream, { mimeType });
+      const recorderOptions = mimeType ? { mimeType } : {};
+      const mediaRecorder = new MediaRecorder(stream, recorderOptions);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -79,7 +94,8 @@ export default function NewCall() {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: mimeType });
+        const actualMimeType = mediaRecorder.mimeType || mimeType || 'audio/webm';
+        const blob = new Blob(chunksRef.current, { type: actualMimeType });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
         streamRef.current?.getTracks().forEach((t) => t.stop());
@@ -156,9 +172,9 @@ export default function NewCall() {
     const formData = new FormData();
     const ext = blob.type.includes("webm") ? "webm" :
                 blob.type.includes("mp3") || blob.type.includes("mpeg") ? "mp3" :
-                blob.type.includes("wav") ? "wav" :
-                blob.type.includes("m4a") || blob.type.includes("mp4") ? "m4a" :
-                blob.type.includes("ogg") ? "ogg" : "audio";
+                blob.type.includes("mp4") || blob.type.includes("m4a") || blob.type.includes("aac") ? "m4a" :
+                blob.type.includes("ogg") ? "ogg" :
+                blob.type.includes("wav") ? "wav" : "webm";
 
     formData.append("file", blob, `recording.${ext}`);
     formData.append("callId", String(callId));
@@ -298,17 +314,23 @@ export default function NewCall() {
             <div className="flex flex-col items-center gap-4">
               {/* Dica de viva-voz antes de gravar */}
               {!isRecording && !audioBlob && (
-                <div className="w-full bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20 rounded-lg p-4">
+                <div className={`w-full rounded-lg p-4 ${isMac ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20'}`}>
                   <div className="flex items-center gap-2 mb-2">
-                    <Volume2 className="h-4 w-4 text-blue-400" />
-                    <p className="text-sm font-medium text-blue-300">Dica para capturar a ligação completa</p>
+                    <Volume2 className={`h-4 w-4 ${isMac ? 'text-amber-400' : 'text-blue-400'}`} />
+                    <p className={`text-sm font-medium ${isMac ? 'text-amber-300' : 'text-blue-300'}`}>{isMac ? 'Gravação no Mac — apenas microfone' : 'Dica para capturar a ligação completa'}</p>
                   </div>
-                  <p className="text-xs text-blue-200/70">
-                    Para que a IA consiga analisar tanto a sua fala quanto a do paciente, 
-                    coloque a ligação no <strong className="text-blue-300">viva-voz</strong> ou 
-                    use <strong className="text-blue-300">alto-falante</strong> do computador/celular 
-                    durante a chamada. Assim o microfone captura os dois lados da conversa.
-                  </p>
+                  {isMac ? (
+                    <p className="text-xs text-amber-200/70">
+                      No Mac, somente o microfone é gravado pelo navegador. Para capturar a ligação completa (sua voz + voz do cliente), use a aba <strong className="text-amber-300">Enviar Arquivo</strong> após gravar com outro aplicativo (ex: Zoom, QuickTime). Em Windows com Chrome ou Edge a gravação completa está disponível.
+                    </p>
+                  ) : (
+                    <p className="text-xs text-blue-200/70">
+                      Para que a IA consiga analisar tanto a sua fala quanto a do paciente, 
+                      coloque a ligação no <strong className="text-blue-300">viva-voz</strong> ou 
+                      use <strong className="text-blue-300">alto-falante</strong> do computador/celular 
+                      durante a chamada. Assim o microfone captura os dois lados da conversa.
+                    </p>
+                  )}
                 </div>
               )}
 

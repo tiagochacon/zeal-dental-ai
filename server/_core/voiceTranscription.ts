@@ -202,13 +202,19 @@ export async function transcribeAudio(
 function getFileExtension(mimeType: string): string {
   const mimeToExt: Record<string, string> = {
     'audio/webm': 'webm',
+    'audio/webm;codecs=opus': 'webm',
     'audio/mp3': 'mp3',
     'audio/mpeg': 'mp3',
     'audio/wav': 'wav',
     'audio/wave': 'wav',
     'audio/ogg': 'ogg',
+    'audio/ogg;codecs=opus': 'ogg',
     'audio/m4a': 'm4a',
     'audio/mp4': 'm4a',
+    'audio/mp4;codecs=mp4a.40.2': 'm4a',
+    'audio/aac': 'm4a',
+    'audio/x-m4a': 'm4a',
+    'audio/mp4a-latm': 'm4a',
   };
   
   return mimeToExt[mimeType] || 'audio';

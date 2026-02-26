@@ -127,6 +127,8 @@ export const calls = mysqlTable("calls", {
   transcriptSegments: json("transcriptSegments").$type<CallTranscriptSegment[]>(),
   // Neurovendas analysis
   neurovendasAnalysis: json("neurovendasAnalysis").$type<NeurovendasAnalysis>(),
+  // Call insights (automatic observations extracted per call)
+  callInsights: json("callInsights").$type<{ dor: string; busca: string; trabalha: string; geradoEm: string; }>(),
   // Scheduling result
   schedulingResult: mysqlEnum("schedulingResult", ["scheduled", "not_scheduled", "callback", "no_answer"]),
   schedulingNotes: text("schedulingNotes"),

@@ -18,6 +18,64 @@ import { invokeLLM } from "../_core/llm";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { nanoid } from "nanoid";
 
+async function extractAndSaveCallInsights(callId: number, transcript: string): Promise<void> {
+  const response = await invokeLLM({
+    messages: [
+      {
+        role: "system",
+        content:
+          "Você é um assistente especializado em extrair informações objetivas de transcrições de ligações de clínicas odontológicas. " +
+          "REGRAS: 1. Extraia APENAS o que foi dito explicitamente pelo lead na transcrição. " +
+          "2. Se uma informação não foi mencionada, retorne string vazia ''. " +
+          "3. Não infira, não suponha, não complete com informações típicas do setor.",
+      },
+      {
+        role: "user",
+        content:
+          `Analise a transcrição de ligação abaixo e extraia as 3 informações solicitadas sobre o lead/prospect.\n\n` +
+          `TRANSCRIÇÃO:\n${transcript}\n\n` +
+          `EXTRAIA:\n` +
+          `1. DOR: Qual é a queixa, dor ou problema de saúde bucal que o lead mencionou? ` +
+          `Ex: 'dor de dente', 'quero fazer implante', 'estou com gengivite'. Se não mencionou, retorne string vazia.\n` +
+          `2. BUSCA: Por que o lead está procurando a clínica? Qual foi a motivação? ` +
+          `Ex: 'quer fazer clareamento para o casamento', 'foi indicado por amigo', 'viu anúncio sobre implantes'. Se não mencionou, retorne string vazia.\n` +
+          `3. TRABALHA: O lead mencionou se trabalha? Em qual horário? ` +
+          `Ex: 'Trabalha de segunda a sexta das 8h às 18h', 'Não trabalha', 'Prefere consultas aos sábados'. Se não mencionou, retorne string vazia.\n\n` +
+          `Responda em JSON estruturado.`,
+      },
+    ],
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "call_insights",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            dor: { type: "string" },
+            busca: { type: "string" },
+            trabalha: { type: "string" },
+          },
+          required: ["dor", "busca", "trabalha"],
+          additionalProperties: false,
+        },
+      },
+    },
+  });
+
+  const raw = response?.choices?.[0]?.message?.content;
+  const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+  await updateCall(callId, {
+    callInsights: {
+      dor: parsed.dor ?? "",
+      busca: parsed.busca ?? "",
+      trabalha: parsed.trabalha ?? "",
+      geradoEm: new Date().toISOString(),
+    },
+  });
+  console.log("[CallInsights] Insights extraídos para call", callId);
+}
+
 export const callsRouter = router({
   // Create a new call record
   create: protectedProcedure
@@ -108,7 +166,7 @@ export const callsRouter = router({
       }
 
       // Upload to S3
-      const ext = input.mimeType.includes("webm") ? "webm" : input.mimeType.includes("mp3") ? "mp3" : "wav";
+      const ext = input.mimeType.includes("webm") ? "webm" : input.mimeType.includes("mp3") || input.mimeType.includes("mpeg") ? "mp3" : input.mimeType.includes("mp4") || input.mimeType.includes("m4a") || input.mimeType.includes("aac") ? "m4a" : input.mimeType.includes("ogg") ? "ogg" : input.mimeType.includes("wav") ? "wav" : "webm";
       const fileKey = `calls/${ctx.user.id}/${input.callId}-${nanoid(8)}.${ext}`;
       const buffer = Buffer.from(input.audioBase64, "base64");
       const { url } = await storagePut(fileKey, buffer, input.mimeType);
@@ -163,6 +221,11 @@ export const callsRouter = router({
         transcript: (result as any).text,
         transcriptSegments: segments,
         status: "transcribed",
+      });
+
+      // Extrair observações do lead automaticamente — operação não-bloqueante
+      extractAndSaveCallInsights(input.callId, (result as any).text).catch((err) => {
+        console.warn("[CallInsights] Falha ao extrair insights:", err);
       });
 
       return { success: true, transcript: (result as any).text, segments };

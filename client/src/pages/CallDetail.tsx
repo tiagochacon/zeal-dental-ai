@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle, Lock } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle, Lock, ClipboardList, HeartPulse, Target, Briefcase } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link, useParams } from "wouter";
 import { useState } from "react";
@@ -371,6 +371,67 @@ export default function CallDetail() {
             <div className="bg-secondary/50 rounded-lg p-4 max-h-96 overflow-y-auto">
               <p className="text-sm text-foreground whitespace-pre-wrap">{call.transcript}</p>
             </div>
+          </div>
+        )}
+
+        {/* Call Insights — Observações Automáticas da Ligação */}
+        {call.transcript && (
+          <div className="bg-card border border-border rounded-xl p-6">
+            <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+              <ClipboardList className="h-5 w-5 text-violet-400" />
+              Observações da Ligação
+              <span className="ml-1 text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full font-medium">IA</span>
+            </h2>
+            {(call as any).callInsights ? (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="bg-secondary/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <HeartPulse className="h-4 w-4 text-red-400 shrink-0" />
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Dor / Queixa</span>
+                    </div>
+                    <p className="text-sm text-foreground">
+                      {(call as any).callInsights.dor
+                        ? (call as any).callInsights.dor
+                        : <em className="text-muted-foreground">Não mencionado na ligação</em>}
+                    </p>
+                  </div>
+                  <div className="bg-secondary/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="h-4 w-4 text-blue-400 shrink-0" />
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Motivação / Busca</span>
+                    </div>
+                    <p className="text-sm text-foreground">
+                      {(call as any).callInsights.busca
+                        ? (call as any).callInsights.busca
+                        : <em className="text-muted-foreground">Não mencionado na ligação</em>}
+                    </p>
+                  </div>
+                  <div className="bg-secondary/50 rounded-lg p-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Briefcase className="h-4 w-4 text-green-400 shrink-0" />
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Situação de Trabalho</span>
+                    </div>
+                    <p className="text-sm text-foreground">
+                      {(call as any).callInsights.trabalha
+                        ? (call as any).callInsights.trabalha
+                        : <em className="text-muted-foreground">Não mencionado na ligação</em>}
+                    </p>
+                  </div>
+                </div>
+                {(call as any).callInsights.geradoEm && (
+                  <p className="text-xs text-muted-foreground mt-3">
+                    Gerado automaticamente pela IA em{" "}
+                    {new Date((call as any).callInsights.geradoEm).toLocaleString("pt-BR")}
+                  </p>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Observações sendo processadas...
+              </div>
+            )}
           </div>
         )}
 
