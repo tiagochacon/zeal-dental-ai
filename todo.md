@@ -849,3 +849,17 @@
 - [x] TypeScript: zero erros (LSP + tsc)
 - [x] Testes vitest: 374 testes passando (19 arquivos), incluindo 27 novos testes de billing-flow
 - [x] Checklist funcional completo verificado
+
+## Correção Crítica: Gestor Automático + Separação Admin (v90)
+### Checklist do Usuário
+- [x] server/db.ts — ensureUserIsGestor exportada e idempotente (já v89)
+- [x] server/routers.ts — billing.startTrial chama ensureUserIsGestor (já v89)
+- [x] server/stripe/webhook.ts — handleCheckoutCompleted chama ensureUserIsGestor (já v89)
+- [x] server/stripe/webhook.ts — handleSubscriptionUpdated chama ensureUserIsGestor (NOVO v90)
+- [x] server/auth.ts — createUser chama ensureUserIsGestor para emails admin (NOVO v90)
+- [x] server/auth.ts — Comentário com SQL de migração para admins existentes (NOVO v90)
+- [x] client/src/pages/Pricing.tsx — startTrial.onSuccess redireciona para /gestor (já v89)
+- [x] client/src/pages/Dashboard.tsx — useEffect inclui redirect para /gestor (já v89)
+- [x] server/routers.ts — auth.emailLogin tem redirectTo = '/gestor' (já existia)
+- [x] Todos os arquivos TypeScript compilam sem erros
+- [x] A função é IDEMPOTENTE — 374 testes passando

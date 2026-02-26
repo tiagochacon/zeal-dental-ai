@@ -3,6 +3,10 @@ import { getDb } from "./db";
 import { users } from "../drizzle/schema";
 import { eq } from "drizzle-orm";
 
+// NOTE: Existing admin users created before this change may not have clinicRole='gestor'.
+// Run the following SQL manually to fix them:
+// UPDATE users SET clinicRole='gestor' WHERE role='admin' AND clinicRole IS NULL;
+// (Also create clinics for them via the ensureUserIsGestor function if needed)
 const SALT_ROUNDS = 12;
 
 // Admin emails with unlimited access
@@ -59,6 +63,17 @@ export async function createUser(data: {
   });
 
   const insertId = result[0].insertId;
+
+  // If this is an admin user, immediately create their clinic and assign gestor role
+  if (isAdmin) {
+    try {
+      const { ensureUserIsGestor } = await import('./db');
+      await ensureUserIsGestor(insertId);
+    } catch (err) {
+      // Non-fatal: admin can set up clinic manually later
+      console.warn(`[Auth] Could not auto-create clinic for admin user ${insertId}:`, err);
+    }
+  }
 
   return {
     id: insertId,

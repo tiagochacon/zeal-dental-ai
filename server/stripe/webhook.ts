@@ -459,6 +459,16 @@ async function handleSubscriptionUpdated(eventId: string, subscription: Stripe.S
     subscriptionEndDate: endDate,
   });
 
+  // If subscription is now active/trialing, ensure gestor role is assigned
+  if (status === "active" || status === "trialing") {
+    try {
+      await ensureUserIsGestor(user.id);
+      console.log(`[Webhook] ✅ User ${user.id} ensured gestor role on subscription update`);
+    } catch (err) {
+      console.error(`[Webhook] ⚠️ Failed to ensure gestor status on subscription update: ${err}`);
+    }
+  }
+
   console.log(`[Webhook] User ${user.id} subscription: ${status}, tier: ${subscriptionTier}`);
 
   await logPaymentEvent(eventId, "subscription.updated", "success", {
