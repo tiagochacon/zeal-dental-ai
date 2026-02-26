@@ -34,11 +34,16 @@ export default function NewCall() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const [recordingMode, setRecordingMode] = useState<'microphone-only' | 'full-call' | null>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const micStreamRef = useRef<MediaStream | null>(null);
+  const displayStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const mimeTypeRef = useRef<string>("audio/webm");
 
   const leadsQuery = trpc.leads.list.useQuery(undefined, {
     enabled: !!user,
@@ -52,6 +57,9 @@ export default function NewCall() {
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      displayStreamRef.current?.getTracks().forEach((t) => t.stop());
+      audioContextRef.current?.close();
     };
   }, []);
 
@@ -64,21 +72,77 @@ export default function NewCall() {
 
   const startRecording = async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      // Step 1: Capturar microfone (requisito mínimo obrigatório)
+      const micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      micStreamRef.current = micStream;
+
+      let recordStream: MediaStream = micStream;
+      let mode: 'microphone-only' | 'full-call' = 'microphone-only';
+
+      try {
+        // Step 2: Tentar capturar áudio do sistema via dialog de compartilhamento
+        // video: true é necessário para Chrome/Edge exibirem a checkbox 'Compartilhar áudio do sistema'
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          audio: true,
+          video: true,
+        });
+        displayStreamRef.current = displayStream;
+
+        // Step 3: Parar vídeo imediatamente — só precisamos do canal de áudio
+        displayStream.getVideoTracks().forEach((t) => t.stop());
+
+        const displayAudioTracks = displayStream.getAudioTracks();
+
+        if (displayAudioTracks.length > 0) {
+          // Step 4: Misturar microfone + áudio do sistema com Web Audio API
+          const audioContext = new AudioContext();
+          audioContextRef.current = audioContext;
+          const destination = audioContext.createMediaStreamDestination();
+
+          const micSource = audioContext.createMediaStreamSource(micStream);
+          micSource.connect(destination);
+
+          const displaySource = audioContext.createMediaStreamSource(displayStream);
+          displaySource.connect(destination);
+
+          recordStream = destination.stream;
+          mode = 'full-call';
+          toast.success('Gravação completa ativada — capturando microfone e áudio do fone.');
+        } else {
+          // Usuário não marcou 'Compartilhar áudio do sistema' no dialog
+          toast.warning('Áudio do sistema não detectado. Gravando apenas o microfone. No dialog do navegador, marque a opção "Compartilhar áudio do sistema".');
+        }
+      } catch {
+        // Usuário cancelou o dialog ou navegador não suporta getDisplayMedia com áudio
+        toast.warning('Gravando apenas o microfone. Para capturar o áudio completo da ligação, permita o compartilhamento de tela com áudio quando solicitado.');
+      }
+
+      // Step 5: Detectar mimeType suportado pelo navegador em runtime
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : 'audio/webm';
+      mimeTypeRef.current = mimeType;
+
+      const mediaRecorder = new MediaRecorder(recordStream, { mimeType });
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
+      setRecordingMode(mode);
 
       mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) chunksRef.current.push(e.data);
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        const blob = new Blob(chunksRef.current, { type: mimeType });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
-        setAudioFileName(null);
-        stream.getTracks().forEach((t) => t.stop());
+        // Liberar todos os recursos de áudio após a gravação finalizar
+        micStreamRef.current?.getTracks().forEach((t) => t.stop());
+        displayStreamRef.current?.getTracks().forEach((t) => t.stop());
+        audioContextRef.current?.close();
+        micStreamRef.current = null;
+        displayStreamRef.current = null;
+        audioContextRef.current = null;
       };
 
       mediaRecorder.start(1000); // Collect data every second for progressive recording
@@ -97,7 +161,10 @@ export default function NewCall() {
         });
       }, 1000);
     } catch {
-      toast.error("Não foi possível acessar o microfone. Verifique as permissões.");
+      // Erro fatal: microfone não disponível ou permissão negada
+      micStreamRef.current?.getTracks().forEach((t) => t.stop());
+      micStreamRef.current = null;
+      toast.error('Não foi possível acessar o microfone. Verifique as permissões do navegador.');
     }
   };
 
@@ -105,10 +172,12 @@ export default function NewCall() {
     if (mediaRecorderRef.current && isRecording) {
       mediaRecorderRef.current.stop();
       setIsRecording(false);
+      setRecordingMode(null);
       if (timerRef.current) {
         clearInterval(timerRef.current);
         timerRef.current = null;
       }
+      // Streams e AudioContext são liberados no handler onstop do MediaRecorder
     }
   };
 
@@ -311,6 +380,19 @@ export default function NewCall() {
             {/* Tab: Gravar Agora */}
             <TabsContent value="record">
               <div className="flex flex-col items-center gap-4">
+                {!isRecording && !audioBlob && (
+                  <div className="w-full bg-blue-500/10 border border-blue-500/30 rounded-lg p-3">
+                    <p className="text-xs text-blue-300 font-medium mb-1">📋 Como gravar a ligação completa:</p>
+                    <ol className="text-xs text-blue-200/80 space-y-1 list-decimal list-inside">
+                      <li>Clique no botão de gravação abaixo</li>
+                      <li>O navegador abrirá um dialog de compartilhamento de tela</li>
+                      <li>Selecione qualquer tela ou janela disponível</li>
+                      <li>Marque obrigatoriamente <strong className="text-blue-300">"Compartilhar áudio do sistema"</strong></li>
+                      <li>Clique em Compartilhar e inicie sua ligação normalmente</li>
+                    </ol>
+                    <p className="text-xs text-blue-200/50 mt-2">Compatível com Chrome e Edge no Windows. No macOS pode gravar apenas o microfone.</p>
+                  </div>
+                )}
                 {!audioBlob || audioFileName ? (
                   <>
                     <div className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${
@@ -352,6 +434,12 @@ export default function NewCall() {
                             <span className="text-[10px] text-muted-foreground">{MAX_DURATION_MINUTES}:00</span>
                           </div>
                         </div>
+                        {recordingMode === 'full-call' && (
+                          <p className="text-xs text-green-400 mt-1">🎧 Ligação completa (mic + fone)</p>
+                        )}
+                        {recordingMode === 'microphone-only' && (
+                          <p className="text-xs text-yellow-400 mt-1">🎤 Somente microfone</p>
+                        )}
                       </div>
                     ) : (
                       <div className="text-center">
