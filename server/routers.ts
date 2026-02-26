@@ -46,6 +46,8 @@ import { incrementClinicConsultationCount } from "./clinicBilling";
 import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
 import { sdk } from "./_core/sdk";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
+import { getMetodologiaContext } from "./_core/metodologiaLoader";
+import { validateNeurovendasAnalysis } from "./helpers/validateNeurovendasAnalysis";
 
 // Zod schemas for validation
 const createPatientSchema = z.object({
@@ -1303,93 +1305,84 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
           return { success: true, analysis: consultation.neurovendasAnalysis, cached: true };
         }
 
-        const prompt = `Você é um especialista em Neurovendas e Linguagem Corporal para Dentistas, baseado na metodologia do Dr. Carlos Rodriguez.
+        // RAG: Carregar documentos de metodologia
+        const metodologiaContext = await getMetodologiaContext();
 
-Analise a seguinte transcrição de consulta odontológica e forneça uma análise de inteligência de vendas:
+        const prompt = `=== DOCUMENTAÇÃO DE METODOLOGIA (BASE DE CONHECIMENTO OBRIGATÓRIA) ===
+${metodologiaContext}
+=== FIM DA DOCUMENTAÇÃO ===
+
+AGORA, analise a seguinte transcrição de consulta odontológica presencial entre DENTISTA e PACIENTE.
+Toda a análise DEVE ser ancorada nos documentos acima. Use a nomenclatura exata dos documentos.
 
 TRANSCRIÇÃO:
 ${consultation.transcript}
 
-Com base na transcrição, analise:
+Com base na transcrição E nos documentos de metodologia fornecidos, analise:
 
 1. PERFIL PSICOGRÁFICO DO PACIENTE:
-- Identifique o nível cerebral dominante (Neocórtex/Límbico/Reptiliano)
+- Identifique o nível cerebral dominante (Neocórtex/Límbico/Reptiliano) conforme descrito nos documentos
 - Determine a motivação primária (Alívio da Dor, Estética, Status, Saúde)
-- Avalie o nível de ansiedade/receptividade (1-10)
+- Avalie o nível de ansiedade/receptividade (1-10) com base em evidências textuais
 
 2. OBJEÇÕES IDENTIFICADAS:
-- Liste objeções verdadeiras detectadas na transcrição
-- Para CADA objeção verdadeira, forneça uma RESPOSTA SUGERIDA COMPLETA usando a técnica LAER:
-  * L (Listen/Ouvir): Reconheça a preocupação do paciente
+- Liste APENAS objeções que aparecem explicitamente ou fortemente implícitas na transcrição
+- Para CADA objeção, forneça um SCRIPT COMPLETO de resposta usando a técnica LAER dos documentos:
+  * L (Listen/Ouvir): Reconheça a preocupação
   * A (Acknowledge/Aceitar): Valide o sentimento
-  * E (Explore/Explorar): Faça perguntas para entender melhor
-  * R (Respond/Responder): Ofereça uma solução personalizada
-- A resposta sugerida deve ser um SCRIPT COMPLETO que o dentista pode usar, não apenas o nome da técnica
-- Exemplo de resposta sugerida para objeção financeira: "Entendo sua preocupação com o valor. É normal querer entender bem o investimento. Me conta, o que especificamente te preocupa mais: o valor total ou a forma de pagamento? Temos opções de parcelamento que podem ajudar."
+  * E (Explore/Explorar): Perguntas para entender melhor
+  * R (Respond/Responder): Solução personalizada baseada nos scripts dos documentos
 - Liste possíveis objeções ocultas/falsas com perguntas reveladoras
 - Classifique cada objeção (financeira, medo, tempo, confiança)
 
 3. SINAIS DE LINGUAGEM:
-- Sinais positivos de absorção identificados
-- Sinais de resistência ou objeção oculta
+- Sinais positivos: cite palavras LITERAIS do paciente
+- Sinais de resistência: cite palavras LITERAIS
 - Palavras-chave emocionais usadas pelo paciente
 
 4. GATILHOS MENTAIS RECOMENDADOS:
-- Liste os 3 gatilhos mais eficazes para este paciente
-- Explique por que cada gatilho é adequado
+- Use APENAS gatilhos catalogados nos documentos de metodologia fornecidos
+- Liste os 3 mais eficazes para este paciente com justificativa
+- Se os documentos não cobrem um gatilho específico, deixe o campo vazio
 
-5. SCRIPT DE FECHAMENTO (Modelo PARE):
+5. SCRIPT DE FECHAMENTO (Modelo PARE conforme documentos):
 - Problema: Como abordar a dor/necessidade
 - Amplificação: Como mostrar consequências
 - Resolução: Como apresentar a solução
 - Engajamento: Como criar compromisso
 
 6. TÉCNICA RECOMENDADA PARA OBJEÇÕES:
-- Se objeção verdadeira: Aplique técnica LAER (Listen, Acknowledge, Explore, Respond)
-- Se objeção falsa: Aplique técnica de Redirecionamento
-- IMPORTANTE: No campo 'tecnicaSugerida' de cada objeção, forneça um SCRIPT COMPLETO de resposta, não apenas o nome da técnica
+- Derive dos modelos e exemplos presentes nos documentos fornecidos
+- Se objeção verdadeira: técnica LAER
+- Se objeção falsa: técnica de Redirecionamento
 
-7. NÍVEL DE RAPPORT (0-100) - ANÁLISE DETALHADA:
-Calcule o Rapport usando os seguintes critérios com pesos específicos:
+7. NÍVEL DE RAPPORT (0-100):
+Calcule usando os critérios dos documentos de metodologia:
+a) VALIDAÇÃO EMOCIONAL (máx 30 pts)
+b) ESPELHAMENTO LINGUÍSTICO (máx 25 pts)
+c) ESCUTA ATIVA (máx 20 pts)
+d) EQUILÍBRIO DE TURNOS (máx 15 pts)
+e) AUSÊNCIA DE INTERRUPÇÕES (máx 10 pts)
 
-a) VALIDAÇÃO EMOCIONAL (máx 30 pontos):
-   - Frases como 'entendo', 'faz sentido', 'é normal sentir', 'compreendo sua preocupação'
-   - Reconhecimento dos sentimentos do paciente
-
-b) ESPELHAMENTO LINGUÍSTICO (máx 25 pontos):
-   - Dentista repete palavras-chave do paciente (ex: se paciente diz 'dor', dentista usa 'dor' em vez de 'desconforto')
-   - Uso do vocabulário do paciente
-
-c) ESCUTA ATIVA (máx 20 pontos):
-   - Parafrasear o paciente
-   - Fazer perguntas abertas
-   - Silêncios de escuta (permitir que paciente complete pensamentos)
-
-d) EQUILÍBRIO DE TURNOS (máx 15 pontos):
-   - Paciente fala 30-50% do tempo = ótimo (15 pts)
-   - Paciente fala 20-30% ou 50-60% = bom (10 pts)
-   - Paciente fala <20% ou >70% = ruim (5 pts ou menos)
-
-e) AUSÊNCIA DE INTERRUPÇÕES (máx 10 pontos):
-   - Dentista NÃO interrompe frases do paciente
-   - Permite conclusão de pensamentos
-
-AJUSTES POR PERFIL NEUROLÓGICO:
-- Se Reptiliano: +10% se menciona segurança/garantia, -15% se pressiona decisão rápida
-- Se Límbico: +15% se usa histórias/casos similares, -10% se foca só em dados técnicos
-- Se Neocórtex: +10% se apresenta estudos/evidências, -10% se apela só para emoção
-
-Forneça:
-- Pontuação total (0-100)
-- Breakdown de cada critério
-- Justificativa em 1 frase citando o critério de maior impacto
-- 1 sugestão prática de melhoria
+8. RESUMO EXECUTIVO:
+- Síntese da análise em 2-3 frases, ancorada nos conceitos dos documentos
 
 Responda em JSON estruturado.`;
 
         const response = await invokeLLM({
           messages: [
-            { role: "system", content: "Você é um especialista em Neurovendas aplicadas à Odontologia, treinado na metodologia do Dr. Carlos Rodriguez. REGRAS DE PRECISÃO OBRIGATÓRIAS:\n1. Cada conclusão da análise deve citar evidência específica da transcrição (palavras, frases ou comportamentos observados).\n2. Se a transcrição for muito curta ou não contiver sinais suficientes, indique baixa confiança explicitamente nos campos de descrição.\n3. Objeções: liste APENAS objeções que aparecem de forma explícita ou fortemente implícita na transcrição — não suponha objeções típicas do setor.\n4. Sinais de linguagem: cite apenas palavras literais do paciente/lead, não paráfrases.\n5. Scripts sugeridos: devem ser coerentes com o perfil identificado na transcrição, não scripts genéricos.\n6. nivelAnsiedade e nivelReceptividade: baseie-se em evidências textuais concretas, não em médias populacionais." },
+            { role: "system", content: `Você é um analista de Neurovendas aplicadas à Odontologia. Seu ÚNICO referencial teórico são os documentos de metodologia fornecidos no início do prompt do usuário.
+
+REGRAS INVIOLÁVEIS:
+1. NÃO use conhecimento externo sobre vendas, PNL ou persuasão que não esteja nos documentos fornecidos.
+2. Use a nomenclatura EXATA dos documentos (nomes de técnicas, categorias de perfil, gatilhos mentais).
+3. Se os documentos não cobrem um aspecto específico, preencha o campo com "Não documentado na metodologia" em vez de inventar.
+4. Cada conclusão DEVE citar evidência específica da transcrição (palavras, frases ou comportamentos observados).
+5. Objeções: liste APENAS objeções explícitas ou fortemente implícitas na transcrição — NÃO suponha objeções típicas do setor.
+6. Sinais de linguagem: cite APENAS palavras literais do paciente, não paráfrases.
+7. Scripts sugeridos: devem ser derivados dos modelos e exemplos presentes nos documentos fornecidos, coerentes com o perfil identificado.
+8. nivelAnsiedade e nivelReceptividade: baseie-se em evidências textuais concretas, não em médias populacionais.
+9. Se a transcrição for muito curta ou não contiver sinais suficientes, indique baixa confiança explicitamente nos campos de descrição.` },
             { role: "user", content: prompt }
           ],
           response_format: {
@@ -1527,6 +1520,9 @@ Responda em JSON estruturado.`;
         }
 
         const analysis = JSON.parse(analysisContent);
+
+        // Validação pós-parse não-bloqueante (campos obrigatórios + enums)
+        validateNeurovendasAnalysis(analysis, "consulta");
 
         // Save analysis to consultation
         await updateConsultation(input.consultationId, {

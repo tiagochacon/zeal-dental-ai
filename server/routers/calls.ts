@@ -15,6 +15,8 @@ import {
 import { storagePut } from "../storage";
 import { transcribeAudio } from "../_core/voiceTranscription";
 import { invokeLLM } from "../_core/llm";
+import { getMetodologiaContext } from "../_core/metodologiaLoader";
+import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { nanoid } from "nanoid";
 
 export const callsRouter = router({
@@ -192,61 +194,81 @@ export const callsRouter = router({
         return { success: true, analysis: call.neurovendasAnalysis, cached: true };
       }
 
-      const prompt = `Você é um especialista em Neurovendas aplicadas ao agendamento odontológico, baseado na metodologia do Dr. Carlos Rodriguez.
+      // RAG: Carregar documentos de metodologia
+      const metodologiaContext = await getMetodologiaContext();
 
-Analise a seguinte transcrição de LIGAÇÃO COMERCIAL entre um CRC (Consultor de Relacionamento com o Cliente) de uma clínica odontológica e um LEAD (prospect/potencial paciente):
+      const prompt = `=== DOCUMENTAÇÃO DE METODOLOGIA (BASE DE CONHECIMENTO OBRIGATÓRIA) ===
+${metodologiaContext}
+=== FIM DA DOCUMENTAÇÃO ===
+
+AGORA, analise a seguinte transcrição de LIGAÇÃO COMERCIAL entre um CRC (Consultor de Relacionamento com o Cliente) de uma clínica odontológica e um LEAD (prospect/potencial paciente).
+Toda a análise DEVE ser ancorada nos documentos acima. Use a nomenclatura exata dos documentos.
 
 TRANSCRIÇÃO:
 ${call.transcript}
 
 CONTEXTO: Esta é uma ligação de prospecção/agendamento. O CRC está tentando agendar uma consulta para o lead na clínica. Diferente de uma consulta presencial, aqui o foco é na comunicação telefônica e técnicas de agendamento.
 
-Com base na transcrição, analise:
+Com base na transcrição E nos documentos de metodologia fornecidos, analise:
 
 1. PERFIL PSICOGRÁFICO DO LEAD:
-- Identifique o nível cerebral dominante (Neocórtex/Límbico/Reptiliano)
+- Identifique o nível cerebral dominante (Neocórtex/Límbico/Reptiliano) conforme descrito nos documentos
 - Determine a motivação primária (Alívio da Dor, Estética, Status, Saúde)
-- Avalie o nível de receptividade (1-10) à proposta de agendamento
+- Avalie o nível de receptividade (1-10) à proposta de agendamento com base em evidências textuais
 
 2. OBJEÇÕES IDENTIFICADAS:
-- Liste objeções verdadeiras detectadas na transcrição
-- Para CADA objeção, forneça uma RESPOSTA SUGERIDA COMPLETA usando a técnica LAER:
-  * L (Listen/Ouvir): Reconheça a preocupação do lead
+- Liste APENAS objeções que aparecem explicitamente ou fortemente implícitas na transcrição
+- Para CADA objeção, forneça um SCRIPT COMPLETO de resposta usando a técnica LAER dos documentos:
+  * L (Listen/Ouvir): Reconheça a preocupação
   * A (Acknowledge/Aceitar): Valide o sentimento
-  * E (Explore/Explorar): Faça perguntas para entender melhor
-  * R (Respond/Responder): Ofereça uma solução personalizada
-- A resposta deve ser um SCRIPT COMPLETO que o CRC pode usar na próxima ligação
+  * E (Explore/Explorar): Perguntas para entender melhor
+  * R (Respond/Responder): Solução personalizada baseada nos scripts dos documentos
 - Liste possíveis objeções ocultas/falsas com perguntas reveladoras
 - Classifique cada objeção (financeira, medo, tempo, confiança)
 
 3. SINAIS DE LINGUAGEM:
-- Sinais positivos de interesse no agendamento
-- Sinais de resistência ou objeção oculta
+- Sinais positivos: cite palavras LITERAIS do lead
+- Sinais de resistência: cite palavras LITERAIS
 - Palavras-chave emocionais usadas pelo lead
 
 4. GATILHOS MENTAIS RECOMENDADOS:
-- Liste os 3 gatilhos mais eficazes para este lead
-- Explique por que cada gatilho é adequado para agendamento
+- Use APENAS gatilhos catalogados nos documentos de metodologia fornecidos
+- Liste os 3 mais eficazes para este lead com justificativa
+- Se os documentos não cobrem um gatilho específico, deixe o campo vazio
 
-5. SCRIPT DE FECHAMENTO (Modelo PARE):
+5. SCRIPT DE FECHAMENTO (Modelo PARE conforme documentos):
 - Problema: Como abordar a necessidade do lead
 - Amplificação: Como mostrar urgência do agendamento
 - Resolução: Como apresentar a consulta como solução
 - Engajamento: Como criar compromisso de agendamento
 
 6. NÍVEL DE RAPPORT (0-100):
-Calcule usando os mesmos critérios:
+Calcule usando os critérios dos documentos de metodologia:
 a) VALIDAÇÃO EMOCIONAL (máx 30 pts)
 b) ESPELHAMENTO LINGUÍSTICO (máx 25 pts)
 c) ESCUTA ATIVA (máx 20 pts)
 d) EQUILÍBRIO DE TURNOS (máx 15 pts)
 e) AUSÊNCIA DE INTERRUPÇÕES (máx 10 pts)
 
+7. RESUMO EXECUTIVO:
+- Síntese da análise em 2-3 frases, ancorada nos conceitos dos documentos
+
 Responda em JSON estruturado.`;
 
       const response = await invokeLLM({
         messages: [
-          { role: "system", content: "Você é um especialista em Neurovendas aplicadas ao agendamento odontológico, treinado na metodologia do Dr. Carlos Rodriguez. REGRAS DE PRECISÃO OBRIGATÓRIAS:\n1. Baseie toda análise em evidências textuais diretas da transcrição da ligação.\n2. Se o lead não disse nada que indique um perfil cerebral claro, use o tipo mais neutro disponível com baixa confiança.\n3. Objeções verdadeiras: liste APENAS o que o lead expressou explicitamente. Não suponha objeções por ser uma ligação de venda.\n4. Scripts LAER: devem endereçar a objeção específica identificada, não ser scripts genéricos de vendas.\n5. nivelReceptividade: calibre com base no que o lead disse, não no resultado final da ligação.\n6. Se a transcrição tiver menos de 100 palavras do lead, reduza proporcionalidade das conclusões e indique limitação nos campos de descrição." },
+          { role: "system", content: `Você é um analista de Neurovendas aplicadas ao agendamento odontológico. Seu ÚNICO referencial teórico são os documentos de metodologia fornecidos no início do prompt do usuário.
+
+REGRAS INVIOLÁVEIS:
+1. NÃO use conhecimento externo sobre vendas, PNL ou persuasão que não esteja nos documentos fornecidos.
+2. Use a nomenclatura EXATA dos documentos (nomes de técnicas, categorias de perfil, gatilhos mentais).
+3. Se os documentos não cobrem um aspecto específico, preencha o campo com "Não documentado na metodologia" em vez de inventar.
+4. Baseie toda análise em evidências textuais diretas da transcrição da ligação.
+5. Objeções: liste APENAS o que o lead expressou explicitamente — NÃO suponha objeções por ser uma ligação de venda.
+6. Sinais de linguagem: cite APENAS palavras literais do lead, não paráfrases.
+7. Scripts LAER: devem ser derivados dos modelos e exemplos presentes nos documentos fornecidos, endereçando a objeção específica identificada.
+8. nivelReceptividade: calibre com base no que o lead disse, não no resultado final da ligação.
+9. Se a transcrição tiver menos de 100 palavras do lead, reduza proporcionalidade das conclusões e indique limitação nos campos de descrição.` },
           { role: "user", content: prompt }
         ],
         response_format: {
@@ -381,6 +403,9 @@ Responda em JSON estruturado.`;
       }
 
       const analysis = JSON.parse(analysisContent);
+
+      // Validação pós-parse não-bloqueante (campos obrigatórios + enums)
+      validateNeurovendasAnalysis(analysis, "crc");
 
       // Save analysis to call
       await updateCall(input.callId, {

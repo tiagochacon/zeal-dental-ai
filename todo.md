@@ -915,3 +915,36 @@
 - [x] Remover estados desnecessários (recordingMode, displayStream, audioContext)
 - [x] Simplificar UX: um clique para gravar, sem dialogs extras
 - [x] 374 testes passando, zero erros TypeScript
+
+## Reestruturação RAG Neurovendas (v95)
+### FASE 1 — Auditoria
+- [x] Ler ebook_carlos_04_NEUROVENDAS_JANEIRO_2026.pdf e extrair conteúdo
+- [x] Ler scripts_whatsapp_prontos.docx e extrair conteúdo
+- [x] Ler server/routers.ts — prompts de neurovendas consulta
+- [x] Ler server/routers/calls.ts — prompts de neurovendas CRC
+- [x] Confirmar checklist de auditoria (6 itens)
+### FASE 2 — Mecanismo RAG
+- [x] Criar server/_core/metodologiaLoader.ts com getMetodologiaContext()
+- [x] Criar pasta server/metodologia/ com README.md
+- [x] Copiar arquivos de metodologia para server/metodologia/
+### FASE 3-4 — Prompts Consulta
+- [x] Reestruturar system message neurovendas consulta
+- [x] Reestruturar user prompt neurovendas consulta com injeção de metodologia
+- [x] NÃO alterar JSON schema neurovendas_analysis
+### FASE 5-6 — Prompts CRC
+- [x] Reestruturar system message neurovendas CRC/ligação
+- [x] Reestruturar user prompt neurovendas CRC com injeção de metodologia
+- [x] NÃO alterar JSON schema neurovendas_call_analysis
+### FASE 7 — Validação pós-parse
+- [x] Adicionar validação pós-parse não-bloqueante em routers.ts (helper centralizado)
+- [x] Adicionar validação pós-parse não-bloqueante em calls.ts (helper centralizado)
+### FASE 8 — Enum Validation
+- [x] Criar helper centralizado validateNeurovendasAnalysis.ts
+- [x] Validar enums: nivelCerebralDominante, motivacaoPrimaria, gatilhosMentais.nome, categoriaObjecao, tecnicaObjecao.tipo
+- [x] Validar ranges numéricos: nivelAnsiedade (0-10), nivelReceptividade (0-10), rapport.nivel (0-100)
+- [x] Validar campos do rapport.breakdown
+- [x] Integrar helper no routers.ts e calls.ts
+### FASE 9 — Testes e Finalização
+- [x] Criar 28 testes vitest para validateNeurovendasAnalysis
+- [x] 402 testes passando (20 arquivos), zero erros TypeScript
+- [x] Checklist de verificação final concluído
