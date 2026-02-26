@@ -99,7 +99,7 @@ export default function TeamManagement() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl lg:text-3xl font-bold text-foreground">Meu Time</h1>
-          <p className="text-sm text-muted-foreground hidden sm:block">Gerencie os membros da cl\u00ednica</p>
+          <p className="text-sm text-muted-foreground hidden sm:block">Gerencie os membros da clínica</p>
         </div>
         <Button onClick={() => setShowAddDialog(true)} size="sm" className="bg-blue-600 hover:bg-blue-700">
           <UserPlus className="h-4 w-4 mr-1" />

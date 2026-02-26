@@ -127,6 +127,23 @@ const treatmentPlanSchema = z.object({
   warnings: z.array(z.string()),
 });
 
+// Helper: verifica se o usuário tem acesso à consulta (dono OU gestor/admin da clínica)
+// Retorna a consulta validada (non-null) ou lança erro
+async function assertConsultationAccess<T extends { dentistId: number }>(  
+  consultation: T | null | undefined,
+  user: { id: number; role?: string | null; clinicRole?: string | null; clinicId?: number | null }
+): Promise<T> {
+  if (!consultation) throw new Error("Consulta não encontrada");
+  const isOwner = consultation.dentistId === user.id;
+  if (isOwner) return consultation;
+  // Gestor/admin da mesma clínica pode acessar
+  if (user.clinicId && (user.clinicRole === 'gestor' || user.role === 'admin')) {
+    const dentist = await getUserById(consultation.dentistId);
+    if (dentist && dentist.clinicId === user.clinicId) return consultation;
+  }
+  throw new Error("Consulta não encontrada ou acesso negado");
+}
+
 export const appRouter = router({
   system: systemRouter,
   
@@ -426,10 +443,9 @@ export const appRouter = router({
         treatmentPlan: treatmentPlanSchema,
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
         await updateConsultation(input.consultationId, {
           treatmentPlan: input.treatmentPlan,
         });
@@ -439,10 +455,9 @@ export const appRouter = router({
     generateTreatmentPlan: protectedProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         const patient = await getPatientById(consultation.patientId);
         if (!patient) {
@@ -532,10 +547,9 @@ export const appRouter = router({
         durationSeconds: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         // Convert base64 to buffer
         const audioBuffer = Buffer.from(input.audioBase64, 'base64');
@@ -568,10 +582,9 @@ export const appRouter = router({
         durationSeconds: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         // Convert base64 to buffer
         const audioBuffer = Buffer.from(input.audioBase64, 'base64');
@@ -607,10 +620,9 @@ export const appRouter = router({
         totalDurationSeconds: z.number().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         // Get all chunks for this session
         const chunks = await getAudioChunksBySession(
@@ -664,10 +676,9 @@ export const appRouter = router({
         transcript: z.string(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         await updateConsultation(input.consultationId, {
           transcript: input.transcript,
@@ -680,10 +691,9 @@ export const appRouter = router({
     transcribe: consultationLimitProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         if (!consultation.audioUrl) {
           throw new Error("Nenhum arquivo de áudio encontrado para esta consulta");
@@ -772,10 +782,9 @@ export const appRouter = router({
     analyzeAndGenerateSOAP: consultationLimitProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         if (!consultation.transcript) {
           throw new Error("Nenhuma transcrição encontrada para esta consulta");
@@ -1046,10 +1055,9 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         soapNote: soapNoteSchema,
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         await updateConsultation(input.consultationId, {
           soapNote: input.soapNote as SOAPNote,
@@ -1061,10 +1069,9 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
     finalize: protectedProcedure
       .input(z.object({ consultationId: z.number() }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         // Check if feedback exists (mandatory)
         const feedback = await getFeedbackByConsultation(input.consultationId);
@@ -1091,10 +1098,9 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         treatmentClosedNotes: z.string().optional(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         const feedback = await createFeedback({
           consultationId: input.consultationId,
@@ -1111,10 +1117,9 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
     getByConsultation: protectedProcedure
       .input(z.object({ consultationId: z.number() }))
       .query(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         const feedback = await getFeedbackByConsultation(input.consultationId);
         return feedback ?? null;
@@ -1268,10 +1273,9 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         consultationId: z.number(),
       }))
       .mutation(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         if (!consultation.transcript) {
           throw new Error("Esta consulta não possui transcrição para análise");
@@ -1521,10 +1525,9 @@ Responda em JSON estruturado.`;
         consultationId: z.number(),
       }))
       .query(async ({ ctx, input }) => {
-        const consultation = await getConsultationById(input.consultationId);
-        if (!consultation || consultation.dentistId !== ctx.user.id) {
-          throw new Error("Consulta não encontrada ou acesso negado");
-        }
+        const consultation = await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
 
         return {
           hasAnalysis: !!consultation.neurovendasAnalysis,

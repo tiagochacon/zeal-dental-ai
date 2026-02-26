@@ -95,7 +95,7 @@ const adminMenuItems: MenuItem[] = [
   { icon: Users, label: "Pacientes", path: "/patients" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
   { icon: CreditCard, label: "Assinatura", path: "/subscription" },
-  { icon: Building2, label: "Configurar Cl\u00ednica", path: "/clinic-setup" },
+  { icon: Building2, label: "Configurar Clínica", path: "/clinic-setup" },
 ];
 
 function getMenuItemsForUser(user: { role?: string; clinicRole?: string | null; clinicId?: number | null } | null): MenuItem[] {
@@ -164,7 +164,7 @@ export default function DashboardLayout({
               Acesse sua conta
             </h1>
             <p className="text-sm text-muted-foreground text-center max-w-sm">
-              Fa\u00e7a login para acessar o painel do ZEAL.
+              Faça login para acessar o painel do ZEAL.
             </p>
           </div>
           <Button
@@ -226,10 +226,10 @@ function DashboardLayoutContent({
   });
   const isPro = subscriptionInfo?.tier === 'pro' || subscriptionInfo?.tier === 'unlimited';
   
-  // CRC users don't need subscription upgrade CTA
+  // CRC and clinic dentists don't need subscription upgrade CTA (managed by gestor)
+  // Gestors and standalone dentists DO need it if they're not on Pro
   const showUpgradeCTA = !isPro
     && user?.clinicRole !== 'crc'
-    && user?.clinicRole !== 'gestor'
     && user?.clinicRole !== 'dentista';
 
   useEffect(() => {

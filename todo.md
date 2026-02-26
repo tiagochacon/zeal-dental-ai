@@ -869,3 +869,30 @@
 - [x] Corrigir dados: script migrate-gestors.mjs executado, 17 usuários promovidos a gestor com clínicas criadas
 - [x] Corrigir código: emailLogin agora chama ensureUserIsGestor automaticamente se user tem assinatura ativa mas não é gestor
 - [x] 374 testes passando, zero erros TypeScript
+
+## Auditoria QA Completa - Preparação para Apresentação (v92)
+### Auditoria de Código
+- [x] Verificar todos os routers — 14 procedures de consultas corrigidas com assertConsultationAccess
+- [x] Verificar schema.ts — OK, sem inconsistências
+- [x] Verificar db.ts — OK
+- [x] Verificar mediação no plano de tratamento — COMPLETA (Perfil, Rapport, Objeções, Script PARE, Resumo)
+- [x] Verificar encoding Unicode — 3 arquivos corrigidos
+### Testes Funcionais (Browser)
+- [x] Login como gestor → Dashboard gestor — OK, badge GESTOR, Plano PRO Ativo
+- [ ] Login como CRC → Dashboard CRC (não testado nesta sessão)
+- [ ] Login como dentista → Dashboard dentista (não testado nesta sessão)
+- [ ] Criar nova consulta (não testado nesta sessão)
+- [x] Ver detalhes de consulta → SOAP, Plano (8 etapas), Negociação completa
+- [x] Ver detalhes de ligação → pipeline OK
+- [x] Ver detalhes de lead → perfil neurovendas OK
+- [x] Painel gestor → funil de conversão, rankings CRC/Dentista
+- [x] Meu Time → 3 membros (CRC, Dentista, Gestor)
+- [x] Assinatura → Acesso Ilimitado para admin
+- [x] Pacientes → 2 pacientes
+- [x] Leads → 2 leads
+- [x] Ligações → 8 ligações
+### Bugs Encontrados e Corrigidos
+- [x] 14 procedures de consultas não permitiam acesso do gestor → assertConsultationAccess
+- [x] showUpgradeCTA não mostrava para gestores com plano básico/trial → corrigido
+- [x] Register.tsx redirecionava para / em vez de /gestor → corrigido
+- [x] Encoding Unicode errado em 3 arquivos → corrigido

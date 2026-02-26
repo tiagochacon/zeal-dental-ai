@@ -61,7 +61,7 @@ export default function Register() {
     onSuccess: () => {
       toast.success("Trial ativado com sucesso! Bem-vindo ao ZEAL!");
       refresh().then(() => {
-        window.location.href = "/";
+        window.location.href = "/gestor";
       });
     },
     onError: (error) => {

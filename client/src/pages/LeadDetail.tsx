@@ -316,7 +316,7 @@ export default function LeadDetail() {
             <Button
               onClick={() => {
                 if (dentists.length === 0) {
-                  toast.error("Nenhum dentista cadastrado na cl\u00ednica. Pe\u00e7a ao gestor para adicionar.");
+                  toast.error("Nenhum dentista cadastrado na clínica. Peça ao gestor para adicionar.");
                   return;
                 }
                 setShowConvertDialog(true);
