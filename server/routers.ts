@@ -37,6 +37,7 @@ import {
 import { storagePut, storageDelete } from "./storage";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { invokeLLM } from "./_core/llm";
+import { getMetodologiaContext } from "./_core/metodologiaLoader";
 import { SOAPNote, TreatmentPlan } from "../drizzle/schema";
 import { nanoid } from "nanoid";
 import { stripe, isStripeConfigured } from "./stripe/stripe";
@@ -46,8 +47,6 @@ import { incrementClinicConsultationCount } from "./clinicBilling";
 import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
 import { sdk } from "./_core/sdk";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
-import { getMetodologiaContext } from "./_core/metodologiaLoader";
-import { validateNeurovendasAnalysis } from "./helpers/validateNeurovendasAnalysis";
 
 // Zod schemas for validation
 const createPatientSchema = z.object({
@@ -1305,84 +1304,62 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
           return { success: true, analysis: consultation.neurovendasAnalysis, cached: true };
         }
 
-        // RAG: Carregar documentos de metodologia
         const metodologiaContext = await getMetodologiaContext();
 
-        const prompt = `=== DOCUMENTAÇÃO DE METODOLOGIA (BASE DE CONHECIMENTO OBRIGATÓRIA) ===
+        const prompt = `DOCUMENTOS DE METODOLOGIA (base obrigatória para toda análise):
 ${metodologiaContext}
-=== FIM DA DOCUMENTAÇÃO ===
 
-AGORA, analise a seguinte transcrição de consulta odontológica presencial entre DENTISTA e PACIENTE.
-Toda a análise DEVE ser ancorada nos documentos acima. Use a nomenclatura exata dos documentos.
+--- FIM DOS DOCUMENTOS ---
 
-TRANSCRIÇÃO:
+TRANSCRIÇÃO DA CONSULTA:
 ${consultation.transcript}
 
-Com base na transcrição E nos documentos de metodologia fornecidos, analise:
+INSTRUÇÃO PRINCIPAL:
+Analise a transcrição acima usando EXCLUSIVAMENTE os frameworks, técnicas, nomenclaturas e categorias definidos nos DOCUMENTOS DE METODOLOGIA acima. Se um conceito pedido abaixo não estiver documentado, deixe o campo vazio ('') ou array vazio ([]).
 
-1. PERFIL PSICOGRÁFICO DO PACIENTE:
-- Identifique o nível cerebral dominante (Neocórtex/Límbico/Reptiliano) conforme descrito nos documentos
-- Determine a motivação primária (Alívio da Dor, Estética, Status, Saúde)
-- Avalie o nível de ansiedade/receptividade (1-10) com base em evidências textuais
+1. PERFIL COMPORTAMENTAL DO PACIENTE:
+- Identifique o perfil/nível cerebral dominante usando EXATAMENTE a nomenclatura dos documentos
+- Determine a motivação primária conforme categorias listadas nos documentos
+- Avalie o nível de ansiedade/receptividade (1-10) com base em evidências textuais concretas da transcrição
 
 2. OBJEÇÕES IDENTIFICADAS:
-- Liste APENAS objeções que aparecem explicitamente ou fortemente implícitas na transcrição
-- Para CADA objeção, forneça um SCRIPT COMPLETO de resposta usando a técnica LAER dos documentos:
-  * L (Listen/Ouvir): Reconheça a preocupação
-  * A (Acknowledge/Aceitar): Valide o sentimento
-  * E (Explore/Explorar): Perguntas para entender melhor
-  * R (Respond/Responder): Solução personalizada baseada nos scripts dos documentos
-- Liste possíveis objeções ocultas/falsas com perguntas reveladoras
-- Classifique cada objeção (financeira, medo, tempo, confiança)
+- Liste APENAS objeções que aparecem de forma explícita ou fortemente implícita na transcrição
+- Para CADA objeção verdadeira, forneça script completo de resposta usando a técnica definida nos documentos
+- A resposta deve ser um SCRIPT COMPLETO que o dentista pode usar, derivado dos modelos dos documentos
+- Liste possíveis objeções ocultas/falsas com perguntas reveladoras, somente se evidenciadas na transcrição
+- Classifique cada objeção nas categorias definidas nos documentos
 
 3. SINAIS DE LINGUAGEM:
-- Sinais positivos: cite palavras LITERAIS do paciente
-- Sinais de resistência: cite palavras LITERAIS
-- Palavras-chave emocionais usadas pelo paciente
+- Cite APENAS palavras literais do paciente encontradas na transcrição (não paráfrases)
+- Sinais positivos de absorção identificados na transcrição
+- Sinais de resistência ou objeção oculta na transcrição
 
 4. GATILHOS MENTAIS RECOMENDADOS:
-- Use APENAS gatilhos catalogados nos documentos de metodologia fornecidos
-- Liste os 3 mais eficazes para este paciente com justificativa
-- Se os documentos não cobrem um gatilho específico, deixe o campo vazio
+- Liste APENAS gatilhos catalogados nos documentos de metodologia
+- Explique por que cada gatilho é adequado com base no perfil identificado na transcrição
 
-5. SCRIPT DE FECHAMENTO (Modelo PARE conforme documentos):
-- Problema: Como abordar a dor/necessidade
-- Amplificação: Como mostrar consequências
-- Resolução: Como apresentar a solução
-- Engajamento: Como criar compromisso
+5. SCRIPT DE FECHAMENTO:
+- Use o modelo de script definido nos documentos (ex: PARE ou equivalente documentado)
+- Adapte ao contexto específico desta transcrição
 
 6. TÉCNICA RECOMENDADA PARA OBJEÇÕES:
-- Derive dos modelos e exemplos presentes nos documentos fornecidos
-- Se objeção verdadeira: técnica LAER
-- Se objeção falsa: técnica de Redirecionamento
+- Use EXATAMENTE a técnica definida nos documentos para o tipo de objeção identificado
+- No campo 'tecnicaSugerida', forneça SCRIPT COMPLETO derivado dos modelos dos documentos
 
 7. NÍVEL DE RAPPORT (0-100):
-Calcule usando os critérios dos documentos de metodologia:
-a) VALIDAÇÃO EMOCIONAL (máx 30 pts)
-b) ESPELHAMENTO LINGUÍSTICO (máx 25 pts)
-c) ESCUTA ATIVA (máx 20 pts)
-d) EQUILÍBRIO DE TURNOS (máx 15 pts)
-e) AUSÊNCIA DE INTERRUPÇÕES (máx 10 pts)
+- Calcule usando os critérios e pesos definidos nos documentos de metodologia
+- Cite evidência textual da transcrição para cada critério pontuado
 
-8. RESUMO EXECUTIVO:
-- Síntese da análise em 2-3 frases, ancorada nos conceitos dos documentos
-
-Responda em JSON estruturado.`;
+RESTRIÇÕES ANTI-ALUCINAÇÃO:
+- Use APENAS nomenclaturas e categorias presentes nos documentos fornecidos
+- Cite a frase exata da transcrição para cada conclusão comportamental
+- Se a transcrição tiver menos de 150 palavras do paciente, indique 'baixa confiança por amostra insuficiente' em descricaoPerfil
+- NÃO complete com conhecimento geral de vendas ou psicologia externo aos documentos
+- Responda em JSON estruturado`;
 
         const response = await invokeLLM({
           messages: [
-            { role: "system", content: `Você é um analista de Neurovendas aplicadas à Odontologia. Seu ÚNICO referencial teórico são os documentos de metodologia fornecidos no início do prompt do usuário.
-
-REGRAS INVIOLÁVEIS:
-1. NÃO use conhecimento externo sobre vendas, PNL ou persuasão que não esteja nos documentos fornecidos.
-2. Use a nomenclatura EXATA dos documentos (nomes de técnicas, categorias de perfil, gatilhos mentais).
-3. Se os documentos não cobrem um aspecto específico, preencha o campo com "Não documentado na metodologia" em vez de inventar.
-4. Cada conclusão DEVE citar evidência específica da transcrição (palavras, frases ou comportamentos observados).
-5. Objeções: liste APENAS objeções explícitas ou fortemente implícitas na transcrição — NÃO suponha objeções típicas do setor.
-6. Sinais de linguagem: cite APENAS palavras literais do paciente, não paráfrases.
-7. Scripts sugeridos: devem ser derivados dos modelos e exemplos presentes nos documentos fornecidos, coerentes com o perfil identificado.
-8. nivelAnsiedade e nivelReceptividade: baseie-se em evidências textuais concretas, não em médias populacionais.
-9. Se a transcrição for muito curta ou não contiver sinais suficientes, indique baixa confiança explicitamente nos campos de descrição.` },
+            { role: "system", content: "Você é um especialista em análise de perfil comportamental e comunicação persuasiva aplicada à Odontologia. Sua única base de conhecimento para esta análise são os DOCUMENTOS DE METODOLOGIA fornecidos no contexto do usuário. NÃO use conhecimento externo sobre vendas, psicologia ou neuromarketing que não esteja explicitamente nesses documentos.\n\nREGRAS DE FIDELIDADE DOCUMENTAL:\n1. Cada framework, técnica, categoria ou script que você citar deve ter origem rastreável nos documentos de metodologia fornecidos. Se não encontrar, use '' ou [] para o campo.\n2. Os perfis de comportamento devem usar EXATAMENTE a nomenclatura presente nos documentos — não renomeie nem adapte.\n3. As técnicas de resposta a objeções devem seguir EXATAMENTE a estrutura definida nos documentos.\n4. Gatilhos mentais: liste APENAS os catalogados nos documentos. Não invente gatilhos não documentados.\n5. Scripts sugeridos devem ser derivados dos modelos e exemplos dos documentos, adaptados à transcrição.\n6. Se os documentos NÃO cobrem algum aspecto do JSON schema, retorne '' ou [] e inclua nota em resumoExecutivo.\n\nREGRAS DE PRECISÃO BASEADA EM EVIDÊNCIA TEXTUAL:\n1. Cada conclusão sobre o perfil do paciente deve citar a frase ou palavra exata da transcrição que a fundamenta.\n2. Se a transcrição tiver menos de 150 palavras do paciente, reduza o escopo e indique 'baixa confiança por amostra insuficiente' em descricaoPerfil.\n3. Objeções verdadeiras: registre APENAS o que foi expresso de forma clara na transcrição.\n4. nivelAnsiedade e nivelReceptividade: calibre com base em palavras e tom da transcrição, não em médias do setor.\n5. Scripts LAER/PARE: devem endereçar a situação específica. Se não há objeção clara, retorne objecoes.verdadeiras como array vazio.\n6. Rapport: pontue APENAS com base em comportamentos observáveis na transcrição. Não assuma empatia implícita." },
             { role: "user", content: prompt }
           ],
           response_format: {
@@ -1521,8 +1498,16 @@ REGRAS INVIOLÁVEIS:
 
         const analysis = JSON.parse(analysisContent);
 
-        // Validação pós-parse não-bloqueante (campos obrigatórios + enums)
-        validateNeurovendasAnalysis(analysis, "consulta");
+        // Validação de ancoragem documental — não-bloqueante
+        if (!analysis.perfilPsicografico?.descricaoPerfil || analysis.perfilPsicografico.descricaoPerfil.length < 20) {
+          console.warn('[NEUROVENDAS] descricaoPerfil vazio ou muito curto — possível falha de ancoragem documental');
+        }
+        if (!Array.isArray(analysis.objecoes?.verdadeiras)) {
+          console.warn('[NEUROVENDAS] objecoes.verdadeiras ausente — possível falha de estrutura na resposta da IA');
+        }
+        if (!analysis.resumoExecutivo || analysis.resumoExecutivo.trim().length === 0) {
+          console.warn('[NEUROVENDAS] resumoExecutivo vazio — possível falha de ancoragem documental');
+        }
 
         // Save analysis to consultation
         await updateConsultation(input.consultationId, {

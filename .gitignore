@@ -106,8 +106,9 @@ temp/
 *.sqlite
 *.sqlite3
 
-# Metodologia de Neurovendas - arquivos proprietários (não versionar)
-server/metodologia/*.txt
+# Arquivos de metodologia proprietária (não commitar)
 server/metodologia/*.pdf
+server/metodologia/*.txt
 server/metodologia/*.docx
+server/metodologia/*.md
 !server/metodologia/README.md
