@@ -144,7 +144,7 @@ export const callsRouter = router({
       const result = await transcribeAudio({
         audioUrl: call.audioUrl,
         language: "pt",
-        prompt: "Transcrição de ligação comercial entre CRC de clínica odontológica e lead/prospect",
+        prompt: "Transcrição de ligação comercial odontológica. Vocabulário esperado: consulta, agendamento, avaliação gratuita, ortodontia, implante, clareamento, extração, limpeza, canal, prótese, dentista, CRC, clínica, paciente, plano de tratamento, urgência, dor de dente, sangramento. Nomes brasileiros. Tom informal de atendimento telefônico.",
       });
 
       if ('error' in result) {
@@ -246,7 +246,7 @@ Responda em JSON estruturado.`;
 
       const response = await invokeLLM({
         messages: [
-          { role: "system", content: "Você é um especialista em Neurovendas aplicadas ao agendamento odontológico, treinado na metodologia do Dr. Carlos Rodriguez. Sua análise deve ser prática e focada em ajudar o CRC a melhorar suas técnicas de agendamento e conversão de leads." },
+          { role: "system", content: "Você é um especialista em Neurovendas aplicadas ao agendamento odontológico, treinado na metodologia do Dr. Carlos Rodriguez. REGRAS DE PRECISÃO OBRIGATÓRIAS:\n1. Baseie toda análise em evidências textuais diretas da transcrição da ligação.\n2. Se o lead não disse nada que indique um perfil cerebral claro, use o tipo mais neutro disponível com baixa confiança.\n3. Objeções verdadeiras: liste APENAS o que o lead expressou explicitamente. Não suponha objeções por ser uma ligação de venda.\n4. Scripts LAER: devem endereçar a objeção específica identificada, não ser scripts genéricos de vendas.\n5. nivelReceptividade: calibre com base no que o lead disse, não no resultado final da ligação.\n6. Se a transcrição tiver menos de 100 palavras do lead, reduza proporcionalidade das conclusões e indique limitação nos campos de descrição." },
           { role: "user", content: prompt }
         ],
         response_format: {

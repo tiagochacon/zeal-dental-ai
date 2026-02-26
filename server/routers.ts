@@ -469,11 +469,11 @@ export const appRouter = router({
           throw new Error("Nota SOAP não disponível para gerar plano");
         }
 
-        const prompt = `Você é um assistente de IA odontológico especializado em planos de tratamento detalhados.\n\nGere um plano estruturado em JSON estritamente no formato abaixo, em português, com linguagem clínica clara e instruções detalhadas:\n\n{\n  \"summary\": \"...\",\n  \"steps\": [\n    {\n      \"title\": \"...\",\n      \"description\": \"...\",\n      \"duration\": \"...\",\n      \"frequency\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"medications\": [\n    {\n      \"name\": \"...\",\n      \"dose\": \"...\",\n      \"frequency\": \"...\",\n      \"duration\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"postOpInstructions\": [\"...\"],\n  \"warnings\": [\"...\"]\n}\n\nContexto:\n- Paciente: ${patient.name}\n- Histórico médico: ${patient.medicalHistory || "Não informado"}\n- Alergias: ${patient.allergies || "Não informado"}\n- Medicações em uso: ${patient.medications || "Não informado"}\n- Achados clínicos (SOAP): ${JSON.stringify(soapNote)}\n\nRegras:\n- Inclua cronogramas precisos (ex: \"a cada 12h por 8 dias\").\n- Inclua instruções pós-operatórias quando aplicável.\n- Não invente dados fora do contexto clínico fornecido.\n- Se não houver medicamento, deixe medications como array vazio.\n- Retorne apenas JSON válido.`;
+        const prompt = `Você é um assistente de IA odontológico especializado em planos de tratamento detalhados.\n\nGere um plano estruturado em JSON estritamente no formato abaixo, em português, com linguagem clínica clara e instruções detalhadas:\n\n{\n  \"summary\": \"...\",\n  \"steps\": [\n    {\n      \"title\": \"...\",\n      \"description\": \"...\",\n      \"duration\": \"...\",\n      \"frequency\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"medications\": [\n    {\n      \"name\": \"...\",\n      \"dose\": \"...\",\n      \"frequency\": \"...\",\n      \"duration\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"postOpInstructions\": [\"...\"],\n  \"warnings\": [\"...\"]\n}\n\nContexto:\n- Paciente: ${patient.name}\n- Histórico médico: ${patient.medicalHistory || "Não informado"}\n- Alergias: ${patient.allergies || "Não informado"}\n- Medicações em uso: ${patient.medications || "Não informado"}\n- Achados clínicos (SOAP): ${JSON.stringify(soapNote)}\n\nRegras:\n- Inclua cronogramas precisos (ex: \"a cada 12h por 8 dias\").\n- Inclua instruções pós-operatórias quando aplicável.\n- Não invente dados fora do contexto clínico fornecido.\n- Se os achados clínicos não incluem indicação para medicamentos, retorne "medications": [].\n- Se os achados clínicos não incluem procedimento cirúrgico, retorne "postOpInstructions": [].\n- Cada step do plano deve mapear diretamente a um tratamento listado nos achados do SOAP.\n- Se não houver medicamento, deixe medications como array vazio.\n- Retorne apenas JSON válido.`;
 
         const response = await invokeLLM({
           messages: [
-            { role: "system", content: "Você é um assistente especializado em planos odontológicos. Nunca invente dados clínicos." },
+            { role: "system", content: "Você é um assistente especializado em planos odontológicos. REGRAS OBRIGATÓRIAS:\n1. O plano deve ser derivado EXCLUSIVAMENTE dos dados clínicos fornecidos (nota SOAP, histórico médico, alergias, medicações).\n2. Nunca adicione procedimentos não citados ou inferidos da nota SOAP.\n3. Medicações: inclua APENAS se houver indicação clínica direta nos achados. Se não houver, retorne array vazio.\n4. Instruções pós-operatórias: inclua APENAS se houver procedimento cirúrgico ou invasivo no plano.\n5. Cronogramas (ex: 'a cada 12h por 8 dias') devem seguir protocolos odontológicos padrão para o procedimento indicado — nunca invente posologia.\n6. Se os dados clínicos forem insuficientes para gerar um passo, não o inclua." },
             { role: "user", content: prompt }
           ],
           response_format: {
@@ -703,7 +703,7 @@ export const appRouter = router({
         const result = await transcribeAudio({
           audioUrl: consultation.audioUrl,
           language: "pt",
-          prompt: "Consulta odontológica entre dentista e paciente. IMPORTANTE: Identifique e marque claramente cada falante usando 'Dentista:' ou 'Paciente:' no início de cada fala. Termos técnicos: cárie, gengivite, canal, restauração, periodontia, dente, molar, incisivo, prótese, implante, extração, obturação, profilaxia.",
+          prompt: "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro. Identifique e marque cada falante usando 'Dentista:' ou 'Paciente:'. Termos técnicos odontológicos precisam ser transcritos com exatidão.",
         });
 
         if ('error' in result) {
@@ -898,11 +898,19 @@ FORMATO DE SAÍDA (JSON):
   }
 }
 
-Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS.`;
+Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS.
+
+INSTRUÇÕES ANTI-ALUCINAÇÃO:
+- Cada campo da resposta deve ter evidência direta na transcrição acima.
+- Se a transcrição é curta ou incompleta, gere campos correspondentemente curtos/vazios.
+- NÃO EXPANDA informações além do que foi dito.
+- NÃO INFIRA condições clínicas a partir de sintomas sem que o dentista as tenha citado explicitamente.
+- Para dentes: classifique APENAS os mencionados explicitamente. Os demais devem ser 'not_evaluated'.
+- patientProfile: baseie-se APENAS em palavras literais do paciente na transcrição, não em inferências gerais.`;
 
         const response = await invokeLLM({
           messages: [
-            { role: "system", content: "Você é um assistente especializado em documentação odontológica brasileira. Sua prioridade é a fidelidade clínica - nunca invente dados." },
+            { role: "system", content: "Você é um assistente especializado em documentação odontológica brasileira. REGRAS OBRIGATÓRIAS DE FIDELIDADE:\n1. NUNCA invente, presuma ou complete dados que não aparecem literalmente na transcrição.\n2. Se uma informação não foi mencionada na transcrição, use string vazia '' para campos de texto, [] para arrays, e para classificações de dentes use exclusivamente 'not_evaluated'.\n3. Use aspas ou paráfrase próxima ao relatar queixas — não reescreva com suas próprias palavras.\n4. Diagnósticos devem ser prefixados com 'Hipótese:' quando não confirmados explicitamente pelo dentista na transcrição.\n5. Nunca adicione orientações, lembretes ou tratamentos que não foram discutidos na consulta.\n6. Sua função é EXTRAIR e ESTRUTURAR, não interpretar ou complementar." },
             { role: "user", content: prompt }
           ],
           response_format: {
@@ -1028,6 +1036,15 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
         }
         
         const soapNote: SOAPNote = JSON.parse(typeof content === 'string' ? content : JSON.stringify(content));
+
+        // Validação semântica anti-alucinação: rejeitar se campos críticos parecem inventados
+        const soapTranscriptWords = (consultation.transcript || '').toLowerCase().split(/\s+/);
+        const queixaWords = (soapNote.subjective as any)?.queixa_principal?.toLowerCase().split(/\s+/) || [];
+        const sharedWords = queixaWords.filter((w: string) => w.length > 4 && soapTranscriptWords.some((tw: string) => tw.includes(w.slice(0, 5))));
+        if (queixaWords.length > 3 && sharedWords.length === 0) {
+          console.warn('[SOAP] Possível alucinação: queixa_principal não tem correspondência na transcrição');
+          // Não lançar erro — apenas logar para monitoramento. O dado é salvo mas alertado.
+        }
 
         // Update consultation with SOAP note
         await updateConsultation(input.consultationId, {
@@ -1372,7 +1389,7 @@ Responda em JSON estruturado.`;
 
         const response = await invokeLLM({
           messages: [
-            { role: "system", content: "Você é um especialista em Neurovendas aplicadas à Odontologia, treinado na metodologia do Dr. Carlos Rodriguez. Sua análise deve ser prática, ética e focada em ajudar o dentista a comunicar melhor o valor dos tratamentos." },
+            { role: "system", content: "Você é um especialista em Neurovendas aplicadas à Odontologia, treinado na metodologia do Dr. Carlos Rodriguez. REGRAS DE PRECISÃO OBRIGATÓRIAS:\n1. Cada conclusão da análise deve citar evidência específica da transcrição (palavras, frases ou comportamentos observados).\n2. Se a transcrição for muito curta ou não contiver sinais suficientes, indique baixa confiança explicitamente nos campos de descrição.\n3. Objeções: liste APENAS objeções que aparecem de forma explícita ou fortemente implícita na transcrição — não suponha objeções típicas do setor.\n4. Sinais de linguagem: cite apenas palavras literais do paciente/lead, não paráfrases.\n5. Scripts sugeridos: devem ser coerentes com o perfil identificado na transcrição, não scripts genéricos.\n6. nivelAnsiedade e nivelReceptividade: baseie-se em evidências textuais concretas, não em médias populacionais." },
             { role: "user", content: prompt }
           ],
           response_format: {
