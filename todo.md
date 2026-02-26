@@ -907,3 +907,11 @@
 - [x] Loading state enquanto aguarda permissões
 - [x] Toast feedback por modo (sucesso/warning/info)
 - [x] 374 testes passando, zero erros TypeScript
+
+## Simplificação da Gravação CRC (v94)
+- [x] Remover getDisplayMedia e toda lógica de compartilhamento de tela
+- [x] Usar apenas getUserMedia (microfone) — funciona em qualquer navegador
+- [x] Adicionar orientação visual para CRC usar viva-voz/alto-falante
+- [x] Remover estados desnecessários (recordingMode, displayStream, audioContext)
+- [x] Simplificar UX: um clique para gravar, sem dialogs extras
+- [x] 374 testes passando, zero erros TypeScript
