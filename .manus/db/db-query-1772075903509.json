@@ -1,0 +1,180 @@
+{
+  "query": "SELECT id, name, email, role, clinicRole, clinicId, subscriptionStatus, subscriptionTier FROM users WHERE (subscriptionStatus = 'active' OR subscriptionStatus = 'trialing' OR trialStartedAt IS NOT NULL) AND (clinicRole IS NULL OR clinicRole != 'gestor');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT id, name, email, role, clinicRole, clinicId, subscriptionStatus, subscriptionTier FROM users WHERE (subscriptionStatus = 'active' OR subscriptionStatus = 'trialing' OR trialStartedAt IS NOT NULL) AND (clinicRole IS NULL OR clinicRole != 'gestor');",
+  "rows": [
+    {
+      "id": "2760013",
+      "name": "TIAGO OLIVEIRA DE SENNA CAAETE CHACON",
+      "email": "toscc@cin.ufpe.br",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "basic"
+    },
+    {
+      "id": "2760029",
+      "name": "teste ",
+      "email": "teste@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "2820001",
+      "name": "Fabio alexandre Rodrigues Netto",
+      "email": "fabionetto81@yahoo.com.br",
+      "role": "admin",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "2940092",
+      "name": "Tiago Chacon",
+      "email": "tiago.chacon@ufpe.br",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "pro"
+    },
+    {
+      "id": "3030001",
+      "name": "CARLOS  RODRIGUEZ",
+      "email": "drcarlosrodriguezbr@gmail.com",
+      "role": "admin",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "3060001",
+      "name": "leonardo brasil marechal",
+      "email": "leo_brasill@hotmail.com",
+      "role": "admin",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "3090004",
+      "name": "joão",
+      "email": "joao@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "3420113",
+      "name": "tiagosennachacon",
+      "email": "tiagosennachacon@gmail.com",
+      "role": "admin",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "unlimited"
+    },
+    {
+      "id": "3870063",
+      "name": "Victor hugo ",
+      "email": "vititovictorhugo@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "pro"
+    },
+    {
+      "id": "4110066",
+      "name": "teste pagamento",
+      "email": "testepagamento@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "basic"
+    },
+    {
+      "id": "4590021",
+      "name": "Fernando Vinicius Vargas Brito",
+      "email": "fernando@sorrio.com.br",
+      "role": "admin",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "4650006",
+      "name": "João silva",
+      "email": "drjoaosilva@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "4890018",
+      "name": "Tiago Teste",
+      "email": "tiagoteste@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "5130001",
+      "name": "Marcio Ahagon ",
+      "email": "marcioahagon@gmail.com",
+      "role": "admin",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "active",
+      "subscriptionTier": "unlimited"
+    },
+    {
+      "id": "5220001",
+      "name": "João Paulo da Silva Santos",
+      "email": "drjp_86@proton.me",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "5550001",
+      "name": "Dr. Alexandre Nascimento",
+      "email": "alexblnascimento@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    },
+    {
+      "id": "6030001",
+      "name": "Leticia Massa ",
+      "email": "leticiamassa29@gmail.com",
+      "role": "user",
+      "clinicRole": "NULL",
+      "clinicId": "NULL",
+      "subscriptionStatus": "inactive",
+      "subscriptionTier": "trial"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tname\temail\trole\tclinicRole\tclinicId\tsubscriptionStatus\tsubscriptionTier\n2760013\tTIAGO OLIVEIRA DE SENNA CAAETE CHACON\ttoscc@cin.ufpe.br\tuser\tNULL\tNULL\tactive\tbasic\n2760029\tteste \tteste@gmail.com\tuser\tNULL\tNULL\tinactive\ttrial\n2820001\tFabio alexandre Rodrigues Netto\tfabionetto81@yahoo.com.br\tadmin\tNULL\tNULL\tactive\ttrial\n2940092\tTiago Chacon\ttiago.chacon@ufpe.br\tuser\tNULL\tNULL\tactive\tpro\n3030001\tCARLOS  RODRIGUEZ\tdrcarlosrodriguezbr@gmail.com\tadmin\tNULL\tNULL\tactive\ttrial\n3060001\tleonardo brasil marechal\tleo_brasill@hotmail.com\tadmin\tNULL\tNULL\tactive\ttrial\n3090004\tjoão\tjoao@gmail.com\tuser\tNULL\tNULL\tinactive\ttrial\n3420113\ttiagosennachacon\ttiagosennachacon@gmail.com\tadmin\tNULL\tNULL\tactive\tunlimited\n3870063\tVictor hugo \tvititovictorhugo@gmail.com\tuser\tNULL\tNULL\tactive\tpro\n4110066\tteste pagamento\ttestepagamento@gmail.com\tuser\tNULL\tNULL\tactive\tbasic\n4590021\tFernando Vinicius Vargas Brito\tfernando@sorrio.com.br\tadmin\tNULL\tNULL\tinactive\ttrial\n4650006\tJoão silva\tdrjoaosilva@gmail.com\tuser\tNULL\tNULL\tinactive\ttrial\n4890018\tTiago Teste\ttiagoteste@gmail.com\tuser\tNULL\tNULL\tinactive\ttrial\n5130001\tMarcio Ahagon \tmarcioahagon@gmail.com\tadmin\tNULL\tNULL\tactive\tunlimited\n5220001\tJoão Paulo da Silva Santos\tdrjp_86@proton.me\tuser\tNULL\tNULL\tinactive\ttrial\n5550001\tDr. Alexandre Nascimento\talexblnascimento@gmail.com\tuser\tNULL\tNULL\tinactive\ttrial\n6030001\tLeticia Massa \tleticiamassa29@gmail.com\tuser\tNULL\tNULL\tinactive\ttrial\n",
+  "stderr": "",
+  "execution_time_ms": 61
+}

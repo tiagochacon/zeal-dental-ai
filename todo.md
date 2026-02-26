@@ -863,3 +863,9 @@
 - [x] server/routers.ts — auth.emailLogin tem redirectTo = '/gestor' (já existia)
 - [x] Todos os arquivos TypeScript compilam sem erros
 - [x] A função é IDEMPOTENTE — 374 testes passando
+
+## Bug Crítico: Usuários com assinatura não são gestor (v91)
+- [x] Diagnosticar: 17 usuários sem clinicRole='gestor' identificados
+- [x] Corrigir dados: script migrate-gestors.mjs executado, 17 usuários promovidos a gestor com clínicas criadas
+- [x] Corrigir código: emailLogin agora chama ensureUserIsGestor automaticamente se user tem assinatura ativa mas não é gestor
+- [x] 374 testes passando, zero erros TypeScript

@@ -234,6 +234,24 @@ export const appRouter = router({
           maxAge: ONE_YEAR_MS,
         });
 
+        // Auto-fix: if user has active subscription but no clinicRole, promote to gestor
+        // This catches edge cases where ensureUserIsGestor wasn't called during activation
+        if (!user.clinicRole && (user.subscriptionStatus === 'active' || user.subscriptionStatus === 'trialing')) {
+          try {
+            const { ensureUserIsGestor } = await import('./db');
+            await ensureUserIsGestor(user.id);
+            // Refresh user data after promotion
+            const updatedUser = await getUserById(user.id);
+            if (updatedUser) {
+              user.clinicRole = updatedUser.clinicRole;
+              user.clinicId = updatedUser.clinicId;
+            }
+            console.log(`[Auth] Auto-fixed: User ${user.id} promoted to gestor on login`);
+          } catch (err) {
+            console.error(`[Auth] Auto-fix failed for user ${user.id}:`, err);
+          }
+        }
+
         // For CRC/Dentista, return gestor's subscription status
         let effectiveSubscriptionStatus = user.subscriptionStatus;
         let redirectTo = '/';
