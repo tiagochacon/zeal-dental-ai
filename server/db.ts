@@ -654,6 +654,55 @@ export async function getClinicById(id: number): Promise<Clinic | undefined> {
   return result.length > 0 ? result[0] : undefined;
 }
 
+/**
+ * Ensure a user becomes a gestor with a clinic.
+ * If user already has a clinicId, just ensure clinicRole='gestor'.
+ * If user has no clinicId, create a new clinic and assign them as gestor.
+ */
+export async function ensureUserIsGestor(userId: number): Promise<{ clinicId: number }> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+  if (!user.length) throw new Error("User not found");
+
+  const currentUser = user[0];
+
+  if (currentUser.clinicId) {
+    // User already has a clinic — just ensure they are gestor
+    if (currentUser.clinicRole !== 'gestor') {
+      await db.update(users).set({ clinicRole: 'gestor' }).where(eq(users.id, userId));
+    }
+    return { clinicId: currentUser.clinicId };
+  }
+
+  // Check if user already owns a clinic (edge case: clinicId not set but clinic exists)
+  const existingClinic = await db.select().from(clinics).where(eq(clinics.ownerId, userId)).limit(1);
+  if (existingClinic.length) {
+    await db.update(users).set({ 
+      clinicId: existingClinic[0].id, 
+      clinicRole: 'gestor' 
+    }).where(eq(users.id, userId));
+    return { clinicId: existingClinic[0].id };
+  }
+
+  // Create a new clinic
+  const clinicName = currentUser.name ? `Clínica ${currentUser.name}` : 'Minha Clínica';
+  const result = await db.insert(clinics).values({
+    name: clinicName,
+    ownerId: userId,
+  });
+  const insertId = result[0].insertId;
+
+  // Update user with new clinic
+  await db.update(users).set({ 
+    clinicId: insertId, 
+    clinicRole: 'gestor' 
+  }).where(eq(users.id, userId));
+
+  return { clinicId: insertId };
+}
+
 export async function getClinicByOwnerId(ownerId: number): Promise<Clinic | undefined> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

@@ -817,3 +817,35 @@
 - [x] Aviso para arquivos grandes (>25MB) sugerindo formato comprimido
 - [x] Testes unitários para audioUpload (19 testes passando)
 - [x] Todos os 347 testes passando (18 arquivos)
+
+## Sistema de Planos, Acesso e Classificação de Contas (v89)
+### FASE 1 — Auditoria
+- [x] Ler e mapear estado de server/billing.ts — PLAN_CONFIG correto
+- [x] Ler e mapear estado de server/clinicBilling.ts — getEffectiveBillingUser correto
+- [x] Ler e mapear estado de server/_core/trpc.ts — procedures corretas
+- [x] Ler e mapear estado de server/routers.ts — startTrial falta criar clínica/gestor
+- [x] Ler e mapear estado de server/db.ts — createClinic existe, falta helper p/ clinicRole
+- [x] Ler e mapear estado de drizzle/schema.ts — campos corretos
+- [x] Ler e mapear estado de server/stripe/webhook.ts — falta criar clínica/gestor pós-pagamento
+- [x] Ler e mapear estado de client/src/pages/Pricing.tsx — redirect para / em vez de /gestor
+- [x] Ler e mapear estado de client/src/components/UsageIndicator.tsx — lê user direto, price IDs legados
+- [x] Ler e mapear estado de client/src/pages/ConsultationDetail.tsx — verifica user direto, não usa API
+- [x] Ler e mapear estado de client/src/pages/CallDetail.tsx — sem verificação de plano
+- [x] Ler e mapear estado de client/src/pages/LeadDetail.tsx — sem verificação de plano
+- [x] Ler e mapear estado de client/src/pages/Dashboard.tsx — não redireciona gestor
+### FASE 2 — Backend
+- [x] 2A: startTrial → criar clínica + setar clinicRole='gestor' via ensureUserIsGestor
+- [x] 2B: auth.register → retornar redirectTo: '/pricing'
+- [x] 2C: webhook Stripe → criar clínica + setar clinicRole='gestor' pós-pagamento via ensureUserIsGestor
+- [x] Helper ensureUserIsGestor criado em server/db.ts
+### FASE 3 — Frontend
+- [x] 3A: UsageIndicator → usa trpc.billing.getPlanInfo (cache 30s, skeleton loading)
+- [x] 3B: ConsultationDetail → aba Negociação condicional via planInfo.hasNegotiationAccess
+- [x] 3C: CallDetail → botão Analisar Neurovendas condicional + tooltip + Lock icon
+- [x] 3D: LeadDetail → Perfil de Neurovendas condicional + Lock + CTA upgrade
+- [x] 3E: Dashboard.tsx → redirect gestor para /gestor
+- [x] 3F: Pricing.tsx → redirect para /gestor após trial e após pagamento
+### FASE 4 — Verificação
+- [x] TypeScript: zero erros (LSP + tsc)
+- [x] Testes vitest: 374 testes passando (19 arquivos), incluindo 27 novos testes de billing-flow
+- [x] Checklist funcional completo verificado

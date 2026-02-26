@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck, Brain, Shield, Heart, TrendingUp, Target } from "lucide-react";
+import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck, Brain, Shield, Heart, TrendingUp, Target, Lock, Crown } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useLocation, Link, useParams } from "wouter";
 import { useState, useEffect } from "react";
@@ -205,6 +205,13 @@ export default function LeadDetail() {
   const leadId = parseInt(params.id || "0");
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ name: "", phone: "", email: "", source: "", notes: "" });
+
+  // Check negotiation access via billing API (respects clinic inheritance)
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, {
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+  });
+  const hasNegotiationAccess = planInfo?.hasNegotiationAccess ?? (user?.role === 'admin');
 
   const leadQuery = trpc.leads.getById.useQuery({ id: leadId }, {
     enabled: !!user && leadId > 0,
@@ -463,8 +470,25 @@ export default function LeadDetail() {
         </div>
 
         {/* Neurovendas Profile */}
-        {lead.callProfile && (
+        {lead.callProfile && hasNegotiationAccess && (
           <NeurovendasProfileCard callProfile={lead.callProfile} />
+        )}
+        {lead.callProfile && !hasNegotiationAccess && (
+          <div className="bg-card border border-border rounded-xl p-4 mt-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-semibold text-muted-foreground">Perfil de Neurovendas</p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Disponível no plano PRO. Faça upgrade para ver o perfil comportamental do lead.
+            </p>
+            <Link href="/pricing">
+              <Button size="sm" variant="outline" className="mt-3 flex items-center gap-2">
+                <Crown className="h-4 w-4" />
+                Ver Planos
+              </Button>
+            </Link>
+          </div>
         )}
       {/* Convert Lead Dialog */}
       <Dialog open={showConvertDialog} onOpenChange={setShowConvertDialog}>

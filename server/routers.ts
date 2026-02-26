@@ -216,7 +216,7 @@ export const appRouter = router({
           maxAge: ONE_YEAR_MS,
         });
         
-        return { id: user.id, email: user.email, name: user.name, role: user.role };
+        return { id: user.id, email: user.email, name: user.name, role: user.role, redirectTo: '/pricing' };
       }),
     emailLogin: publicProcedure
       .input(z.object({ email: z.string().email("Email invalido"), password: z.string().min(1, "Senha obrigatoria") }))
@@ -1117,7 +1117,7 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
 
     // Start free trial
     startTrial: protectedProcedure.mutation(async ({ ctx }) => {
-      const { startUserTrial } = await import('./db');
+      const { startUserTrial, ensureUserIsGestor } = await import('./db');
       const { calculateTrialEndDate } = await import('./billing');
       
       const user = await getUserById(ctx.user.id);
@@ -1130,6 +1130,9 @@ Seja preciso, conciso e use terminologia clínica apropriada. NÃO INVENTE DADOS
       
       const trialEndDate = calculateTrialEndDate();
       await startUserTrial(ctx.user.id, trialEndDate);
+      
+      // Ensure user becomes gestor with a clinic
+      await ensureUserIsGestor(ctx.user.id);
       
       return { success: true, trialEndsAt: trialEndDate };
     }),

@@ -2,7 +2,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle, Lock } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link, useParams } from "wouter";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -20,6 +21,13 @@ export default function CallDetail() {
     enabled: !!user && callId > 0,
     refetchOnWindowFocus: false,
   });
+
+  // Check negotiation access via billing API (respects clinic inheritance)
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, {
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+  });
+  const hasNegotiationAccess = planInfo?.hasNegotiationAccess ?? (user?.role === 'admin');
 
   const utils = trpc.useUtils();
 
@@ -196,22 +204,41 @@ export default function CallDetail() {
                 </div>
                 <span className="text-sm font-semibold text-foreground">Analisar</span>
               </div>
-              <Button
-                onClick={() => analyze.mutate({ callId })}
-                disabled={!step2Available || step2Done || analyze.isPending}
-                size="sm"
-                className={`w-full ${step2Done ? "bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30" : "bg-purple-600 hover:bg-purple-700"}`}
-                variant={step2Done ? "outline" : "default"}
-              >
-                {analyze.isPending ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-1" />
-                ) : step2Done ? (
-                  <CheckCircle className="h-4 w-4 mr-1" />
-                ) : (
-                  <Brain className="h-4 w-4 mr-1" />
-                )}
-                {step2Done ? "Concluído" : "Neurovendas"}
-              </Button>
+              {!hasNegotiationAccess && !step2Done ? (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      disabled
+                      size="sm"
+                      className="w-full opacity-60 cursor-not-allowed"
+                      variant="outline"
+                    >
+                      <Lock className="h-4 w-4 mr-1" />
+                      Plano PRO
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Análise de Neurovendas disponível no plano PRO</p>
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <Button
+                  onClick={() => analyze.mutate({ callId })}
+                  disabled={!step2Available || step2Done || analyze.isPending}
+                  size="sm"
+                  className={`w-full ${step2Done ? "bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30" : "bg-purple-600 hover:bg-purple-700"}`}
+                  variant={step2Done ? "outline" : "default"}
+                >
+                  {analyze.isPending ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-1" />
+                  ) : step2Done ? (
+                    <CheckCircle className="h-4 w-4 mr-1" />
+                  ) : (
+                    <Brain className="h-4 w-4 mr-1" />
+                  )}
+                  {step2Done ? "Concluído" : "Neurovendas"}
+                </Button>
+              )}
             </div>
 
             {/* Arrow */}
@@ -348,7 +375,7 @@ export default function CallDetail() {
         )}
 
         {/* Neurovendas Analysis */}
-        {neurovendas && (
+        {neurovendas && hasNegotiationAccess && (
           <div className="bg-card border border-border rounded-xl p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <Brain className="h-5 w-5 text-purple-400" />

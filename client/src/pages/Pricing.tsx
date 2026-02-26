@@ -94,7 +94,7 @@ export default function Pricing() {
       refresh().then(() => {
         window.history.replaceState({}, "", "/pricing");
         setTimeout(() => {
-          setLocation("/");
+          window.location.href = "/gestor";
         }, 1500);
       });
     }
@@ -104,7 +104,7 @@ export default function Pricing() {
     onSuccess: () => {
       toast.success("Trial ativado com sucesso! Bem-vindo ao ZEAL!");
       refresh().then(() => {
-        window.location.href = "/";
+        window.location.href = "/gestor";
       });
     },
     onError: (error) => {

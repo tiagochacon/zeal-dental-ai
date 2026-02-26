@@ -5,7 +5,8 @@ import {
   updateUserByStripeCustomerId,
   updateUserSubscription,
   getUserById,
-  getUserByEmail
+  getUserByEmail,
+  ensureUserIsGestor
 } from "../db";
 import { 
   getTierFromPriceId, 
@@ -377,6 +378,14 @@ async function handleCheckoutCompleted(eventId: string, session: Stripe.Checkout
       subscriptionTier: subscriptionTier,
       consultationCount: 0, // CRITICAL: Reset consultation count when activating new subscription
     });
+
+    // Ensure user becomes gestor with a clinic after payment
+    try {
+      await ensureUserIsGestor(targetUserId);
+      console.log(`[Webhook] ✅ User ${targetUserId} promoted to gestor with clinic`);
+    } catch (err) {
+      console.error(`[Webhook] ⚠️ Failed to ensure gestor status: ${err}`);
+    }
 
     console.log(`[Webhook] ✅ User ${targetUserId} activated with tier: ${subscriptionTier.toUpperCase()}`);
     console.log(`[Webhook] ✅ Consultation count RESET to 0 for new subscription`);

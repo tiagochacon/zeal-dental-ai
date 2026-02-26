@@ -55,15 +55,12 @@ export default function ConsultationDetail() {
     { enabled: !!user && !!consultationId }
   );
 
-  // Check if user has access to Negotiation tab
-  // Trial, Pro, Unlimited and Admin have access to Negotiation tab
-  // Only Basic users should see upgrade modal
-  const isTrialActive = user?.trialEndsAt && new Date(user.trialEndsAt) > new Date();
-  const hasNegotiationAccess = user?.role === 'admin' || 
-    user?.subscriptionTier === 'pro' || 
-    user?.subscriptionTier === 'unlimited' ||
-    user?.priceId === 'unlimited' ||
-    isTrialActive;
+  // Use billing API to check negotiation access (respects clinic inheritance)
+  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery(undefined, {
+    enabled: !!user,
+    refetchOnWindowFocus: false,
+  });
+  const hasNegotiationAccess = planInfo?.hasNegotiationAccess ?? (user?.role === 'admin');
   
   // Check if this is an old consultation with existing neurovendas data (allow read access)
   const hasExistingNeurovendasData = !!consultation?.neurovendasAnalysis;

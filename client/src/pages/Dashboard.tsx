@@ -13,10 +13,12 @@ export default function Dashboard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
 
-  // Redirect CRC users to their dashboard
+  // Redirect users to their role-specific dashboard
   useEffect(() => {
     if (user?.clinicRole === 'crc') {
       setLocation('/crc');
+    } else if (user?.clinicRole === 'gestor') {
+      setLocation('/gestor');
     }
   }, [user, setLocation]);
 
