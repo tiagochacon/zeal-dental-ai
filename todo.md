@@ -954,3 +954,31 @@
 - [x] Corrigir erro TS2353: adicionar callInsights ao tipo Partial do updateCall no db.ts
 - [x] Schema do banco já continha a coluna callInsights — sem migração necessária
 - [x] 402 testes passando, zero erros TypeScript, servidor respondendo HTTP 200
+
+## Auditoria Anti-Alucinação + Custo por Consulta (v97)
+### FASE 1 — Diagnóstico
+- [ ] Mapear todas as chamadas invokeLLM no projeto
+- [ ] Registrar arquivo, linha, função, parâmetros, tratamento de erro
+- [ ] Classificar risco por chamada
+### FASE 2 — Causa Raiz
+- [ ] Verificar temperature, system messages, response_format, max_tokens, retry, context window
+### FASE 3 — Correções Obrigatórias
+- [ ] 3a: Parâmetros anti-alucinação (temperature 0.1, top_p 0.95, etc.)
+- [ ] 3b: System messages restritivas
+- [ ] 3c: Response format json_schema strict em todas as chamadas
+- [ ] 3d: Retry com backoff + validação JSON
+- [ ] 3e: Grounding — ancorar em dados reais
+- [ ] 3f: Controle de context window
+### FASE 4 — Otimização de Custo
+- [ ] Remover redundâncias nos prompts
+- [ ] Cache de system messages
+- [ ] Evitar re-análise desnecessária
+- [ ] Ajustar max_tokens por tipo de chamada
+### FASE 5 — Validação Semântica
+- [ ] Validação de enums (urgency, status, classificações)
+- [ ] Validação de ranges numéricos
+- [ ] Null safety para campos obrigatórios
+### FASE 6 — Verificação Final
+- [ ] Checklist completo
+- [ ] Testes vitest passando
+- [ ] Relatório de custo por consulta (tokens + USD)
