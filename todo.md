@@ -995,3 +995,7 @@
 - [x] Implementar fallback seguro (neurovendasFallback.ts) — retorna objeto válido quando LLM falha
 - [x] 415 testes vitest passando (21 arquivos), zero erros TypeScript
 - [x] Servidor reiniciado e funcionando
+
+## Bug Fix: Probabilidade de Agendamento 800%
+- [x] Corrigir cálculo de probabilidadeAgendamento para ficar entre 0-100%
+- [x] Clamp valor com Math.min(100, Math.max(0, ...)) + detecção automática se valor já é percentual

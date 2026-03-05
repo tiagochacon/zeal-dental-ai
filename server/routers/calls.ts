@@ -505,7 +505,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
           await updateLead(call.leadId, {
             callProfile: {
               nivelCerebralDominante: perfil?.nivelCerebralDominante || 'limbico',
-              probabilidadeAgendamento: (perfil?.nivelReceptividade || 0) * 10,
+              probabilidadeAgendamento: Math.min(100, Math.max(0, Math.round(((perfil?.nivelReceptividade || 0) <= 10 ? (perfil?.nivelReceptividade || 0) * 10 : perfil?.nivelReceptividade || 0)))),
               resumo: perfil?.descricaoPerfil || '',
             },
             neurovendasAnalysis: analysis as any,
