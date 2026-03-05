@@ -1,7 +1,8 @@
 /**
  * Validação pós-parse não-bloqueante para análises de Neurovendas.
  * 
- * Verifica campos obrigatórios e valores de enums categóricos,
+ * Verifica campos obrigatórios, valores de enums categóricos,
+ * ranges numéricos, completude de scripts e campos truncados,
  * logando warnings sem bloquear a resposta ao usuário.
  */
 
@@ -32,6 +33,13 @@ export const RAPPORT_BREAKDOWN_FIELDS = [
   "ausenciaInterrupcoes",
 ] as const;
 
+export const SCRIPT_PARE_FIELDS = [
+  "problema",
+  "amplificacao",
+  "resolucao",
+  "engajamento",
+] as const;
+
 export interface ValidationWarning {
   field: string;
   issue: string;
@@ -58,7 +66,7 @@ export function validateNeurovendasAnalysis(
       }
     }
 
-    // 2. Validate perfilPsicografico enums
+    // 2. Validate perfilPsicografico enums and ranges
     const perfil = analysis.perfilPsicografico as Record<string, unknown> | undefined;
     if (perfil) {
       if (perfil.nivelCerebralDominante && !(VALID_ENUMS.nivelCerebralDominante as readonly string[]).includes(perfil.nivelCerebralDominante as string)) {
@@ -88,6 +96,14 @@ export function validateNeurovendasAnalysis(
           field: "perfilPsicografico.nivelReceptividade",
           issue: "Valor fora do range esperado (0-10)",
           value: perfil.nivelReceptividade,
+        });
+      }
+      // Validate descricaoPerfil is not empty/too short
+      if (!perfil.descricaoPerfil || (typeof perfil.descricaoPerfil === 'string' && perfil.descricaoPerfil.trim().length < 20)) {
+        warnings.push({
+          field: "perfilPsicografico.descricaoPerfil",
+          issue: "Descrição do perfil vazia ou muito curta (mínimo 20 caracteres)",
+          value: perfil.descricaoPerfil,
         });
       }
     }
@@ -135,9 +151,36 @@ export function validateNeurovendasAnalysis(
           value: tecnica.tipo,
         });
       }
+      // Validate passos is not empty
+      if (!Array.isArray(tecnica.passos) || tecnica.passos.length === 0) {
+        warnings.push({
+          field: "tecnicaObjecao.passos",
+          issue: "Array de passos vazio — possível truncamento",
+        });
+      }
     }
 
-    // 6. Validate rapport breakdown fields and ranges
+    // 6. Validate scriptPARE completude (anti-truncamento)
+    const scriptPARE = analysis.scriptPARE as Record<string, unknown> | undefined;
+    if (scriptPARE) {
+      for (const field of SCRIPT_PARE_FIELDS) {
+        const value = scriptPARE[field];
+        if (!value || (typeof value === 'string' && value.trim().length === 0)) {
+          warnings.push({
+            field: `scriptPARE.${field}`,
+            issue: "Campo vazio — possível truncamento de tokens",
+            value,
+          });
+        }
+      }
+    } else {
+      warnings.push({
+        field: "scriptPARE",
+        issue: "Objeto scriptPARE completamente ausente — possível truncamento severo",
+      });
+    }
+
+    // 7. Validate rapport breakdown fields and ranges
     const rapport = analysis.rapport as Record<string, unknown> | undefined;
     if (rapport) {
       if (typeof rapport.nivel === "number" && (rapport.nivel < 0 || rapport.nivel > 100)) {
@@ -158,6 +201,21 @@ export function validateNeurovendasAnalysis(
             });
           }
         }
+      } else {
+        warnings.push({
+          field: "rapport.breakdown",
+          issue: "Breakdown de rapport ausente — possível truncamento",
+        });
+      }
+    }
+
+    // 8. Validate resumoExecutivo (optional but important)
+    if (analysis.resumoExecutivo !== undefined) {
+      if (typeof analysis.resumoExecutivo === 'string' && analysis.resumoExecutivo.trim().length === 0) {
+        warnings.push({
+          field: "resumoExecutivo",
+          issue: "Resumo executivo vazio",
+        });
       }
     }
 

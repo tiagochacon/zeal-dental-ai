@@ -15,6 +15,9 @@ import {
 import { storagePut } from "../storage";
 import { transcribeAudio } from "../_core/voiceTranscription";
 import { invokeLLM } from "../_core/llm";
+import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
+import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
+import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { nanoid } from "nanoid";
 
@@ -257,55 +260,77 @@ export const callsRouter = router({
       }
 
       const metodologiaContext = await getMetodologiaContext();
+      const leadWordCount = countPatientWords(call.transcript || '');
+
+      const systemMessage = `Você é um especialista em análise comportamental e neurovendas odontológicas, baseado na metodologia do Dr. Carlos Rodriguez. Sua função é EXCLUSIVAMENTE analisar transcrições de ligações comerciais (CRC → Lead) e extrair padrões de comportamento, motivações e técnicas de comunicação.
+
+REGRAS ABSOLUTAS — NÃO NEGOCIÁVEIS:
+
+1. FIDELIDADE AOS DADOS:
+   - Extraia APENAS informações explicitamente presentes na transcrição.
+   - Se uma informação não está na transcrição, retorne string vazia '' — NUNCA invente.
+   - Não suponha objeções por ser uma ligação de venda.
+   - Use EXATAMENTE a nomenclatura e categorias definidas no schema de saída.
+
+2. VALIDAÇÃO DE TAMANHO:
+   - Se a transcrição do lead tiver menos de 100 palavras, indique: 'Amostra insuficiente — conclusões com baixa confiança' em descricaoPerfil.
+   - Mesmo assim, preencha TODOS os campos com os dados disponíveis.
+
+3. CAMPOS OBRIGATÓRIOS:
+   - TODOS os campos do schema devem ser preenchidos (nunca deixe vazio ou null).
+   - Campos de texto: use '' (string vazia) se não houver dados.
+   - Campos de número: use 0 se não houver dados.
+   - Campos de array: use [] se não houver dados.
+
+4. CONTEXTO:
+   - Esta é uma ligação de prospecção/agendamento telefônico.
+   - O foco é agendamento, NÃO fechamento de tratamento.
+   - Scripts e gatilhos devem refletir esse objetivo.
+
+5. METODOLOGIA:
+   - Use apenas os documentos de metodologia fornecidos — não use conhecimento externo.`;
 
       const prompt = `DOCUMENTOS DE METODOLOGIA (base obrigatória para toda análise):
 ${metodologiaContext}
 
 --- FIM DOS DOCUMENTOS ---
 
-TRANSCRIÇÃO DA LIGAÇÃO COMERCIAL (CRC → Lead):
+CONTEXTO DA LIGAÇÃO:
+- Número de palavras do lead: ~${leadWordCount} palavras
+- Tipo: Ligação comercial CRC → Lead (prospecção/agendamento)
+- Metodologia disponível: sim
+
+TRANSCRIÇÃO DA LIGAÇÃO:
 ${call.transcript}
 
-CONTEXTO: Esta é uma ligação de prospecção/agendamento telefônico. O CRC está tentando agendar uma consulta para o lead/prospect na clínica odontológica. O foco é na comunicação telefônica e técnicas de agendamento — não fechamento de tratamento.
+INSTRUÇÕES ESPECÍFICAS:
 
-INSTRUÇÃO PRINCIPAL:
-Analise a transcrição acima usando EXCLUSIVAMENTE os frameworks, técnicas, nomenclaturas e categorias definidos nos DOCUMENTOS DE METODOLOGIA acima. Se um conceito pedido abaixo não estiver documentado, deixe o campo vazio ('') ou array vazio ([]).
+1. Analise a transcrição acima e extraia os padrões de comportamento do LEAD (não do CRC).
 
-1. PERFIL COMPORTAMENTAL DO LEAD:
-- Identifique o perfil/nível cerebral dominante usando EXATAMENTE a nomenclatura dos documentos
-- Determine a motivação primária conforme categorias dos documentos
-- Avalie o nível de receptividade ao agendamento (1-10) com base em evidências textuais da transcrição
+2. Identifique:
+   a) Nível cerebral dominante (reptiliano, limbico, neocortex)
+   b) Motivação primária (alivio_dor, estetica, status, saude)
+   c) Gatilhos mentais (transformacao, saude_longevidade, status, conforto, exclusividade)
+   d) Objeções verdadeiras e ocultas (categoria: financeira, medo, tempo, confianca, outra)
+   e) Técnicas de objeção sugeridas (LAER ou redirecionamento)
+   f) Nível de rapport (0-100) e breakdown
+   g) Sinais de linguagem (positivos e negativos)
 
-2. OBJEÇÕES IDENTIFICADAS:
-- Liste APENAS objeções expressas explicitamente pelo lead na transcrição. Não suponha objeções por ser uma ligação de venda.
-- Para CADA objeção, forneça SCRIPT COMPLETO de resposta derivado dos modelos dos documentos, que o CRC pode usar na próxima ligação
-- Liste possíveis objeções ocultas/falsas somente se evidenciadas na transcrição
+3. Preencha TODOS os campos do schema — nunca deixe vazio.
 
-3. SINAIS DE LINGUAGEM:
-- Cite APENAS palavras literais do lead encontradas na transcrição (não paráfrases)
-- Sinais positivos de interesse no agendamento
-- Sinais de resistência ou objeção oculta
+4. ${leadWordCount < 100 ? `ATENÇÃO: Transcrição com apenas ~${leadWordCount} palavras do lead. Indique 'Amostra insuficiente' na descrição do perfil, mas continue preenchendo todos os campos.` : 'Transcrição com volume adequado para análise.'}
 
-4. GATILHOS MENTAIS RECOMENDADOS:
-- Liste APENAS gatilhos catalogados nos documentos de metodologia, adequados para contexto de agendamento
+5. Use EXATAMENTE os valores de enum definidos no schema — sem variações.
 
-5. SCRIPT DE FECHAMENTO:
-- Use o modelo definido nos documentos adaptado ao objetivo de agendamento desta ligação
+6. Para scriptPARE: crie um script COMPLETO adaptado ao contexto de AGENDAMENTO desta ligação.
 
-6. NÍVEL DE RAPPORT (0-100):
-- Calcule usando os critérios e pesos definidos nos documentos de metodologia
-- Cite evidência textual da transcrição para cada critério pontuado
+7. Para tecnicaObjecao: forneça passos ESPECÍFICOS para o CRC usar na próxima ligação.
 
-RESTRIÇÕES ANTI-ALUCINAÇÃO:
-- Use APENAS nomenclaturas e categorias dos documentos fornecidos
-- Cite a frase exata da transcrição para cada conclusão comportamental
-- Se a transcrição tiver menos de 100 palavras do lead, indique 'Amostra insuficiente — conclusões com baixa confiança' em descricaoPerfil
-- NÃO complete com conhecimento geral de vendas externo aos documentos
-- Responda em JSON estruturado`;
+RETORNE APENAS O JSON, sem explicações adicionais.`;
 
-      const response = await invokeLLM({
+      const response = await invokeLLMWithRetry({
         messages: [
-          { role: "system", content: "Você é um especialista em análise de perfil comportamental e comunicação persuasiva aplicada ao agendamento odontológico. Sua única base de conhecimento para esta análise são os DOCUMENTOS DE METODOLOGIA fornecidos no contexto do usuário. NÃO use conhecimento externo sobre vendas, psicologia ou neuromarketing que não esteja explicitamente nesses documentos.\n\nREGRAS DE FIDELIDADE DOCUMENTAL:\n1. Cada framework, técnica, categoria ou script que você citar deve ter origem rastreável nos documentos de metodologia fornecidos. Se não encontrar, use '' ou [] para o campo.\n2. Os perfis de comportamento do lead devem usar EXATAMENTE a nomenclatura presente nos documentos — não renomeie nem adapte.\n3. As técnicas de resposta a objeções devem seguir EXATAMENTE a estrutura definida nos documentos.\n4. Gatilhos mentais: liste APENAS os catalogados nos documentos. Não invente gatilhos não documentados.\n5. Scripts sugeridos devem ser derivados dos modelos e exemplos dos documentos, adaptados à transcrição.\n6. Se os documentos NÃO cobrem algum aspecto do JSON schema, retorne '' ou [].\n\nREGRAS DE PRECISÃO BASEADA EM EVIDÊNCIA TEXTUAL:\n1. Baseie toda análise em evidências textuais diretas da transcrição da ligação.\n2. Se o lead não disse nada que indique um perfil claro, use o tipo mais neutro disponível com baixa confiança.\n3. Objeções verdadeiras: liste APENAS o que o lead expressou explicitamente. Não suponha objeções por ser uma ligação de venda.\n4. Scripts de resposta: devem endereçar a objeção específica identificada, não ser scripts genéricos.\n5. nivelReceptividade: calibre com base no que o lead disse, não no resultado final da ligação.\n6. Rapport: pontue APENAS com base em comportamentos observáveis na transcrição.\n7. Esta é uma ligação telefônica de prospecção — o contexto é agendamento, não fechamento de tratamento. Scripts e gatilhos devem refletir esse objetivo conforme definido nos documentos.\n8. Se a transcrição tiver menos de 100 palavras do lead, declare explicitamente em descricaoPerfil: 'Amostra insuficiente — conclusões com baixa confiança'." },
+          { role: "system", content: systemMessage },
           { role: "user", content: prompt }
         ],
         response_format: {
@@ -434,24 +459,41 @@ RESTRIÇÕES ANTI-ALUCINAÇÃO:
         }
       });
 
+      // Se retry falhou completamente, usar fallback
+      if (!response) {
+        console.error('[NEUROVENDAS-CRC] Todas as tentativas falharam — usando fallback seguro');
+        const fallback = getNeurovendasFallback();
+        await updateCall(input.callId, { neurovendasAnalysis: fallback as any, status: "analyzed" });
+        return { success: true, analysis: fallback, fallback: true };
+      }
+
       const analysisContent = response.choices?.[0]?.message?.content;
       if (!analysisContent || typeof analysisContent !== 'string') {
-        throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "Falha ao gerar análise de Neurovendas" });
+        console.error('[NEUROVENDAS-CRC] Resposta vazia do LLM — usando fallback seguro');
+        const fallback = getNeurovendasFallback();
+        await updateCall(input.callId, { neurovendasAnalysis: fallback as any, status: "analyzed" });
+        return { success: true, analysis: fallback, fallback: true };
       }
 
-      const analysis = JSON.parse(analysisContent);
-
-      // Validação de ancoragem documental — não-bloqueante
-      if (!analysis.perfilPsicografico?.descricaoPerfil || analysis.perfilPsicografico.descricaoPerfil.length < 20) {
-        console.warn('[NEUROVENDAS-CRC] descricaoPerfil vazio ou muito curto — possível falha de ancoragem documental');
+      let analysis: Record<string, unknown>;
+      try {
+        analysis = JSON.parse(analysisContent);
+      } catch {
+        console.error('[NEUROVENDAS-CRC] JSON inválido na resposta — usando fallback seguro');
+        const fallback = getNeurovendasFallback();
+        await updateCall(input.callId, { neurovendasAnalysis: fallback as any, status: "analyzed" });
+        return { success: true, analysis: fallback, fallback: true };
       }
-      if (!Array.isArray(analysis.objecoes?.verdadeiras)) {
-        console.warn('[NEUROVENDAS-CRC] objecoes.verdadeiras ausente — possível falha de estrutura na resposta da IA');
+
+      // Validação pós-parse não-bloqueante com helper centralizado
+      const warnings = validateNeurovendasAnalysis(analysis, 'crc');
+      if (warnings.length > 0) {
+        console.warn(`[NEUROVENDAS-CRC] ${warnings.length} warning(s) na análise da ligação ${input.callId}`);
       }
 
       // Save analysis to call
       await updateCall(input.callId, {
-        neurovendasAnalysis: analysis,
+        neurovendasAnalysis: analysis as any,
         status: "analyzed",
       });
 
@@ -459,13 +501,14 @@ RESTRIÇÕES ANTI-ALUCINAÇÃO:
       if (call.leadId) {
         const lead = await getLeadById(call.leadId);
         if (lead) {
+          const perfil = analysis.perfilPsicografico as any;
           await updateLead(call.leadId, {
             callProfile: {
-              nivelCerebralDominante: analysis.perfilPsicografico.nivelCerebralDominante,
-              probabilidadeAgendamento: analysis.perfilPsicografico.nivelReceptividade * 10,
-              resumo: analysis.perfilPsicografico.descricaoPerfil,
+              nivelCerebralDominante: perfil?.nivelCerebralDominante || 'limbico',
+              probabilidadeAgendamento: (perfil?.nivelReceptividade || 0) * 10,
+              resumo: perfil?.descricaoPerfil || '',
             },
-            neurovendasAnalysis: analysis,
+            neurovendasAnalysis: analysis as any,
           });
         }
       }

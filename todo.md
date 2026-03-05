@@ -982,3 +982,16 @@
 - [ ] Checklist completo
 - [ ] Testes vitest passando
 - [ ] Relatório de custo por consulta (tokens + USD)
+
+## Implementação Prompt Otimizado Neurovendas v2.0 (pasted_content_10)
+- [x] Ler código atual de Neurovendas em routers.ts e calls.ts
+- [x] Implementar retry com backoff como wrapper do invokeLLM (invokeLLMWithRetry.ts)
+- [x] Atualizar system message Neurovendas consulta (routers.ts) — regras anti-alucinação, fidelidade documental
+- [x] Atualizar user prompt Neurovendas consulta com template otimizado — contagem de palavras, validação de tamanho
+- [x] JSON schema strict:true mantido (já existia)
+- [x] Atualizar system message Neurovendas CRC (calls.ts) — regras anti-alucinação para ligações
+- [x] Atualizar user prompt Neurovendas CRC com template otimizado — contagem de palavras do lead
+- [x] Atualizar validateNeurovendasAnalysis.ts — scriptPARE completude, tecnicaObjecao.passos, rapport.breakdown
+- [x] Implementar fallback seguro (neurovendasFallback.ts) — retorna objeto válido quando LLM falha
+- [x] 415 testes vitest passando (21 arquivos), zero erros TypeScript
+- [x] Servidor reiniciado e funcionando

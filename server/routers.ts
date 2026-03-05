@@ -37,6 +37,9 @@ import {
 import { storagePut, storageDelete } from "./storage";
 import { transcribeAudio } from "./_core/voiceTranscription";
 import { invokeLLM } from "./_core/llm";
+import { invokeLLMWithRetry } from "./helpers/invokeLLMWithRetry";
+import { validateNeurovendasAnalysis } from "./helpers/validateNeurovendasAnalysis";
+import { getNeurovendasFallback, countPatientWords } from "./helpers/neurovendasFallback";
 import { getMetodologiaContext } from "./_core/metodologiaLoader";
 import { SOAPNote, TreatmentPlan } from "../drizzle/schema";
 import { nanoid } from "nanoid";
@@ -1305,61 +1308,81 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
         }
 
         const metodologiaContext = await getMetodologiaContext();
+        const patientWordCount = countPatientWords(consultation.transcript || '');
+
+        const systemMessage = `Você é um especialista em análise comportamental e neurovendas odontológicas, baseado na metodologia do Dr. Carlos Rodriguez. Sua função é EXCLUSIVAMENTE analisar transcrições de consultas odontológicas e extrair padrões de comportamento, motivações e técnicas de comunicação.
+
+REGRAS ABSOLUTAS — NÃO NEGOCIÁVEIS:
+
+1. FIDELIDADE AOS DADOS:
+   - Extraia APENAS informações explicitamente presentes na transcrição.
+   - Se uma informação não está na transcrição, retorne string vazia '' — NUNCA invente.
+   - Não complete lacunas com conhecimento geral ou 'informações típicas'.
+   - Use EXATAMENTE a nomenclatura e categorias definidas no schema de saída.
+
+2. VALIDAÇÃO DE TAMANHO:
+   - Se a transcrição do paciente tiver menos de 300 palavras, indique explicitamente: 'Análise de baixa confiança — transcrição insuficiente (X palavras do paciente). Recomenda-se consulta adicional para análise completa.'
+   - Mesmo assim, preencha TODOS os campos com os dados disponíveis — não deixe campos vazios.
+
+3. CAMPOS OBRIGATÓRIOS:
+   - TODOS os campos do schema devem ser preenchidos (nunca deixe vazio ou null).
+   - Campos de texto: use '' (string vazia) se não houver dados.
+   - Campos de número: use 0 se não houver dados.
+   - Campos de array: use [] se não houver dados.
+
+4. ESTRUTURA JSON:
+   - Sua saída DEVE ser JSON válido conforme o schema — sem texto livre fora do JSON.
+   - Use exatamente os nomes de campos definidos no schema.
+
+5. AMBIGUIDADE:
+   - Em caso de ambiguidade, escolha a interpretação mais conservadora.
+   - Prefira 'não identificado' a 'presumido'.
+
+6. METODOLOGIA:
+   - Aplique o framework de análise comportamental: nível cerebral dominante (reptiliano, límbico, neocortex), motivações primárias, gatilhos mentais, objeções, rapport e scripts de objeção (LAER/PARE).
+   - Use apenas os documentos de metodologia fornecidos — não use conhecimento externo.`;
 
         const prompt = `DOCUMENTOS DE METODOLOGIA (base obrigatória para toda análise):
 ${metodologiaContext}
 
 --- FIM DOS DOCUMENTOS ---
 
+CONTEXTO CLÍNICO:
+- Paciente: ${consultation.patientId ? 'ID ' + consultation.patientId : 'Não identificado'}
+- Número de palavras do paciente: ~${patientWordCount} palavras
+- Metodologia disponível: sim
+
 TRANSCRIÇÃO DA CONSULTA:
 ${consultation.transcript}
 
-INSTRUÇÃO PRINCIPAL:
-Analise a transcrição acima usando EXCLUSIVAMENTE os frameworks, técnicas, nomenclaturas e categorias definidos nos DOCUMENTOS DE METODOLOGIA acima. Se um conceito pedido abaixo não estiver documentado, deixe o campo vazio ('') ou array vazio ([]).
+INSTRUÇÕES ESPECÍFICAS:
 
-1. PERFIL COMPORTAMENTAL DO PACIENTE:
-- Identifique o perfil/nível cerebral dominante usando EXATAMENTE a nomenclatura dos documentos
-- Determine a motivação primária conforme categorias listadas nos documentos
-- Avalie o nível de ansiedade/receptividade (1-10) com base em evidências textuais concretas da transcrição
+1. Analise a transcrição acima e extraia os padrões de comportamento do PACIENTE (não do dentista).
 
-2. OBJEÇÕES IDENTIFICADAS:
-- Liste APENAS objeções que aparecem de forma explícita ou fortemente implícita na transcrição
-- Para CADA objeção verdadeira, forneça script completo de resposta usando a técnica definida nos documentos
-- A resposta deve ser um SCRIPT COMPLETO que o dentista pode usar, derivado dos modelos dos documentos
-- Liste possíveis objeções ocultas/falsas com perguntas reveladoras, somente se evidenciadas na transcrição
-- Classifique cada objeção nas categorias definidas nos documentos
+2. Identifique:
+   a) Nível cerebral dominante (reptiliano, limbico, neocortex) — baseado em padrões de linguagem e preocupações
+   b) Motivação primária (alivio_dor, estetica, status, saude)
+   c) Gatilhos mentais (transformacao, saude_longevidade, status, conforto, exclusividade)
+   d) Objeções verdadeiras e ocultas (categoria: financeira, medo, tempo, confianca, outra)
+   e) Técnicas de objeção sugeridas (LAER ou redirecionamento)
+   f) Nível de rapport (0-100) e breakdown de componentes
+   g) Sinais de linguagem (positivos e negativos)
 
-3. SINAIS DE LINGUAGEM:
-- Cite APENAS palavras literais do paciente encontradas na transcrição (não paráfrases)
-- Sinais positivos de absorção identificados na transcrição
-- Sinais de resistência ou objeção oculta na transcrição
+3. Preencha TODOS os campos do schema — nunca deixe vazio.
 
-4. GATILHOS MENTAIS RECOMENDADOS:
-- Liste APENAS gatilhos catalogados nos documentos de metodologia
-- Explique por que cada gatilho é adequado com base no perfil identificado na transcrição
+4. ${patientWordCount < 300 ? `ATENÇÃO: Transcrição com apenas ~${patientWordCount} palavras do paciente. Indique 'Análise de baixa confiança' na descrição do perfil, mas continue preenchendo todos os campos.` : 'Transcrição com volume adequado para análise completa.'}
 
-5. SCRIPT DE FECHAMENTO:
-- Use o modelo de script definido nos documentos (ex: PARE ou equivalente documentado)
-- Adapte ao contexto específico desta transcrição
+5. Use EXATAMENTE os valores de enum definidos no schema — sem variações.
 
-6. TÉCNICA RECOMENDADA PARA OBJEÇÕES:
-- Use EXATAMENTE a técnica definida nos documentos para o tipo de objeção identificado
-- No campo 'tecnicaSugerida', forneça SCRIPT COMPLETO derivado dos modelos dos documentos
+6. Para scriptPARE: crie um script COMPLETO e PERSONALIZADO baseado no contexto desta consulta. Cada campo (problema, amplificacao, resolucao, engajamento) deve conter pelo menos uma frase completa.
 
-7. NÍVEL DE RAPPORT (0-100):
-- Calcule usando os critérios e pesos definidos nos documentos de metodologia
-- Cite evidência textual da transcrição para cada critério pontuado
+7. Para tecnicaObjecao: forneça passos ESPECÍFICOS e ACIONÁVEIS, não genéricos.
 
-RESTRIÇÕES ANTI-ALUCINAÇÃO:
-- Use APENAS nomenclaturas e categorias presentes nos documentos fornecidos
-- Cite a frase exata da transcrição para cada conclusão comportamental
-- Se a transcrição tiver menos de 150 palavras do paciente, indique 'baixa confiança por amostra insuficiente' em descricaoPerfil
-- NÃO complete com conhecimento geral de vendas ou psicologia externo aos documentos
-- Responda em JSON estruturado`;
+RETORNE APENAS O JSON, sem explicações adicionais.`;
 
-        const response = await invokeLLM({
+        const response = await invokeLLMWithRetry({
           messages: [
-            { role: "system", content: "Você é um especialista em análise de perfil comportamental e comunicação persuasiva aplicada à Odontologia. Sua única base de conhecimento para esta análise são os DOCUMENTOS DE METODOLOGIA fornecidos no contexto do usuário. NÃO use conhecimento externo sobre vendas, psicologia ou neuromarketing que não esteja explicitamente nesses documentos.\n\nREGRAS DE FIDELIDADE DOCUMENTAL:\n1. Cada framework, técnica, categoria ou script que você citar deve ter origem rastreável nos documentos de metodologia fornecidos. Se não encontrar, use '' ou [] para o campo.\n2. Os perfis de comportamento devem usar EXATAMENTE a nomenclatura presente nos documentos — não renomeie nem adapte.\n3. As técnicas de resposta a objeções devem seguir EXATAMENTE a estrutura definida nos documentos.\n4. Gatilhos mentais: liste APENAS os catalogados nos documentos. Não invente gatilhos não documentados.\n5. Scripts sugeridos devem ser derivados dos modelos e exemplos dos documentos, adaptados à transcrição.\n6. Se os documentos NÃO cobrem algum aspecto do JSON schema, retorne '' ou [] e inclua nota em resumoExecutivo.\n\nREGRAS DE PRECISÃO BASEADA EM EVIDÊNCIA TEXTUAL:\n1. Cada conclusão sobre o perfil do paciente deve citar a frase ou palavra exata da transcrição que a fundamenta.\n2. Se a transcrição tiver menos de 150 palavras do paciente, reduza o escopo e indique 'baixa confiança por amostra insuficiente' em descricaoPerfil.\n3. Objeções verdadeiras: registre APENAS o que foi expresso de forma clara na transcrição.\n4. nivelAnsiedade e nivelReceptividade: calibre com base em palavras e tom da transcrição, não em médias do setor.\n5. Scripts LAER/PARE: devem endereçar a situação específica. Se não há objeção clara, retorne objecoes.verdadeiras como array vazio.\n6. Rapport: pontue APENAS com base em comportamentos observáveis na transcrição. Não assuma empatia implícita." },
+            { role: "system", content: systemMessage },
             { role: "user", content: prompt }
           ],
           response_format: {
@@ -1491,27 +1514,41 @@ RESTRIÇÕES ANTI-ALUCINAÇÃO:
           }
         });
 
+        // Se retry falhou completamente, usar fallback
+        if (!response) {
+          console.error('[NEUROVENDAS] Todas as tentativas falharam — usando fallback seguro');
+          const fallback = getNeurovendasFallback();
+          await updateConsultation(input.consultationId, { neurovendasAnalysis: fallback as any });
+          return { success: true, analysis: fallback, fallback: true };
+        }
+
         const analysisContent = response.choices[0]?.message?.content;
         if (!analysisContent || typeof analysisContent !== 'string') {
-          throw new Error("Falha ao gerar análise de neurovendas");
+          console.error('[NEUROVENDAS] Resposta vazia do LLM — usando fallback seguro');
+          const fallback = getNeurovendasFallback();
+          await updateConsultation(input.consultationId, { neurovendasAnalysis: fallback as any });
+          return { success: true, analysis: fallback, fallback: true };
         }
 
-        const analysis = JSON.parse(analysisContent);
+        let analysis: Record<string, unknown>;
+        try {
+          analysis = JSON.parse(analysisContent);
+        } catch {
+          console.error('[NEUROVENDAS] JSON inválido na resposta — usando fallback seguro');
+          const fallback = getNeurovendasFallback();
+          await updateConsultation(input.consultationId, { neurovendasAnalysis: fallback as any });
+          return { success: true, analysis: fallback, fallback: true };
+        }
 
-        // Validação de ancoragem documental — não-bloqueante
-        if (!analysis.perfilPsicografico?.descricaoPerfil || analysis.perfilPsicografico.descricaoPerfil.length < 20) {
-          console.warn('[NEUROVENDAS] descricaoPerfil vazio ou muito curto — possível falha de ancoragem documental');
-        }
-        if (!Array.isArray(analysis.objecoes?.verdadeiras)) {
-          console.warn('[NEUROVENDAS] objecoes.verdadeiras ausente — possível falha de estrutura na resposta da IA');
-        }
-        if (!analysis.resumoExecutivo || analysis.resumoExecutivo.trim().length === 0) {
-          console.warn('[NEUROVENDAS] resumoExecutivo vazio — possível falha de ancoragem documental');
+        // Validação pós-parse não-bloqueante com helper centralizado
+        const warnings = validateNeurovendasAnalysis(analysis, 'consulta');
+        if (warnings.length > 0) {
+          console.warn(`[NEUROVENDAS] ${warnings.length} warning(s) na análise da consulta ${input.consultationId}`);
         }
 
         // Save analysis to consultation
         await updateConsultation(input.consultationId, {
-          neurovendasAnalysis: analysis,
+          neurovendasAnalysis: analysis as any,
         });
 
         return { success: true, analysis };
