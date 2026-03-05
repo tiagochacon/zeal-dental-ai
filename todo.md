@@ -999,3 +999,16 @@
 ## Bug Fix: Probabilidade de Agendamento 800%
 - [x] Corrigir cálculo de probabilidadeAgendamento para ficar entre 0-100%
 - [x] Clamp valor com Math.min(100, Math.max(0, ...)) + detecção automática se valor já é percentual
+
+## Otimização Temperature/Seed — Determinismo Clínico Seletivo
+- [x] Ler llm.ts, routers.ts, calls.ts — confirmar estado atual
+- [x] Editar llm.ts: adicionar temperature?: number e seed?: number ao InvokeParams
+- [x] Editar llm.ts: payload.temperature = params.temperature ?? 0.1 + seed condicional
+- [x] Editar routers.ts: SOAP (temperature: 0, seed: 42)
+- [x] Editar routers.ts: Treatment Plan (temperature: 0, seed: 42)
+- [x] Editar calls.ts: extractAndSaveCallInsights (temperature: 0, seed: 42)
+- [x] NÃO alterar: Neurovendas Consulta (manter default 0.1) — confirmado
+- [x] NÃO alterar: Neurovendas CRC (manter default 0.1) — confirmado
+- [x] NÃO alterar: Whisper transcrição (não aceita temperature) — confirmado
+- [x] Checklist Fase 4 completo (15/15 itens verificados)
+- [x] TypeScript sem erros, 415 testes passando (21 arquivos)

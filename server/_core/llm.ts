@@ -66,6 +66,8 @@ export type InvokeParams = {
   output_schema?: OutputSchema;
   responseFormat?: ResponseFormat;
   response_format?: ResponseFormat;
+  temperature?: number;
+  seed?: number;
 };
 
 export type ToolCall = {
@@ -297,7 +299,10 @@ export async function invokeLLM(params: InvokeParams): Promise<InvokeResult> {
   }
 
   payload.max_tokens = 32768
-  payload.temperature = 0.1
+  payload.temperature = params.temperature ?? 0.1
+  if (params.seed !== undefined) {
+    payload.seed = params.seed;
+  }
   payload.thinking = {
     "budget_tokens": 2048
   }

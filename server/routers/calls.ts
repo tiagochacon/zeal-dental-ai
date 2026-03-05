@@ -47,6 +47,8 @@ async function extractAndSaveCallInsights(callId: number, transcript: string): P
           `Responda em JSON estruturado.`,
       },
     ],
+    temperature: 0,
+    seed: 42,
     response_format: {
       type: "json_schema",
       json_schema: {

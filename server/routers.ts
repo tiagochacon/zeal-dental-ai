@@ -480,6 +480,8 @@ export const appRouter = router({
             { role: "system", content: "Você é um assistente especializado em planos odontológicos. REGRAS OBRIGATÓRIAS:\n1. O plano deve ser derivado EXCLUSIVAMENTE dos dados clínicos fornecidos (nota SOAP, histórico médico, alergias, medicações).\n2. Nunca adicione procedimentos não citados ou inferidos da nota SOAP.\n3. Medicações: inclua APENAS se houver indicação clínica direta nos achados. Se não houver, retorne array vazio.\n4. Instruções pós-operatórias: inclua APENAS se houver procedimento cirúrgico ou invasivo no plano.\n5. Cronogramas (ex: 'a cada 12h por 8 dias') devem seguir protocolos odontológicos padrão para o procedimento indicado — nunca invente posologia.\n6. Se os dados clínicos forem insuficientes para gerar um passo, não o inclua." },
             { role: "user", content: prompt }
           ],
+          temperature: 0,
+          seed: 42,
           response_format: {
             type: "json_schema",
             json_schema: {
@@ -917,6 +919,8 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
             { role: "system", content: "Você é um assistente especializado em documentação odontológica brasileira. REGRAS OBRIGATÓRIAS DE FIDELIDADE:\n1. NUNCA invente, presuma ou complete dados que não aparecem literalmente na transcrição.\n2. Se uma informação não foi mencionada na transcrição, use string vazia '' para campos de texto, [] para arrays, e para classificações de dentes use exclusivamente 'not_evaluated'.\n3. Use aspas ou paráfrase próxima ao relatar queixas — não reescreva com suas próprias palavras.\n4. Diagnósticos devem ser prefixados com 'Hipótese:' quando não confirmados explicitamente pelo dentista na transcrição.\n5. Nunca adicione orientações, lembretes ou tratamentos que não foram discutidos na consulta.\n6. Sua função é EXTRAIR e ESTRUTURAR, não interpretar ou complementar." },
             { role: "user", content: prompt }
           ],
+          temperature: 0,
+          seed: 42,
           response_format: {
             type: "json_schema",
             json_schema: {
