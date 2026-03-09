@@ -10,6 +10,7 @@ import { toast } from "sonner";
 
 const MAX_FILE_SIZE_MB = 100;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const WAV_SIZE_WARNING_BYTES = 20 * 1024 * 1024;
 const MAX_DURATION_SECONDS = 30 * 60;
 const MAX_DURATION_MINUTES = 30;
 
@@ -32,6 +33,7 @@ export default function NewCall() {
   const [recordingTime, setRecordingTime] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const [audioDuration, setAudioDuration] = useState<number | null>(null);
+  const [showWavWarning, setShowWavWarning] = useState(false);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -142,6 +144,12 @@ export default function NewCall() {
     if (file.size > MAX_FILE_SIZE_BYTES) {
       toast.error(`Arquivo muito grande (${formatFileSize(file.size)}). Tamanho máximo: ${MAX_FILE_SIZE_MB}MB`);
       return;
+    }
+    const isWav = file.type.includes('wav') || file.name.toLowerCase().endsWith('.wav');
+    if (isWav && file.size > WAV_SIZE_WARNING_BYTES) {
+      setShowWavWarning(true);
+    } else {
+      setShowWavWarning(false);
     }
     const url = URL.createObjectURL(file);
     setAudioBlob(file);
@@ -404,7 +412,7 @@ export default function NewCall() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); setAudioDuration(null); }}
+                      onClick={() => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); setAudioDuration(null); setShowWavWarning(false); }}
                     >
                       Gravar novamente
                     </Button>
@@ -447,12 +455,26 @@ export default function NewCall() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => { setAudioBlob(null); setAudioUrl(null); setAudioFileName(null); setAudioDuration(null); }}
+                    onClick={() => { setAudioBlob(null); setAudioUrl(null); setAudioFileName(null); setAudioDuration(null); setShowWavWarning(false); }}
                     className="text-muted-foreground hover:text-foreground"
                   >
                     Remover
                   </Button>
                 </div>
+
+                {showWavWarning && (
+                  <div className="w-full bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertTriangle className="h-4 w-4 text-amber-400 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-amber-300">Arquivo WAV muito grande para transcrição</p>
+                        <p className="text-xs text-amber-200/70 mt-1">
+                          Arquivos WAV do Mac geralmente ultrapassam o limite de 25MB do serviço de transcrição. Converta para MP3 ou M4A antes de enviar — qualquer conversor online gratuito resolve em segundos (ex: cloudconvert.com).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {audioDuration !== null && (
                   <div className={`flex items-center gap-2 text-xs px-3 py-2 rounded-lg ${

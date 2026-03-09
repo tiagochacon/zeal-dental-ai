@@ -207,6 +207,7 @@ function getFileExtension(mimeType: string): string {
     'audio/mpeg': 'mp3',
     'audio/wav': 'wav',
     'audio/wave': 'wav',
+    'audio/x-wav': 'wav',
     'audio/ogg': 'ogg',
     'audio/ogg;codecs=opus': 'ogg',
     'audio/m4a': 'm4a',
