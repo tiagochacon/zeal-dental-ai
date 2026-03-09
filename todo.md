@@ -1048,3 +1048,21 @@
 - [x] UX-003/UX-004: Confirmados como falsos positivos (já em português)
 ### FASE 6 — Relatório Final
 - [x] Relatório estruturado gerado (415 testes passando, zero erros TS)
+## Atualização de Links Stripe e Preços — Básico R$179,90 / PRO R$349,90
+- [x] FASE 0: Ler 12 arquivos antes de editar
+- [x] FASE 1: Frontend — 7 arquivos (links + preços visuais)
+  - [x] UpgradeBanner.tsx
+  - [x] LimitReachedModal.tsx
+  - [x] UpgradeModal.tsx
+  - [x] UsageCounterModal.tsx (apenas links)
+  - [x] Pricing.tsx
+  - [x] Register.tsx
+  - [x] Subscription.tsx
+- [x] FASE 2: Backend — 2 arquivos
+  - [x] billing.ts (price_brl: 179.90 / 349.90)
+  - [x] stripe/products.ts (price + CORREÇÃO CRÍTICA getTierFromAmount: 25000/10000)
+- [x] FASE 3: Testes — 3 arquivos
+  - [x] billing.test.ts
+  - [x] stripe.test.ts
+  - [x] stripe-webhook.test.ts
+- [x] FASE 4: Checklist final — links antigos removidos, lint limpo, 415 testes passando

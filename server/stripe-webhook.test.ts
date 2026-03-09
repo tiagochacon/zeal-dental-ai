@@ -19,12 +19,12 @@ describe("Stripe Webhook Integration", () => {
       }
       
       // Check amount to determine plan
-      // Basic: R$ 99.90 = 9990 cents
-      // Pro: R$ 199.90 = 19990 cents
+      // Basic: R$ 179.90 = 17990 cents
+      // Pro: R$ 349.90 = 34990 cents
       const amountTotal = session.amount_total || 0;
       
-      // Pro plan is ~R$ 199.90 (19990 cents) or more
-      if (amountTotal >= 15000) {
+      // Pro plan is ~R$ 349.90 (34990 cents) or more
+      if (amountTotal >= 25000) {
         return 'pro';
       }
       
@@ -42,13 +42,13 @@ describe("Stripe Webhook Integration", () => {
       expect(determineTierFromSession(session)).toBe('pro');
     });
 
-    it("should identify Basic plan from amount (~R$ 99.90)", () => {
-      const session = { amount_total: 9990 }; // R$ 99.90 in cents
+    it("should identify Basic plan from amount (~R$ 179.90)", () => {
+      const session = { amount_total: 17990 }; // R$ 179.90 in cents
       expect(determineTierFromSession(session)).toBe('basic');
     });
 
-    it("should identify Pro plan from amount (~R$ 199.90)", () => {
-      const session = { amount_total: 19990 }; // R$ 199.90 in cents
+    it("should identify Pro plan from amount (~R$ 349.90)", () => {
+      const session = { amount_total: 34990 }; // R$ 349.90 in cents
       expect(determineTierFromSession(session)).toBe('pro');
     });
 

@@ -66,15 +66,15 @@ describe("Stripe Products Configuration", () => {
     expect(STRIPE_PRODUCT_IDS.PRO).toBe("prod_TsJKKhldI5j5h6");
   });
 
-  it("should have basic plan with 20 consultations at R$ 99.90", () => {
+  it("should have basic plan with 20 consultations at R$ 179.90", () => {
     expect(PLAN_CONFIGS.basic.consultationLimit).toBe(20);
-    expect(PLAN_CONFIGS.basic.price).toBe(99.90);
+    expect(PLAN_CONFIGS.basic.price).toBe(179.90);
     expect(PLAN_CONFIGS.basic.priceId).toBe(STRIPE_PRICE_IDS.BASIC);
   });
 
-  it("should have pro plan with 50 consultations at R$ 199.90", () => {
+  it("should have pro plan with 50 consultations at R$ 349.90", () => {
     expect(PLAN_CONFIGS.pro.consultationLimit).toBe(50);
-    expect(PLAN_CONFIGS.pro.price).toBe(199.90);
+    expect(PLAN_CONFIGS.pro.price).toBe(349.90);
     expect(PLAN_CONFIGS.pro.priceId).toBe(STRIPE_PRICE_IDS.PRO);
   });
 

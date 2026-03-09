@@ -16,8 +16,8 @@ import { trpc } from "@/lib/trpc";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
-  pro: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
+  basic: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
+  pro: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
 };
 
 // Helper to add email to Stripe payment link
@@ -259,7 +259,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
               className="flex-1 border-blue-500/50 text-blue-300 hover:bg-blue-500/20"
               onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
             >
-              Básico R$ 99,90
+              Básico R$ 179,90
               <ExternalLink className="h-3 w-3 ml-1" />
             </Button>
             <Button
@@ -268,7 +268,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
               onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
             >
               <Sparkles className="h-4 w-4 mr-1" />
-              Pro R$ 199,90
+              Pro R$ 349,90
             </Button>
           </div>
         </div>

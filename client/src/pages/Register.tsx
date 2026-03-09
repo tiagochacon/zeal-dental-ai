@@ -10,8 +10,8 @@ import { toast } from "sonner";
 
 // Stripe Payment Links
 const PAYMENT_LINKS: Record<string, string> = {
-  BASIC: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
-  PRO: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
+  BASIC: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
+  PRO: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
 };
 
 const PLAN_INFO: Record<string, { name: string; price: string; icon: React.ReactNode; color: string }> = {
@@ -23,13 +23,13 @@ const PLAN_INFO: Record<string, { name: string; price: string; icon: React.React
   },
   BASIC: {
     name: "ZEAL Básico",
-    price: "R$ 99,90/mês",
+    price: "R$ 179,90/mês",
     icon: <CreditCard className="h-4 w-4 text-blue-400" />,
     color: "bg-blue-500/10 text-blue-400 border-blue-500/30",
   },
   PRO: {
     name: "ZEAL Pro",
-    price: "R$ 199,90/mês",
+    price: "R$ 349,90/mês",
     icon: <Crown className="h-4 w-4 text-purple-400" />,
     color: "bg-purple-500/10 text-purple-400 border-purple-500/30",
   },

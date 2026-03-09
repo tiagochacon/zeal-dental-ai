@@ -10,8 +10,8 @@ import { toast } from "sonner";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
-  BASIC: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
-  PRO: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
+  BASIC: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
+  PRO: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
 };
 
 const PLANS = [
@@ -38,7 +38,7 @@ const PLANS = [
     key: "BASIC",
     name: "ZEAL Básico",
     description: "Perfeito para consultórios pequenos",
-    price: "R$ 99,90",
+    price: "R$ 179,90",
     interval: "por mês",
     consultationLimit: 20,
     features: [
@@ -59,7 +59,7 @@ const PLANS = [
     key: "PRO",
     name: "ZEAL Pro",
     description: "Para consultórios em crescimento",
-    price: "R$ 199,90",
+    price: "R$ 349,90",
     interval: "por mês",
     consultationLimit: 50,
     features: [

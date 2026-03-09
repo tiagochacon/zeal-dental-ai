@@ -13,8 +13,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
-  pro: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
+  basic: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
+  pro: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
 };
 
 interface UsageCounterModalProps {

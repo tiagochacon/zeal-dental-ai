@@ -22,7 +22,7 @@ export const PLAN_CONFIG = {
     tabs: ["SOAP", "Odontograma", "Transcrição"] as const,
     lockedTabs: ["Negociação"] as string[],
     hasNegotiationAccess: false,
-    price_brl: 99.90,
+    price_brl: 179.90,
   },
   pro: {
     name: "ZEAL Pro",
@@ -31,7 +31,7 @@ export const PLAN_CONFIG = {
     tabs: ["SOAP", "Odontograma", "Transcrição", "Negociação"] as const,
     lockedTabs: [] as string[],
     hasNegotiationAccess: true,
-    price_brl: 199.90,
+    price_brl: 349.90,
   },
   unlimited: {
     name: "ZEAL Unlimited",

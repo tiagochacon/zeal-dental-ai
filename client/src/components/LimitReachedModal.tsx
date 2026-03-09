@@ -23,8 +23,8 @@ import { useAuth } from "@/_core/hooks/useAuth";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
-  pro: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
+  basic: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
+  pro: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
 };
 
 // Helper to add email to Stripe payment link
@@ -145,7 +145,7 @@ export function LimitReachedModal({
                     <div>
                       <h3 className="font-semibold text-white">ZEAL Básico</h3>
                       <p className="text-2xl font-bold text-blue-400">
-                        R$ 99,90<span className="text-sm font-normal text-slate-400">/mês</span>
+                        R$ 179,90<span className="text-sm font-normal text-slate-400">/mês</span>
                       </p>
                     </div>
                   </div>
@@ -190,7 +190,7 @@ export function LimitReachedModal({
                   <div>
                     <h3 className="font-semibold text-white">ZEAL Pro</h3>
                     <p className="text-2xl font-bold text-purple-400">
-                      R$ 199,90<span className="text-sm font-normal text-slate-400">/mês</span>
+                      R$ 349,90<span className="text-sm font-normal text-slate-400">/mês</span>
                     </p>
                   </div>
                 </div>

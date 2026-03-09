@@ -38,8 +38,8 @@ import { toast } from "sonner";
 
 // Stripe Payment Links
 const PAYMENT_LINKS = {
-  BASIC: "https://buy.stripe.com/9B6aEY8KNfDw9Ms3f6b7y00",
-  PRO: "https://buy.stripe.com/8x27sMd131MG4s8aHyb7y01",
+  BASIC: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
+  PRO: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
 };
 
 const PLAN_DETAILS = {
@@ -325,7 +325,7 @@ export default function Subscription() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-3xl font-bold">R$ 99,90</span>
+                        <span className="text-3xl font-bold">R$ 179,90</span>
                         <span className="text-muted-foreground">/mês</span>
                       </div>
                       <ul className="space-y-2 text-sm">
@@ -378,7 +378,7 @@ export default function Subscription() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="flex items-baseline gap-1">
-                      <span className="text-3xl font-bold">R$ 199,90</span>
+                      <span className="text-3xl font-bold">R$ 349,90</span>
                       <span className="text-muted-foreground">/mês</span>
                     </div>
                     <ul className="space-y-2 text-sm">

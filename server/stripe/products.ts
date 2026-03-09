@@ -62,7 +62,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     description: "Plano essencial para dentistas",
     priceId: STRIPE_PRICE_IDS.BASIC,
     productId: STRIPE_PRODUCT_IDS.BASIC,
-    price: 99.90,
+    price: 179.90,
     currency: "BRL",
     consultationLimit: 20,
     features: [
@@ -80,7 +80,7 @@ export const PLAN_CONFIGS: Record<PlanTier, PlanConfig> = {
     description: "Acesso completo com Neurovendas",
     priceId: STRIPE_PRICE_IDS.PRO,
     productId: STRIPE_PRODUCT_IDS.PRO,
-    price: 199.90,
+    price: 349.90,
     currency: "BRL",
     consultationLimit: 50,
     features: [
@@ -141,10 +141,10 @@ export function getTierFromProductId(productId: string): PlanTier | null {
  * Fallback method when Price/Product IDs are not available
  */
 export function getTierFromAmount(amountCents: number): PlanTier {
-  // Pro: R$ 199.90 = 19990 cents (allow some margin for discounts)
-  if (amountCents >= 15000) return "pro";
-  // Basic: R$ 99.90 = 9990 cents
-  if (amountCents >= 5000) return "basic";
+  // Pro: R$ 349.90 = 34990 cents (allow some margin for discounts)
+  if (amountCents >= 25000) return "pro";
+  // Basic: R$ 179.90 = 17990 cents
+  if (amountCents >= 10000) return "basic";
   // Below threshold = trial
   return "trial";
 }

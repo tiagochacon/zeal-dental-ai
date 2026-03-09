@@ -308,14 +308,14 @@ describe("Plans Configuration", () => {
     expect(PLANS.BASIC).toBeDefined();
     expect(PLANS.BASIC.name).toBe("ZEAL Básico");
     expect(PLANS.BASIC.consultation_limit).toBe(20);
-    expect(PLANS.BASIC.price_brl).toBe(99.90);
+    expect(PLANS.BASIC.price_brl).toBe(179.90);
   });
 
   it("should have PRO plan configured", () => {
     expect(PLANS.PRO).toBeDefined();
     expect(PLANS.PRO.name).toBe("ZEAL Pro");
     expect(PLANS.PRO.consultation_limit).toBe(50);
-    expect(PLANS.PRO.price_brl).toBe(199.90);
+    expect(PLANS.PRO.price_brl).toBe(349.90);
   });
 
   it("should have correct trial configuration", () => {
