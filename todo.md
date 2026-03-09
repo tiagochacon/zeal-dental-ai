@@ -1012,3 +1012,39 @@
 - [x] NÃO alterar: Whisper transcrição (não aceita temperature) — confirmado
 - [x] Checklist Fase 4 completo (15/15 itens verificados)
 - [x] TypeScript sem erros, 415 testes passando (21 arquivos)
+
+## QA Completo — Auditoria, Testes e Correções Pré-Publicação
+### FASE 0 — Mapeamento
+- [ ] Ler package.json, schema.ts, routers.ts, calls.ts, clinic.ts, trpc.ts, App.tsx, pages/
+- [ ] Construir mapa de 10 fluxos principais
+### FASE 1 — Auditoria de Código Estático
+- [x] TypeScript lint em arquivos prioritários (zero erros)
+- [x] Consistência schema banco vs código servidor
+- [x] Controle de acesso por role (1 bug P1 encontrado e corrigido)
+- [x] Imports e exports
+### FASE 2 — Testes de Fluxo
+- [x] Fluxo 1: Cadastro → Pagamento → Acesso Gestor
+- [x] Fluxo 2: Gestor cria Dentista
+- [x] Fluxo 3: Gestor cria CRC
+- [x] Fluxo 4: Consulta completa (Dentista)
+- [x] Fluxo 5: Neurovendas consulta (PRO/Trial)
+- [x] Fluxo 6: Ligação CRC completa
+- [x] Fluxo 7: Observações + Neurovendas ligação
+- [x] Fluxo 8: CRC agenda → Converte lead
+- [x] Fluxo 9: Contagem consultas por clínica
+- [x] Fluxo 10: Trial expira → Bloqueio
+### FASE 3 — Auditoria UX
+- [x] Estados vazios (12/15 PASS)
+- [x] Estados de erro (6/15 PASS, 7 FAIL documentados)
+- [x] Loading states (13/15 PASS)
+- [x] Consistência visual (15/15 PASS)
+- [x] Responsividade (14/15 PASS)
+### FASE 4 — Segurança
+- [x] Isolamento de dados entre clínicas (PASS — clinicId check em todos os routers)
+- [x] Dados sensíveis (PASS — nenhum secret hardcoded, passwordHash não vaza)
+### FASE 5 — Correções
+- [x] BUG-001 P1: calls.analyzeNeurovendas agora usa negotiationAccessProcedure
+- [x] BUG-002 P2: PaywallGuard verifica subscription do gestor para CRC/Dentista
+- [x] UX-003/UX-004: Confirmados como falsos positivos (já em português)
+### FASE 6 — Relatório Final
+- [x] Relatório estruturado gerado (415 testes passando, zero erros TS)

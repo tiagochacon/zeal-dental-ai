@@ -44,25 +44,20 @@ export function PaywallGuard({ children }: PaywallGuardProps) {
       return;
     }
 
-    // Clinic member bypass: CRC and Dentista created by gestor inherit access from gestor's subscription
-    // If user has a clinicId and clinicRole (crc or dentista), they are managed by the gestor
-    // and should not be blocked by paywall - the gestor's subscription covers them
-    if (user.clinicId && (user.clinicRole === "crc" || user.clinicRole === "dentista")) {
-      setIsChecking(false);
-      return;
-    }
-
-    // Check subscription status
+    // For CRC/Dentista in a clinic: auth.me already enriches their data with gestor's subscription fields.
+    // So we check the (possibly enriched) subscriptionStatus which reflects the gestor's plan.
+    // This means if the gestor cancels, CRC/Dentista will also see subscriptionStatus as inactive.
     const hasActiveSubscription = 
       user.subscriptionStatus === "active" || 
       user.subscriptionStatus === "trialing";
 
-    // Check trial status
+    // Check trial status (also enriched from gestor for clinic members)
     const hasActiveTrial = 
       user.trialEndsAt && new Date(user.trialEndsAt) > new Date();
 
     // If no access, redirect to pricing
     if (!hasActiveSubscription && !hasActiveTrial) {
+      // For clinic members (CRC/Dentista), show a different message via pricing page
       setLocation("/pricing");
       return;
     }
