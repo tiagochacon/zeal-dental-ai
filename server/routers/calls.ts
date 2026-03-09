@@ -69,7 +69,13 @@ async function extractAndSaveCallInsights(callId: number, transcript: string): P
   });
 
   const raw = response?.choices?.[0]?.message?.content;
-  const parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
+  let parsed: { dor?: string; busca?: string; trabalha?: string };
+  try {
+    parsed = typeof raw === "string" ? JSON.parse(raw) : (raw ?? {});
+  } catch {
+    console.error("[CallInsights] JSON inválido na resposta da IA para call", callId, "— insights não salvos");
+    return;
+  }
   await updateCall(callId, {
     callInsights: {
       dor: parsed.dor ?? "",

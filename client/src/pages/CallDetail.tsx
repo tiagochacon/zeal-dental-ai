@@ -81,7 +81,9 @@ export default function CallDetail() {
   const step1Done = !!call.transcript;
   const step2Available = step1Done;
   const step2Done = !!neurovendas;
-  const step3Available = step2Done;
+  // Step 3 (Finalizar) is available after transcription for all plans.
+  // Neurovendas (step 2) is optional — Básico plan users must still be able to finalize.
+  const step3Available = step1Done;
   const step3Done = call.status === "finalized";
 
   // Rapport analysis

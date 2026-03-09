@@ -536,7 +536,12 @@ export const appRouter = router({
           throw new Error("Resposta vazia da IA");
         }
 
-        const parsed = JSON.parse(typeof content === "string" ? content : JSON.stringify(content)) as TreatmentPlan;
+        let parsed: TreatmentPlan;
+        try {
+          parsed = JSON.parse(typeof content === "string" ? content : JSON.stringify(content)) as TreatmentPlan;
+        } catch {
+          throw new Error("Resposta da IA em formato inválido. Tente novamente.");
+        }
         const validated = treatmentPlanSchema.parse(parsed);
         await updateConsultation(input.consultationId, {
           treatmentPlan: validated,
@@ -1042,8 +1047,13 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
         if (!content) {
           throw new Error("Resposta vazia da IA");
         }
-        
-        const soapNote: SOAPNote = JSON.parse(typeof content === 'string' ? content : JSON.stringify(content));
+
+        let soapNote: SOAPNote;
+        try {
+          soapNote = JSON.parse(typeof content === 'string' ? content : JSON.stringify(content));
+        } catch {
+          throw new Error("Resposta da IA em formato inválido. Tente novamente.");
+        }
 
         // Validação semântica anti-alucinação: rejeitar se campos críticos parecem inventados
         const soapTranscriptWords = (consultation.transcript || '').toLowerCase().split(/\s+/);
