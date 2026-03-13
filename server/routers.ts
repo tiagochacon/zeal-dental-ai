@@ -35,7 +35,7 @@ import {
   getConsultationsByPatientAll,
 } from "./db";
 import { storagePut, storageDelete } from "./storage";
-import { transcribeAudio } from "./_core/voiceTranscription";
+import { transcribeLongAudio } from "./_core/voiceTranscription";
 import { invokeLLM } from "./_core/llm";
 import { invokeLLMWithRetry } from "./helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "./helpers/validateNeurovendasAnalysis";
@@ -710,8 +710,8 @@ export const appRouter = router({
           throw new Error("Nenhum arquivo de áudio encontrado para esta consulta");
         }
 
-        // Transcribe audio using Whisper
-        const result = await transcribeAudio({
+        // Transcribe audio using Whisper (supports long audio via chunking)
+        const result = await transcribeLongAudio({
           audioUrl: consultation.audioUrl,
           language: "pt",
           prompt: "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro. Identifique e marque cada falante usando 'Dentista:' ou 'Paciente:'. Termos técnicos odontológicos precisam ser transcritos com exatidão.",

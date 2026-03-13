@@ -46,6 +46,8 @@ export default function NewConsultation() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [uploadingChunk, setUploadingChunk] = useState(false);
   const [chunksUploaded, setChunksUploaded] = useState(0);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Refs
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -200,14 +202,20 @@ export default function NewConsultation() {
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/m4a', 'audio/mp4'];
-      if (!validTypes.some(type => file.type.includes(type.split('/')[1]))) {
-        toast.error('Formato de arquivo não suportado. Use MP3, WAV, M4A ou WebM.');
+      const validTypes = ['audio/mp3', 'audio/mpeg', 'audio/wav', 'audio/webm', 'audio/m4a', 'audio/mp4', 'audio/x-wav', 'audio/wave', 'audio/ogg', 'audio/aac', 'audio/x-m4a', 'audio/flac'];
+      if (!file.type.startsWith('audio/') && !validTypes.some(type => file.type.includes(type.split('/')[1]))) {
+        toast.error('Formato de arquivo não suportado. Use MP3, WAV, M4A, WebM, OGG ou FLAC.');
         return;
       }
-      if (file.size > 16 * 1024 * 1024) {
-        toast.error('Arquivo muito grande. O limite é 16MB.');
+      const maxSize = 1.5 * 1024 * 1024 * 1024; // 1.5GB
+      if (file.size > maxSize) {
+        toast.error('Arquivo muito grande. O limite é 1.5GB.');
         return;
+      }
+      // Show size info for large files
+      const sizeMB = (file.size / (1024 * 1024)).toFixed(0);
+      if (file.size > 100 * 1024 * 1024) {
+        toast.info(`Arquivo de ${sizeMB}MB detectado. O upload pode levar alguns minutos.`);
       }
       setAudioBlob(file);
       setAudioUrl(URL.createObjectURL(file));
@@ -295,19 +303,66 @@ export default function NewConsultation() {
           toast.success('Gravação finalizada com sucesso!');
           setLocation(`/consultation/${consultationResult.consultationId}/review`);
         } else {
-          const reader = new FileReader();
-          reader.onloadend = async () => {
-            const base64 = (reader.result as string).split(',')[1];
-            await uploadAudioMutation.mutateAsync({
-              consultationId: consultationResult.consultationId,
-              audioBase64: base64,
-              mimeType: audioBlob.type || 'audio/webm',
-              durationSeconds: recordingTime || undefined,
+          const MULTIPART_THRESHOLD = 10 * 1024 * 1024; // 10MB
+
+          if (audioBlob.size > MULTIPART_THRESHOLD) {
+            // Use multipart upload for large files
+            setIsUploading(true);
+            setUploadProgress(0);
+            toast.info('Enviando áudio grande via upload direto...');
+
+            const formData = new FormData();
+            formData.append('file', audioBlob, `consultation.${audioBlob.type?.includes('wav') ? 'wav' : audioBlob.type?.includes('mp3') || audioBlob.type?.includes('mpeg') ? 'mp3' : audioBlob.type?.includes('m4a') || audioBlob.type?.includes('mp4') ? 'm4a' : 'webm'}`);
+            formData.append('consultationId', String(consultationResult.consultationId));
+            if (recordingTime) formData.append('durationSeconds', String(recordingTime));
+
+            const xhr = new XMLHttpRequest();
+            await new Promise<void>((resolve, reject) => {
+              xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                  const pct = Math.round((e.loaded / e.total) * 100);
+                  setUploadProgress(pct);
+                }
+              });
+              xhr.addEventListener('load', () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                  resolve();
+                } else {
+                  try {
+                    const errData = JSON.parse(xhr.responseText);
+                    reject(new Error(errData.error || 'Upload falhou'));
+                  } catch {
+                    reject(new Error(`Upload falhou (HTTP ${xhr.status})`));
+                  }
+                }
+              });
+              xhr.addEventListener('error', () => reject(new Error('Erro de rede durante upload')));
+              xhr.addEventListener('abort', () => reject(new Error('Upload cancelado')));
+              xhr.open('POST', '/api/consultations/upload-audio');
+              // Include credentials (cookies) for authentication
+              xhr.withCredentials = true;
+              xhr.send(formData);
             });
+
+            setIsUploading(false);
             toast.success('Áudio enviado com sucesso!');
             setLocation(`/consultation/${consultationResult.consultationId}/review`);
-          };
-          reader.readAsDataURL(audioBlob);
+          } else {
+            // Use base64 upload for small files
+            const reader = new FileReader();
+            reader.onloadend = async () => {
+              const base64 = (reader.result as string).split(',')[1];
+              await uploadAudioMutation.mutateAsync({
+                consultationId: consultationResult.consultationId,
+                audioBase64: base64,
+                mimeType: audioBlob.type || 'audio/webm',
+                durationSeconds: recordingTime || undefined,
+              });
+              toast.success('Áudio enviado com sucesso!');
+              setLocation(`/consultation/${consultationResult.consultationId}/review`);
+            };
+            reader.readAsDataURL(audioBlob);
+          }
         }
       } else if (inputMode === "text") {
         await updateTranscriptMutation.mutateAsync({
@@ -336,7 +391,8 @@ export default function NewConsultation() {
   const isSubmitting = createPatientMutation.isPending ||
                        createConsultationMutation.isPending ||
                        uploadAudioMutation.isPending ||
-                       updateTranscriptMutation.isPending;
+                       updateTranscriptMutation.isPending ||
+                       isUploading;
 
   if (authLoading) {
     return (
@@ -647,7 +703,7 @@ export default function NewConsultation() {
                                 Fazer Upload de Áudio
                               </Button>
                               <p className="text-xs text-muted-foreground text-center">
-                                Formatos aceitos: MP3, WAV, M4A, WebM (máx. 16MB)
+                                Formatos aceitos: MP3, WAV, M4A, WebM, OGG, FLAC (máx. 1.5GB)
                               </p>
                             </div>
                           </>
@@ -732,7 +788,7 @@ export default function NewConsultation() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Processando...
+                  {isUploading ? `Enviando áudio... ${uploadProgress}%` : 'Processando...'}
                 </>
               ) : (
                 inputMode === "audio" ? 'Continuar para Transcrição' : 'Continuar para Revisão'

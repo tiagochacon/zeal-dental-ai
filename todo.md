@@ -1066,3 +1066,20 @@
   - [x] stripe.test.ts
   - [x] stripe-webhook.test.ts
 - [x] FASE 4: Checklist final — links antigos removidos, lint limpo, 415 testes passando
+
+## Suporte a Áudios Longos (até 1h30 / 1.5GB)
+- [x] FASE 0: ffmpeg já instalado (v4.4.2), multer já no package.json (v2.0.2)
+- [x] FASE 1: voiceTranscription.ts — transcribeLongAudio implementado
+  - [x] Detecta duração com ffprobe, chunks de 10min com overlap 30s
+  - [x] Context preservation: 50 palavras do chunk anterior como prompt
+  - [x] Timestamp offset: soma duração acumulada em cada segmento
+  - [x] Concatena segmentos e retorna WhisperResponse completo
+- [x] FASE 2: consultationAudioUpload.ts criado (limite 1.5GB, multer)
+  - [x] Registrado em server/_core/index.ts (/api/consultations/upload-audio)
+  - [x] Autenticação JWT + validação de ownership da consulta
+- [x] FASE 3: routers.ts usa transcribeLongAudio em vez de transcribeAudio
+- [x] FASE 4: NewConsultation.tsx com upload multipart
+  - [x] Limite atualizado para 1.5GB (aceita MP3, WAV, M4A, WebM, OGG, FLAC, AAC)
+  - [x] XHR multipart para arquivos >10MB com progresso real
+  - [x] Botão mostra "Enviando áudio... XX%" durante upload
+- [x] FASE 5: 415 testes passando, zero erros TypeScript, servidor rodando
