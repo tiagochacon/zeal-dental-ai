@@ -312,7 +312,8 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const existing = await getPatientByNameForDentist(ctx.user.id, input.name);
         if (existing) {
-          throw new Error("Já existe um paciente com este nome.");
+          // Retornar paciente existente em vez de bloquear
+          return { patient: existing };
         }
         // Propagate clinicId from the dentist to the patient
         const currentUser = await getUserById(ctx.user.id);

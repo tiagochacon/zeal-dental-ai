@@ -112,15 +112,18 @@ export default function NewConsultation() {
 
     if (isNewPatient && newPatientName) {
       const normalizedName = newPatientName.trim().toLowerCase();
-      const duplicate = patients?.some(
+      const existingPatient = patients?.find(
         (p) => p.name.trim().toLowerCase() === normalizedName
       );
-      if (duplicate) {
-        throw new Error("Já existe um paciente com este nome.");
+      if (existingPatient) {
+        // Reutilizar paciente existente em vez de bloquear
+        patientId = existingPatient.id;
+        patientName = existingPatient.name;
+      } else {
+        const result = await createPatientMutation.mutateAsync({ name: newPatientName });
+        patientId = result.patient.id;
+        patientName = newPatientName;
       }
-      const result = await createPatientMutation.mutateAsync({ name: newPatientName });
-      patientId = result.patient.id;
-      patientName = newPatientName;
     } else {
       patientId = parseInt(selectedPatientId);
       patientName = patients?.find((p) => p.id === patientId)?.name || "";

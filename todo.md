@@ -1083,3 +1083,8 @@
   - [x] XHR multipart para arquivos >10MB com progresso real
   - [x] Botão mostra "Enviando áudio... XX%" durante upload
 - [x] FASE 5: 415 testes passando, zero erros TypeScript, servidor rodando
+
+## Bug Fix: "Já existe um paciente com este nome"
+- [x] Corrigir createPatient para não bloquear quando paciente já existe
+- [x] Frontend: reutiliza paciente existente automaticamente (find em vez de throw)
+- [x] Backend: retorna paciente existente em vez de lançar erro
