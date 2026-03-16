@@ -106,10 +106,50 @@ export default function NewConsultation() {
     }
   };
 
+  const ensurePatientAndConsultation = async (): Promise<{ patientId: number; patientName: string; consultationId: number }> => {
+    let patientId: number;
+    let patientName: string;
+
+    if (isNewPatient && newPatientName) {
+      const normalizedName = newPatientName.trim().toLowerCase();
+      const duplicate = patients?.some(
+        (p) => p.name.trim().toLowerCase() === normalizedName
+      );
+      if (duplicate) {
+        throw new Error("Já existe um paciente com este nome.");
+      }
+      const result = await createPatientMutation.mutateAsync({ name: newPatientName });
+      patientId = result.patient.id;
+      patientName = newPatientName;
+    } else {
+      patientId = parseInt(selectedPatientId);
+      patientName = patients?.find((p) => p.id === patientId)?.name || "";
+    }
+
+    const consultationResult = await createConsultationMutation.mutateAsync({
+      patientId,
+      patientName,
+    });
+
+    return {
+      patientId,
+      patientName,
+      consultationId: consultationResult.consultationId,
+    };
+  };
+
   const startRecording = async () => {
     try {
+      if (!isStep1Valid) {
+        toast.error("Selecione ou cadastre um paciente antes de gravar.");
+        return;
+      }
+
+      const { consultationId } = await ensurePatientAndConsultation();
+      currentConsultationIdRef.current = consultationId;
+
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
 
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
@@ -131,13 +171,13 @@ export default function NewConsultation() {
                 recordingSessionId: recordingSessionIdRef.current!,
                 chunkIndex: chunkIndexRef.current,
                 audioBase64: base64,
-                mimeType: 'audio/webm',
+                mimeType: "audio/webm",
                 durationSeconds: 60,
               });
               chunkIndexRef.current += 1;
-              setChunksUploaded(prev => prev + 1);
+              setChunksUploaded((prev) => prev + 1);
             } catch (error) {
-              console.error('Erro ao enviar chunk:', error);
+              console.error("Erro ao enviar chunk:", error);
             } finally {
               setUploadingChunk(false);
             }
@@ -146,10 +186,10 @@ export default function NewConsultation() {
       };
 
       mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
         setAudioBlob(blob);
         setAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
         if (wakeLockRef.current) {
           wakeLockRef.current.release().catch(() => {});
           wakeLockRef.current = null;
@@ -161,11 +201,27 @@ export default function NewConsultation() {
       setRecordingTime(0);
 
       timerRef.current = setInterval(() => {
-        setRecordingTime(prev => prev + 1);
+        setRecordingTime((prev) => prev + 1);
       }, 1000);
-    } catch (error) {
-      console.error('Error starting recording:', error);
-      toast.error('Erro ao acessar o microfone. Verifique as permissões.');
+    } catch (error: any) {
+      console.error("Error starting recording:", error);
+      if (
+        error?.data?.code === "FORBIDDEN" ||
+        error?.message?.includes("LIMIT_EXCEEDED") ||
+        error?.message?.includes("Limite")
+      ) {
+        const trigger = error?.message?.includes("LIMIT_EXCEEDED")
+          ? getTriggerFromError(error.message)
+          : usageLimit.getUpgradeTrigger() || "trial_limit";
+        setUpgradeTrigger(trigger);
+        setShowUpgradeModal(true);
+        return;
+      }
+      if (error?.message?.includes("paciente")) {
+        toast.error(error.message);
+        return;
+      }
+      toast.error("Erro ao acessar o microfone. Verifique as permissões.");
     }
   };
 
@@ -207,9 +263,14 @@ export default function NewConsultation() {
         toast.error('Formato de arquivo não suportado. Use MP3, WAV, M4A, WebM, OGG ou FLAC.');
         return;
       }
+<<<<<<< HEAD
       const maxSize = 1.5 * 1024 * 1024 * 1024; // 1.5GB
       if (file.size > maxSize) {
         toast.error('Arquivo muito grande. O limite é 1.5GB.');
+=======
+      if (file.size > 1.5 * 1024 * 1024 * 1024) {
+        toast.error("Arquivo muito grande. O limite é 1.5GB.");
+>>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
         return;
       }
       // Show size info for large files
@@ -227,6 +288,9 @@ export default function NewConsultation() {
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
     setRecordingTime(0);
+    setChunksUploaded(0);
+    currentConsultationIdRef.current = null;
+    recordingSessionIdRef.current = null;
   };
 
   const formatTime = (seconds: number) => {
@@ -241,7 +305,62 @@ export default function NewConsultation() {
 
   const selectedPatientName = isNewPatient
     ? newPatientName
-    : patients?.find(p => p.id === parseInt(selectedPatientId))?.name || "";
+    : patients?.find((p) => p.id === parseInt(selectedPatientId))?.name || "";
+
+  const uploadAudioMultipart = async (
+    consultationId: number,
+    blob: Blob,
+    durationSec: number
+  ): Promise<void> => {
+    const ext = blob.type.includes("webm")
+      ? "webm"
+      : blob.type.includes("mp3") || blob.type.includes("mpeg")
+        ? "mp3"
+        : blob.type.includes("mp4") || blob.type.includes("m4a") || blob.type.includes("aac")
+          ? "m4a"
+          : blob.type.includes("ogg")
+            ? "ogg"
+            : blob.type.includes("wav")
+              ? "wav"
+              : "webm";
+
+    const formData = new FormData();
+    formData.append("file", blob, `recording.${ext}`);
+    formData.append("consultationId", String(consultationId));
+    formData.append("durationSeconds", String(durationSec));
+
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+
+      xhr.upload.addEventListener("progress", (e) => {
+        if (e.lengthComputable) {
+          setUploadProgress(Math.round((e.loaded / e.total) * 100));
+        }
+      });
+
+      xhr.addEventListener("load", () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve();
+        } else {
+          try {
+            const err = JSON.parse(xhr.responseText);
+            reject(new Error(err.error || `Upload falhou (${xhr.status})`));
+          } catch {
+            reject(new Error(`Upload falhou (${xhr.status})`));
+          }
+        }
+      });
+
+      xhr.addEventListener("error", () =>
+        reject(new Error("Erro de rede durante o upload"))
+      );
+      xhr.addEventListener("abort", () => reject(new Error("Upload cancelado")));
+
+      xhr.open("POST", "/api/consultations/upload-audio");
+      xhr.withCredentials = true;
+      xhr.send(formData);
+    });
+  };
 
   const handleNextStep = () => {
     if (currentStep === 1 && isStep1Valid) {
@@ -251,58 +370,49 @@ export default function NewConsultation() {
 
   const handleSubmit = async () => {
     if (inputMode === "audio" && !audioBlob) {
-      toast.error('Por favor, grave ou faça upload de um áudio.');
+      toast.error("Por favor, grave ou faça upload de um áudio.");
       return;
     }
     if (inputMode === "text" && !consultationText.trim()) {
-      toast.error('Por favor, digite o texto da consulta.');
+      toast.error("Por favor, digite o texto da consulta.");
       return;
     }
     if (!selectedPatientId && !newPatientName) {
-      toast.error('Por favor, selecione ou cadastre um paciente.');
+      toast.error("Por favor, selecione ou cadastre um paciente.");
       return;
     }
 
-    try {
-      let patientId: number;
-      let patientName: string;
+    const usedProgressiveRecording =
+      recordingSessionIdRef.current && chunksUploaded > 0;
 
-      if (isNewPatient && newPatientName) {
-        const normalizedName = newPatientName.trim().toLowerCase();
-        const duplicate = patients?.some(
-          patient => patient.name.trim().toLowerCase() === normalizedName
-        );
-        if (duplicate) {
-          toast.error("Já existe um paciente com este nome.");
+    try {
+      if (inputMode === "audio" && usedProgressiveRecording) {
+        const consultationId = currentConsultationIdRef.current;
+        if (!consultationId) {
+          toast.error("Erro: sessão de gravação inválida. Tente novamente.");
           return;
         }
-        const result = await createPatientMutation.mutateAsync({ name: newPatientName });
-        patientId = result.patient.id;
-        patientName = newPatientName;
-      } else {
-        patientId = parseInt(selectedPatientId);
-        patientName = patients?.find(p => p.id === patientId)?.name || '';
+        await finalizeAudioRecordingMutation.mutateAsync({
+          consultationId,
+          recordingSessionId: recordingSessionIdRef.current!,
+          totalDurationSeconds: recordingTime,
+        });
+        toast.success("Gravação finalizada com sucesso!");
+        setLocation(`/consultation/${consultationId}/review`);
+        return;
       }
 
-      const consultationResult = await createConsultationMutation.mutateAsync({
-        patientId,
-        patientName,
-      });
-
-      currentConsultationIdRef.current = consultationResult.consultationId;
+      const { patientId, patientName, consultationId } =
+        await ensurePatientAndConsultation();
 
       if (inputMode === "audio" && audioBlob) {
-        const usedProgressiveRecording = recordingSessionIdRef.current && chunksUploaded > 0;
-
-        if (usedProgressiveRecording) {
-          await finalizeAudioRecordingMutation.mutateAsync({
-            consultationId: consultationResult.consultationId,
-            recordingSessionId: recordingSessionIdRef.current!,
-            totalDurationSeconds: recordingTime,
-          });
-          toast.success('Gravação finalizada com sucesso!');
-          setLocation(`/consultation/${consultationResult.consultationId}/review`);
+        const useMultipart = audioBlob.size > 10 * 1024 * 1024;
+        if (useMultipart) {
+          setUploadProgress(0);
+          await uploadAudioMultipart(consultationId, audioBlob, recordingTime);
+          setUploadProgress(0);
         } else {
+<<<<<<< HEAD
           const MULTIPART_THRESHOLD = 10 * 1024 * 1024; // 10MB
 
           if (audioBlob.size > MULTIPART_THRESHOLD) {
@@ -363,36 +473,66 @@ export default function NewConsultation() {
             };
             reader.readAsDataURL(audioBlob);
           }
+=======
+          const base64 = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+              const b64 = (reader.result as string).split(",")[1];
+              resolve(b64 || "");
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(audioBlob);
+          });
+          await uploadAudioMutation.mutateAsync({
+            consultationId,
+            audioBase64: base64,
+            mimeType: audioBlob.type || "audio/webm",
+            durationSeconds: recordingTime || undefined,
+          });
+>>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
         }
+        toast.success("Áudio enviado com sucesso!");
+        setLocation(`/consultation/${consultationId}/review`);
       } else if (inputMode === "text") {
         await updateTranscriptMutation.mutateAsync({
-          consultationId: consultationResult.consultationId,
+          consultationId,
           transcript: consultationText,
         });
-        toast.success('Consulta criada com sucesso!');
-        setLocation(`/consultation/${consultationResult.consultationId}/review`);
+        toast.success("Consulta criada com sucesso!");
+        setLocation(`/consultation/${consultationId}/review`);
       }
     } catch (error: any) {
-      console.error('Error creating consultation:', error);
-      if (error?.data?.code === 'FORBIDDEN' ||
-          error?.message?.includes('LIMIT_EXCEEDED') ||
-          error?.message?.includes('Limite')) {
-        const trigger = error?.message?.includes('LIMIT_EXCEEDED')
+      console.error("Error creating consultation:", error);
+      if (
+        error?.data?.code === "FORBIDDEN" ||
+        error?.message?.includes("LIMIT_EXCEEDED") ||
+        error?.message?.includes("Limite")
+      ) {
+        const trigger = error?.message?.includes("LIMIT_EXCEEDED")
           ? getTriggerFromError(error.message)
-          : usageLimit.getUpgradeTrigger() || 'trial_limit';
+          : usageLimit.getUpgradeTrigger() || "trial_limit";
         setUpgradeTrigger(trigger);
         setShowUpgradeModal(true);
         return;
       }
-      toast.error('Erro ao criar consulta. Tente novamente.');
+      toast.error("Erro ao criar consulta. Tente novamente.");
     }
   };
 
+<<<<<<< HEAD
   const isSubmitting = createPatientMutation.isPending ||
                        createConsultationMutation.isPending ||
                        uploadAudioMutation.isPending ||
                        updateTranscriptMutation.isPending ||
                        isUploading;
+=======
+  const isSubmitting =
+    createPatientMutation.isPending ||
+    createConsultationMutation.isPending ||
+    uploadAudioMutation.isPending ||
+    finalizeAudioRecordingMutation.isPending ||
+    updateTranscriptMutation.isPending;
+>>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
 
   if (authLoading) {
     return (
@@ -703,7 +843,11 @@ export default function NewConsultation() {
                                 Fazer Upload de Áudio
                               </Button>
                               <p className="text-xs text-muted-foreground text-center">
+<<<<<<< HEAD
                                 Formatos aceitos: MP3, WAV, M4A, WebM, OGG, FLAC (máx. 1.5GB)
+=======
+                                Formatos aceitos: MP3, WAV, M4A, WebM (máx. 1.5GB)
+>>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
                               </p>
                             </div>
                           </>
@@ -788,10 +932,20 @@ export default function NewConsultation() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+<<<<<<< HEAD
                   {isUploading ? `Enviando áudio... ${uploadProgress}%` : 'Processando...'}
+=======
+                  {uploadProgress > 0
+                    ? `Enviando áudio... ${uploadProgress}%`
+                    : finalizeAudioRecordingMutation.isPending
+                      ? "Finalizando gravação..."
+                      : "Processando..."}
+>>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
                 </>
               ) : (
-                inputMode === "audio" ? 'Continuar para Transcrição' : 'Continuar para Revisão'
+                inputMode === "audio"
+                  ? "Continuar para Transcrição"
+                  : "Continuar para Revisão"
               )}
             </Button>
           </motion.div>

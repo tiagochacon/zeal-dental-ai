@@ -34,21 +34,19 @@ const ALLOWED_MIME_TYPES = [
 // Use disk storage for large files to avoid memory issues
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    const tmpDir = path.join(os.tmpdir(), 'zeal-consultation-upload');
+    const tmpDir = path.join(os.tmpdir(), "zeal-consultation-upload");
     fs.mkdirSync(tmpDir, { recursive: true });
     cb(null, tmpDir);
   },
   filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname) || '.audio';
+    const ext = path.extname(file.originalname) || ".audio";
     cb(null, `upload_${nanoid(12)}${ext}`);
   },
 });
 
 const upload = multer({
   storage,
-  limits: {
-    fileSize: AUDIO_MAX_SIZE,
-  },
+  limits: { fileSize: AUDIO_MAX_SIZE },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("audio/") || ALLOWED_MIME_TYPES.includes(file.mimetype)) {
       cb(null, true);
@@ -60,14 +58,6 @@ const upload = multer({
 
 const router = Router();
 
-/**
- * POST /api/consultations/upload-audio
- * Multipart form upload for consultation audio files (up to 1.5GB)
- * Fields:
- *   - file: audio file (required)
- *   - consultationId: number (required)
- *   - durationSeconds: number (optional)
- */
 router.post(
   "/",
   upload.single("file"),
@@ -75,7 +65,6 @@ router.post(
     let tmpFilePath: string | null = null;
 
     try {
-      // Authenticate user
       let user;
       try {
         const authUser = await sdk.authenticateRequest(req);
@@ -84,11 +73,10 @@ router.post(
         return res.status(401).json({ error: "Não autenticado" });
       }
 
-      if (!user || !user.clinicId) {
-        return res.status(403).json({ error: "Você precisa estar vinculado a uma clínica" });
+      if (!user) {
+        return res.status(401).json({ error: "Usuário não encontrado" });
       }
 
-      // Validate file
       const file = req.file;
       if (!file) {
         return res.status(400).json({ error: "Nenhum arquivo de áudio enviado" });
@@ -96,38 +84,40 @@ router.post(
 
       tmpFilePath = file.path;
 
-      // Validate consultationId
       const consultationId = parseInt(req.body.consultationId);
       if (!consultationId || isNaN(consultationId)) {
         return res.status(400).json({ error: "ID da consulta inválido" });
       }
 
-      // Validate duration
-      const durationSeconds = req.body.durationSeconds ? parseInt(req.body.durationSeconds) : null;
+      const durationSeconds = req.body.durationSeconds
+        ? parseInt(req.body.durationSeconds)
+        : null;
       if (durationSeconds && durationSeconds > MAX_DURATION_SECONDS) {
         return res.status(400).json({
-          error: `Duração máxima permitida: ${MAX_DURATION_SECONDS / 60} minutos`
+          error: `Duração máxima permitida: ${MAX_DURATION_SECONDS / 60} minutos`,
         });
       }
 
-      // Verify consultation belongs to user (dentist) or user's clinic
       const consultation = await getConsultationById(consultationId);
       if (!consultation) {
         return res.status(404).json({ error: "Consulta não encontrada" });
       }
-      // Check access: user is the dentist OR user is in the same clinic
-      const isDentist = consultation.dentistId === user.id;
-      // For clinic-level access, we need to check if the dentist belongs to the same clinic
-      if (!isDentist && user.clinicId) {
+
+      const isOwner = consultation.dentistId === user.id;
+      const isGestorOrAdmin =
+        user.clinicId &&
+        (user.clinicRole === "gestor" || user.role === "admin");
+      let hasAccess = isOwner;
+      if (isGestorOrAdmin) {
         const dentist = await getUserById(consultation.dentistId);
-        if (!dentist || dentist.clinicId !== user.clinicId) {
-          return res.status(404).json({ error: "Consulta não encontrada" });
+        if (dentist && dentist.clinicId === user.clinicId) {
+          hasAccess = true;
         }
-      } else if (!isDentist) {
-        return res.status(404).json({ error: "Consulta não encontrada" });
+      }
+      if (!hasAccess) {
+        return res.status(403).json({ error: "Acesso negado a esta consulta" });
       }
 
-      // Determine file extension
       const mimeType = file.mimetype;
       const extMap: Record<string, string> = {
         "audio/webm": "webm",
@@ -145,12 +135,10 @@ router.post(
       };
       const ext = extMap[mimeType] || "audio";
 
-      // Read file from disk and upload to S3
       const fileBuffer = await fs.promises.readFile(file.path);
-      const fileKey = `consultations/${user.clinicId}/${consultationId}-${nanoid(8)}.${ext}`;
+      const fileKey = `consultations/${user.id}/${consultationId}/audio-${nanoid(8)}.${ext}`;
       const { url } = await storagePut(fileKey, fileBuffer, mimeType);
 
-      // Update consultation record
       await updateConsultation(consultationId, {
         audioUrl: url,
         audioFileKey: fileKey,
@@ -158,7 +146,7 @@ router.post(
       });
 
       const sizeMB = (file.size / (1024 * 1024)).toFixed(2);
-      console.log(`[ConsultationAudioUpload] Consultation ${consultationId}: ${sizeMB}MB ${ext} uploaded successfully`);
+      console.log(`[ConsultationAudioUpload] Consultation ${consultationId}: ${sizeMB}MB ${ext} uploaded`);
 
       return res.json({
         success: true,
@@ -168,16 +156,16 @@ router.post(
         durationSeconds,
       });
     } catch (error: any) {
-      // Handle multer errors
       if (error.code === "LIMIT_FILE_SIZE") {
         return res.status(413).json({
-          error: `Arquivo muito grande. Tamanho máximo: ${(AUDIO_MAX_SIZE / (1024 * 1024 * 1024)).toFixed(1)}GB`
+          error: `Arquivo muito grande. Tamanho máximo: ${(AUDIO_MAX_SIZE / (1024 * 1024 * 1024)).toFixed(1)}GB`,
         });
       }
       console.error("[ConsultationAudioUpload] Error:", error.message);
-      return res.status(500).json({ error: error.message || "Erro ao fazer upload do áudio" });
+      return res.status(500).json({
+        error: error.message || "Erro ao fazer upload do áudio",
+      });
     } finally {
-      // Cleanup temp file
       if (tmpFilePath) {
         try {
           await fs.promises.unlink(tmpFilePath);

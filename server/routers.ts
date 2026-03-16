@@ -645,16 +645,17 @@ export const appRouter = router({
           throw new Error("Nenhum chunk de áudio encontrado para esta sessão");
         }
 
-        // Download and concatenate all chunks
-        const chunkBuffers: Buffer[] = [];
-        for (const chunk of chunks) {
-          const response = await fetch(chunk.url);
-          if (!response.ok) {
-            throw new Error(`Falha ao baixar chunk ${chunk.chunkIndex}`);
-          }
-          const arrayBuffer = await response.arrayBuffer();
-          chunkBuffers.push(Buffer.from(arrayBuffer));
-        }
+        // Download all chunks in parallel (much faster than sequential)
+        const chunkBuffers = await Promise.all(
+          chunks.map(async (chunk) => {
+            const response = await fetch(chunk.url);
+            if (!response.ok) {
+              throw new Error(`Falha ao baixar chunk ${chunk.chunkIndex}`);
+            }
+            const arrayBuffer = await response.arrayBuffer();
+            return Buffer.from(arrayBuffer);
+          })
+        );
 
         // Concatenate all chunks into single buffer
         const concatenatedBuffer = Buffer.concat(chunkBuffers);
