@@ -322,8 +322,11 @@ export default function NewConsultation() {
               ? "wav"
               : "webm";
 
+    const filename =
+      blob instanceof File && blob.name ? blob.name : `recording.${ext}`;
+
     const formData = new FormData();
-    formData.append("file", blob, `recording.${ext}`);
+    formData.append("file", blob, filename);
     formData.append("consultationId", String(consultationId));
     formData.append("durationSeconds", String(durationSec));
 
@@ -404,60 +407,21 @@ export default function NewConsultation() {
         await ensurePatientAndConsultation();
 
       if (inputMode === "audio" && audioBlob) {
-        const useMultipart = audioBlob.size > 10 * 1024 * 1024;
-        if (useMultipart) {
-          setUploadProgress(0);
-          await uploadAudioMultipart(consultationId, audioBlob, recordingTime);
-          setUploadProgress(0);
-        } else {
-          const MULTIPART_THRESHOLD = 10 * 1024 * 1024; // 10MB
+        const MULTIPART_THRESHOLD = 10 * 1024 * 1024; // 10MB
+        const useMultipart = audioBlob.size > MULTIPART_THRESHOLD;
 
-          if (audioBlob.size > MULTIPART_THRESHOLD) {
-            // Use multipart upload for large files
+        try {
+          if (useMultipart) {
             setIsUploading(true);
             setUploadProgress(0);
-            toast.info('Enviando áudio grande via upload direto...');
-
-            const formData = new FormData();
-            formData.append('file', audioBlob, `consultation.${audioBlob.type?.includes('wav') ? 'wav' : audioBlob.type?.includes('mp3') || audioBlob.type?.includes('mpeg') ? 'mp3' : audioBlob.type?.includes('m4a') || audioBlob.type?.includes('mp4') ? 'm4a' : 'webm'}`);
-            formData.append('consultationId', String(consultationId));
-            if (recordingTime) formData.append('durationSeconds', String(recordingTime));
-
-            const xhr = new XMLHttpRequest();
-            await new Promise<void>((resolve, reject) => {
-              xhr.upload.addEventListener('progress', (e) => {
-                if (e.lengthComputable) {
-                  const pct = Math.round((e.loaded / e.total) * 100);
-                  setUploadProgress(pct);
-                }
-              });
-              xhr.addEventListener('load', () => {
-                if (xhr.status >= 200 && xhr.status < 300) {
-                  resolve();
-                } else {
-                  try {
-                    const errData = JSON.parse(xhr.responseText);
-                    reject(new Error(errData.error || 'Upload falhou'));
-                  } catch {
-                    reject(new Error(`Upload falhou (HTTP ${xhr.status})`));
-                  }
-                }
-              });
-              xhr.addEventListener('error', () => reject(new Error('Erro de rede durante upload')));
-              xhr.addEventListener('abort', () => reject(new Error('Upload cancelado')));
-              xhr.open('POST', '/api/consultations/upload-audio');
-              xhr.withCredentials = true;
-              xhr.send(formData);
-            });
-
-            setIsUploading(false);
+            toast.info("Enviando áudio... Isso pode levar alguns minutos para arquivos grandes.");
+            await uploadAudioMultipart(consultationId, audioBlob, recordingTime || 0);
           } else {
-            // Use base64 upload for small files
             const base64 = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
               reader.onloadend = () => {
-                const b64 = (reader.result as string).split(',')[1];
-                resolve(b64 || '');
+                const b64 = (reader.result as string).split(",")[1];
+                resolve(b64 || "");
               };
               reader.onerror = reject;
               reader.readAsDataURL(audioBlob);
@@ -465,13 +429,16 @@ export default function NewConsultation() {
             await uploadAudioMutation.mutateAsync({
               consultationId,
               audioBase64: base64,
-              mimeType: audioBlob.type || 'audio/webm',
+              mimeType: audioBlob.type || "audio/webm",
               durationSeconds: recordingTime || undefined,
             });
           }
+          toast.success("Áudio enviado com sucesso!");
+          setLocation(`/consultation/${consultationId}/review`);
+        } finally {
+          setIsUploading(false);
+          setUploadProgress(0);
         }
-        toast.success("Áudio enviado com sucesso!");
-        setLocation(`/consultation/${consultationId}/review`);
       } else if (inputMode === "text") {
         await updateTranscriptMutation.mutateAsync({
           consultationId,
