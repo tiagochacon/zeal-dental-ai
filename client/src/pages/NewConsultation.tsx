@@ -263,14 +263,9 @@ export default function NewConsultation() {
         toast.error('Formato de arquivo não suportado. Use MP3, WAV, M4A, WebM, OGG ou FLAC.');
         return;
       }
-<<<<<<< HEAD
       const maxSize = 1.5 * 1024 * 1024 * 1024; // 1.5GB
       if (file.size > maxSize) {
         toast.error('Arquivo muito grande. O limite é 1.5GB.');
-=======
-      if (file.size > 1.5 * 1024 * 1024 * 1024) {
-        toast.error("Arquivo muito grande. O limite é 1.5GB.");
->>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
         return;
       }
       // Show size info for large files
@@ -412,7 +407,6 @@ export default function NewConsultation() {
           await uploadAudioMultipart(consultationId, audioBlob, recordingTime);
           setUploadProgress(0);
         } else {
-<<<<<<< HEAD
           const MULTIPART_THRESHOLD = 10 * 1024 * 1024; // 10MB
 
           if (audioBlob.size > MULTIPART_THRESHOLD) {
@@ -423,7 +417,7 @@ export default function NewConsultation() {
 
             const formData = new FormData();
             formData.append('file', audioBlob, `consultation.${audioBlob.type?.includes('wav') ? 'wav' : audioBlob.type?.includes('mp3') || audioBlob.type?.includes('mpeg') ? 'mp3' : audioBlob.type?.includes('m4a') || audioBlob.type?.includes('mp4') ? 'm4a' : 'webm'}`);
-            formData.append('consultationId', String(consultationResult.consultationId));
+            formData.append('consultationId', String(consultationId));
             if (recordingTime) formData.append('durationSeconds', String(recordingTime));
 
             const xhr = new XMLHttpRequest();
@@ -449,47 +443,29 @@ export default function NewConsultation() {
               xhr.addEventListener('error', () => reject(new Error('Erro de rede durante upload')));
               xhr.addEventListener('abort', () => reject(new Error('Upload cancelado')));
               xhr.open('POST', '/api/consultations/upload-audio');
-              // Include credentials (cookies) for authentication
               xhr.withCredentials = true;
               xhr.send(formData);
             });
 
             setIsUploading(false);
-            toast.success('Áudio enviado com sucesso!');
-            setLocation(`/consultation/${consultationResult.consultationId}/review`);
           } else {
             // Use base64 upload for small files
-            const reader = new FileReader();
-            reader.onloadend = async () => {
-              const base64 = (reader.result as string).split(',')[1];
-              await uploadAudioMutation.mutateAsync({
-                consultationId: consultationResult.consultationId,
-                audioBase64: base64,
-                mimeType: audioBlob.type || 'audio/webm',
-                durationSeconds: recordingTime || undefined,
-              });
-              toast.success('Áudio enviado com sucesso!');
-              setLocation(`/consultation/${consultationResult.consultationId}/review`);
-            };
-            reader.readAsDataURL(audioBlob);
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onloadend = () => {
+                const b64 = (reader.result as string).split(',')[1];
+                resolve(b64 || '');
+              };
+              reader.onerror = reject;
+              reader.readAsDataURL(audioBlob);
+            });
+            await uploadAudioMutation.mutateAsync({
+              consultationId,
+              audioBase64: base64,
+              mimeType: audioBlob.type || 'audio/webm',
+              durationSeconds: recordingTime || undefined,
+            });
           }
-=======
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.onloadend = () => {
-              const b64 = (reader.result as string).split(",")[1];
-              resolve(b64 || "");
-            };
-            reader.onerror = reject;
-            reader.readAsDataURL(audioBlob);
-          });
-          await uploadAudioMutation.mutateAsync({
-            consultationId,
-            audioBase64: base64,
-            mimeType: audioBlob.type || "audio/webm",
-            durationSeconds: recordingTime || undefined,
-          });
->>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
         }
         toast.success("Áudio enviado com sucesso!");
         setLocation(`/consultation/${consultationId}/review`);
@@ -519,20 +495,12 @@ export default function NewConsultation() {
     }
   };
 
-<<<<<<< HEAD
   const isSubmitting = createPatientMutation.isPending ||
                        createConsultationMutation.isPending ||
                        uploadAudioMutation.isPending ||
+                       finalizeAudioRecordingMutation.isPending ||
                        updateTranscriptMutation.isPending ||
                        isUploading;
-=======
-  const isSubmitting =
-    createPatientMutation.isPending ||
-    createConsultationMutation.isPending ||
-    uploadAudioMutation.isPending ||
-    finalizeAudioRecordingMutation.isPending ||
-    updateTranscriptMutation.isPending;
->>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
 
   if (authLoading) {
     return (
@@ -843,11 +811,7 @@ export default function NewConsultation() {
                                 Fazer Upload de Áudio
                               </Button>
                               <p className="text-xs text-muted-foreground text-center">
-<<<<<<< HEAD
                                 Formatos aceitos: MP3, WAV, M4A, WebM, OGG, FLAC (máx. 1.5GB)
-=======
-                                Formatos aceitos: MP3, WAV, M4A, WebM (máx. 1.5GB)
->>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
                               </p>
                             </div>
                           </>
@@ -932,15 +896,11 @@ export default function NewConsultation() {
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-<<<<<<< HEAD
-                  {isUploading ? `Enviando áudio... ${uploadProgress}%` : 'Processando...'}
-=======
-                  {uploadProgress > 0
+                  {isUploading || uploadProgress > 0
                     ? `Enviando áudio... ${uploadProgress}%`
                     : finalizeAudioRecordingMutation.isPending
-                      ? "Finalizando gravação..."
-                      : "Processando..."}
->>>>>>> e3cfdeb (fix(audio): suporte a gravaÃ§Ãµes longas (1h) e upload de arquivos grandes)
+                      ? 'Finalizando gravação...'
+                      : 'Processando...'}
                 </>
               ) : (
                 inputMode === "audio"
