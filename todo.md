@@ -1088,3 +1088,7 @@
 - [x] Corrigir createPatient para não bloquear quando paciente já existe
 - [x] Frontend: reutiliza paciente existente automaticamente (find em vez de throw)
 - [x] Backend: retorna paciente existente em vez de lançar erro
+
+## Bug Fix: "Voice transcription failed" na review
+- [x] Causa: ffmpeg -c copy falha com WebM/Opus e certos MP3 (Error initializing output stream)
+- [x] Fix: substituir -c copy por re-encoding (-vn -ar 16000 -ac 1 -b:a 64k) + conversão WebM→MP3

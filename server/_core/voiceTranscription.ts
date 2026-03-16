@@ -425,20 +425,30 @@ async function splitAudioIntoChunks(
     const chunkFile = path.join(tmpDir, `chunk_${i}${ext}`);
     const duration = chunk.endSec - chunk.startSec;
 
+    // Use re-encoding instead of -c copy for compatibility with all formats
+    // (WebM/Opus, AAC containers, etc. often fail with stream copy)
+    const outputExt = ext === '.webm' || ext === '.ogg' ? '.mp3' : ext;
+    const actualChunkFile = outputExt !== ext 
+      ? path.join(tmpDir, `chunk_${i}${outputExt}`) 
+      : chunkFile;
+    
     await execFileAsync('ffmpeg', [
       '-i', inputFile,
       '-ss', String(chunk.startSec),
       '-t', String(duration),
-      '-c', 'copy', // Copy codec for speed (no re-encoding)
+      '-vn',           // No video
+      '-ar', '16000',  // 16kHz sample rate (Whisper optimal)
+      '-ac', '1',      // Mono
+      '-b:a', '64k',   // 64kbps (good quality for speech)
       '-y',
-      chunkFile
+      actualChunkFile
     ]);
 
     // Verify chunk was created
     try {
-      const stats = await fs.promises.stat(chunkFile);
+      const stats = await fs.promises.stat(actualChunkFile);
       if (stats.size > 0) {
-        chunkFiles.push(chunkFile);
+        chunkFiles.push(actualChunkFile);
         console.log(`[Transcription] Chunk ${i + 1}: ${(stats.size / (1024 * 1024)).toFixed(1)}MB (${chunk.startSec}s - ${chunk.endSec}s)`);
       }
     } catch {
