@@ -113,6 +113,13 @@
       "when": 1772131942161,
       "tag": "0015_bent_felicia_hardy",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "5",
+      "when": 1773852604442,
+      "tag": "0016_fair_shatterstar",
+      "breakpoints": true
     }
   ]
 }
