@@ -656,7 +656,9 @@ export const appRouter = router({
         });
 
         if ("error" in result) {
-          throw new Error(`Erro na transcrição do chunk: ${result.error}`);
+          const errorMsg = `Chunk ${input.chunkIndex} transcription failed: ${result.error}${result.details ? ` (${result.details})` : ''}`;
+          console.error(`[TranscribeAudioChunk] ${errorMsg}`);
+          throw new Error(errorMsg);
         }
 
         await updateAudioChunkTranscript(
