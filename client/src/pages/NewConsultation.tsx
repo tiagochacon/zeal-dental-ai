@@ -46,6 +46,7 @@ export default function NewConsultation() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [uploadingChunk, setUploadingChunk] = useState(false);
   const [chunksUploaded, setChunksUploaded] = useState(0);
+  const [chunksTranscribed, setChunksTranscribed] = useState(0);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -56,6 +57,8 @@ export default function NewConsultation() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const recordingSessionIdRef = useRef<string | null>(null);
   const chunkIndexRef = useRef<number>(0);
+  const chunkQueueRef = useRef<Blob[]>([]);
+  const isProcessingQueueRef = useRef<boolean>(false);
   const wakeLockRef = useRef<any>(null);
   const currentConsultationIdRef = useRef<number | null>(null);
 
@@ -70,6 +73,7 @@ export default function NewConsultation() {
   const createConsultationMutation = trpc.consultations.create.useMutation();
   const uploadAudioMutation = trpc.consultations.uploadAudio.useMutation();
   const uploadAudioChunkMutation = trpc.consultations.uploadAudioChunk.useMutation();
+  const transcribeAudioChunkMutation = trpc.consultations.transcribeAudioChunk.useMutation();
   const finalizeAudioRecordingMutation = trpc.consultations.finalizeAudioRecording.useMutation();
   const updateTranscriptMutation = trpc.consultations.updateTranscript.useMutation();
 
@@ -158,32 +162,63 @@ export default function NewConsultation() {
       chunksRef.current = [];
       recordingSessionIdRef.current = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
       chunkIndexRef.current = 0;
+      chunkQueueRef.current = [];
       setChunksUploaded(0);
+      setChunksTranscribed(0);
 
       requestWakeLock();
 
-      mediaRecorder.ondataavailable = async (e) => {
+      const processChunkQueue = async () => {
+        if (isProcessingQueueRef.current || chunkQueueRef.current.length === 0) return;
+        const consultationId = currentConsultationIdRef.current;
+        const sessionId = recordingSessionIdRef.current;
+        if (!consultationId || !sessionId) return;
+
+        isProcessingQueueRef.current = true;
+        setUploadingChunk(true);
+        const blob = chunkQueueRef.current.shift()!;
+        const chunkIdx = chunkIndexRef.current;
+
+        try {
+          const base64 = await blobToBase64(blob);
+          await uploadAudioChunkMutation.mutateAsync({
+            consultationId,
+            recordingSessionId: sessionId,
+            chunkIndex: chunkIdx,
+            audioBase64: base64,
+            mimeType: "audio/webm",
+            durationSeconds: 60,
+          });
+          chunkIndexRef.current += 1;
+          setChunksUploaded((prev) => prev + 1);
+
+          // Progressive transcription: transcribe chunk in background (fire and forget)
+          transcribeAudioChunkMutation.mutateAsync({
+            consultationId,
+            recordingSessionId: sessionId,
+            chunkIndex: chunkIdx,
+          }).then(() => {
+            setChunksTranscribed((prev) => prev + 1);
+          }).catch((err) => {
+            console.warn("Transcrição do chunk falhou (será feita ao finalizar):", err);
+          });
+        } catch (error) {
+          console.error("Erro ao enviar chunk:", error);
+        } finally {
+          setUploadingChunk(false);
+          isProcessingQueueRef.current = false;
+          if (chunkQueueRef.current.length > 0) {
+            processChunkQueue();
+          }
+        }
+      };
+
+      mediaRecorder.ondataavailable = (e) => {
         if (e.data.size > 0) {
           chunksRef.current.push(e.data);
-          if (currentConsultationIdRef.current && !uploadingChunk) {
-            setUploadingChunk(true);
-            try {
-              const base64 = await blobToBase64(e.data);
-              await uploadAudioChunkMutation.mutateAsync({
-                consultationId: currentConsultationIdRef.current,
-                recordingSessionId: recordingSessionIdRef.current!,
-                chunkIndex: chunkIndexRef.current,
-                audioBase64: base64,
-                mimeType: "audio/webm",
-                durationSeconds: 60,
-              });
-              chunkIndexRef.current += 1;
-              setChunksUploaded((prev) => prev + 1);
-            } catch (error) {
-              console.error("Erro ao enviar chunk:", error);
-            } finally {
-              setUploadingChunk(false);
-            }
+          if (currentConsultationIdRef.current) {
+            chunkQueueRef.current.push(e.data);
+            processChunkQueue();
           }
         }
       };
@@ -718,9 +753,14 @@ export default function NewConsultation() {
                                 {formatTime(recordingTime)}
                               </div>
                               {chunksUploaded > 0 && (
-                                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                                  <div className={`w-2 h-2 rounded-full ${uploadingChunk ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
-                                  {uploadingChunk ? 'Enviando...' : `${chunksUploaded} chunk(s) enviado(s)`}
+                                <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
+                                  <div className="flex items-center gap-2">
+                                    <div className={`w-2 h-2 rounded-full ${uploadingChunk ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
+                                    {uploadingChunk ? 'Enviando...' : `${chunksUploaded} chunk(s) enviado(s)`}
+                                  </div>
+                                  {chunksTranscribed > 0 && (
+                                    <span className="text-emerald-600">{chunksTranscribed} transcrito(s)</span>
+                                  )}
                                 </div>
                               )}
                               <p className="text-xs text-center text-muted-foreground max-w-sm px-4">

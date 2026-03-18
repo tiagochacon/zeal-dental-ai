@@ -409,6 +409,27 @@ export async function deleteAudioChunks(
     );
 }
 
+export async function updateAudioChunkTranscript(
+  consultationId: number,
+  recordingSessionId: string,
+  chunkIndex: number,
+  transcriptText: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(audioChunks)
+    .set({ transcriptText })
+    .where(
+      and(
+        eq(audioChunks.consultationId, consultationId),
+        eq(audioChunks.recordingSessionId, recordingSessionId),
+        eq(audioChunks.chunkIndex, chunkIndex)
+      )
+    );
+}
+
 
 // ==================== SUBSCRIPTION FUNCTIONS ====================
 

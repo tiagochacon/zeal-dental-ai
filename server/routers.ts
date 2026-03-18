@@ -27,6 +27,7 @@ import {
   createAudioChunk,
   getAudioChunksBySession,
   deleteAudioChunks,
+  updateAudioChunkTranscript,
   getAudioChunksByConsultation,
   deleteAudioChunksByConsultation,
   deleteConsultation,
@@ -36,6 +37,7 @@ import {
 } from "./db";
 import { storagePut, storageDelete } from "./storage";
 import { transcribeLongAudio } from "./_core/voiceTranscription";
+import { concatenateAudioChunksWithFfmpeg } from "./helpers/concatenateAudioChunks";
 import { invokeLLM } from "./_core/llm";
 import { invokeLLMWithRetry } from "./helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "./helpers/validateNeurovendasAnalysis";
@@ -624,6 +626,49 @@ export const appRouter = router({
         return { success: true, chunkUrl: url };
       }),
 
+    // Transcribe a single audio chunk (progressive transcription during recording)
+    transcribeAudioChunk: protectedProcedure
+      .input(z.object({
+        consultationId: z.number(),
+        recordingSessionId: z.string(),
+        chunkIndex: z.number(),
+      }))
+      .mutation(async ({ ctx, input }) => {
+        await assertConsultationAccess(
+          await getConsultationById(input.consultationId), ctx.user
+        );
+
+        const chunks = await getAudioChunksBySession(
+          input.consultationId,
+          input.recordingSessionId
+        );
+        const chunk = chunks.find((c) => c.chunkIndex === input.chunkIndex);
+        if (!chunk) {
+          throw new Error(`Chunk ${input.chunkIndex} não encontrado`);
+        }
+
+        const DENTAL_PROMPT = "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro. Identifique e marque cada falante usando 'Dentista:' ou 'Paciente:'. Termos técnicos odontológicos precisam ser transcritos com exatidão.";
+
+        const result = await transcribeLongAudio({
+          audioUrl: chunk.url,
+          language: "pt",
+          prompt: DENTAL_PROMPT,
+        });
+
+        if ("error" in result) {
+          throw new Error(`Erro na transcrição do chunk: ${result.error}`);
+        }
+
+        await updateAudioChunkTranscript(
+          input.consultationId,
+          input.recordingSessionId,
+          input.chunkIndex,
+          result.text
+        );
+
+        return { success: true, transcript: result.text };
+      }),
+
     // Concatenate audio chunks and finalize recording
     finalizeAudioRecording: protectedProcedure
       .input(z.object({
@@ -658,9 +703,16 @@ export const appRouter = router({
           })
         );
 
-        // Concatenate all chunks into single buffer
-        const concatenatedBuffer = Buffer.concat(chunkBuffers);
-        
+        // Concatenate using ffmpeg (Buffer.concat produces invalid WebM - each chunk has its own header)
+        let concatenatedBuffer: Buffer;
+        try {
+          const result = await concatenateAudioChunksWithFfmpeg(chunkBuffers, chunks[0].mimeType);
+          concatenatedBuffer = result.buffer;
+        } catch (ffmpegError) {
+          console.warn("[finalizeAudioRecording] ffmpeg concat failed, falling back to Buffer.concat:", ffmpegError);
+          concatenatedBuffer = Buffer.concat(chunkBuffers);
+        }
+
         // Upload final audio file
         const extension = chunks[0].mimeType.split('/')[1] || 'webm';
         const finalFileKey = `consultations/${ctx.user.id}/${input.consultationId}/audio-final-${nanoid()}.${extension}`;
@@ -670,11 +722,23 @@ export const appRouter = router({
           chunks[0].mimeType
         );
 
-        // Update consultation with final audio
+        // Merge partial transcripts from chunks (progressive transcription)
+        const transcriptParts = chunks
+          .map((c) => (c as { transcriptText?: string | null }).transcriptText)
+          .filter((t): t is string => !!t && t.trim().length > 0);
+        const mergedTranscript = transcriptParts.length > 0
+          ? transcriptParts.join("\n\n")
+          : null;
+
+        // Update consultation with final audio and transcript if available
         await updateConsultation(input.consultationId, {
           audioUrl: finalUrl,
           audioFileKey: finalFileKey,
           audioDurationSeconds: input.totalDurationSeconds || null,
+          ...(mergedTranscript && {
+            transcript: mergedTranscript,
+            status: "transcribed" as const,
+          }),
         });
 
         // Clean up chunks from database (keep files in S3 for safety)
