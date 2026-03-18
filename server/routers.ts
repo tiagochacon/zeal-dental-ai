@@ -601,15 +601,25 @@ export const appRouter = router({
         );
 
         // Convert base64 to buffer
-        const audioBuffer = Buffer.from(input.audioBase64, 'base64');
+        let audioBuffer = Buffer.from(input.audioBase64, 'base64');
+        const originalSizeBytes = audioBuffer.length;
+        
+        // Normalize WebM chunks to MP3 for robust transcription
+        if (input.mimeType.includes('webm')) {
+          const { normalizeAudioChunkToMp3 } = require('./_core/normalizeAudioChunk');
+          console.log(`[UploadChunk] Normalizing WebM chunk ${input.chunkIndex} (${(originalSizeBytes / 1024).toFixed(1)}KB)`);
+          audioBuffer = await normalizeAudioChunkToMp3(audioBuffer, input.mimeType);
+        }
+        
         const sizeBytes = audioBuffer.length;
         
-        // Generate unique file key for chunk
-        const extension = input.mimeType.split('/')[1] || 'webm';
+        // Generate unique file key for chunk (always save as MP3 after normalization)
+        const extension = input.mimeType.includes('webm') ? 'mp3' : (input.mimeType.split('/')[1] || 'mp3');
         const fileKey = `consultations/${ctx.user.id}/${input.consultationId}/chunks/${input.recordingSessionId}/chunk-${input.chunkIndex}.${extension}`;
         
-        // Upload chunk to S3
-        const { url } = await storagePut(fileKey, audioBuffer, input.mimeType);
+        // Upload normalized chunk to S3
+        const mimeTypeForStorage = input.mimeType.includes('webm') ? 'audio/mpeg' : input.mimeType;
+        const { url } = await storagePut(fileKey, audioBuffer, mimeTypeForStorage);
 
         // Store chunk metadata in database
         await createAudioChunk({

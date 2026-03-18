@@ -192,10 +192,17 @@ export default function NewConsultation() {
           chunkIndexRef.current += 1;
           setChunksUploaded((prev) => prev + 1);
 
-          // Progressive transcription disabled: WebM chunks from MediaRecorder may not be valid isolates
-          // Transcription will happen after finalizeAudioRecording concatenates chunks via ffmpeg
-          // This ensures a valid, complete audio file is sent to Whisper
-          console.log(`Chunk ${chunkIdx} uploaded, transcription will occur after recording finalization`);
+          // Progressive transcription: chunks are now normalized to MP3 in backend
+          // Safe to transcribe each chunk independently
+          transcribeAudioChunkMutation.mutateAsync({
+            consultationId,
+            recordingSessionId: sessionId,
+            chunkIndex: chunkIdx,
+          }).then(() => {
+            setChunksTranscribed((prev) => prev + 1);
+          }).catch((err) => {
+            console.warn(`Transcrição do chunk ${chunkIdx} falhou (será feita ao finalizar):`, err);
+          });
         } catch (error) {
           console.error("Erro ao enviar chunk:", error);
         } finally {
@@ -752,7 +759,9 @@ export default function NewConsultation() {
                                     <div className={`w-2 h-2 rounded-full ${uploadingChunk ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
                                     {uploadingChunk ? 'Enviando...' : `${chunksUploaded} chunk(s) enviado(s)`}
                                   </div>
-                                  {/* Transcription happens after finalization, not progressively */}
+                                  {chunksTranscribed > 0 && (
+                                    <span className="text-emerald-600">{chunksTranscribed} transcrito(s)</span>
+                                  )}
                                 </div>
                               )}
                               <p className="text-xs text-center text-muted-foreground max-w-sm px-4">
