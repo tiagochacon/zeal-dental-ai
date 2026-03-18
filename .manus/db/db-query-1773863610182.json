@@ -1,0 +1,16 @@
+{
+  "query": "SELECT COUNT(*) as total, MIN(chunkIndex) as minIdx, MAX(chunkIndex) as maxIdx, SUM(sizeBytes) as totalBytes FROM audioChunks WHERE consultationId = 2880001;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT COUNT(*) as total, MIN(chunkIndex) as minIdx, MAX(chunkIndex) as maxIdx, SUM(sizeBytes) as totalBytes FROM audioChunks WHERE consultationId = 2880001;",
+  "rows": [
+    {
+      "total": "73",
+      "minIdx": "0",
+      "maxIdx": "72",
+      "totalBytes": "70196085"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\tminIdx\tmaxIdx\ttotalBytes\n73\t0\t72\t70196085\n",
+  "stderr": "",
+  "execution_time_ms": 347
+}

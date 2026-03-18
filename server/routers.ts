@@ -772,15 +772,76 @@ export const appRouter = router({
           await getConsultationById(input.consultationId), ctx.user
         );
 
-        if (!consultation.audioUrl) {
-          throw new Error("Nenhum arquivo de áudio encontrado para esta consulta");
+        let audioUrl = consultation.audioUrl;
+
+        // If audioUrl is missing, try to recover from audio chunks
+        // This handles the case where progressive recording was used but
+        // finalizeAudioRecording was not called (e.g., user navigated away)
+        if (!audioUrl) {
+          console.log(`[Transcription] Consultation ${input.consultationId}: audioUrl is NULL, checking for audio chunks...`);
+          const chunks = await getAudioChunksByConsultation(input.consultationId);
+
+          if (chunks.length === 0) {
+            throw new Error("Nenhum arquivo de áudio encontrado para esta consulta");
+          }
+
+          console.log(`[Transcription] Found ${chunks.length} audio chunks, concatenating...`);
+
+          // Download all chunks in parallel
+          const chunkBuffers = await Promise.all(
+            chunks.map(async (chunk) => {
+              const response = await fetch(chunk.url);
+              if (!response.ok) {
+                throw new Error(`Falha ao baixar chunk ${chunk.chunkIndex}`);
+              }
+              const arrayBuffer = await response.arrayBuffer();
+              return Buffer.from(arrayBuffer);
+            })
+          );
+
+          // Concatenate using ffmpeg
+          let concatenatedBuffer: Buffer;
+          try {
+            const result = await concatenateAudioChunksWithFfmpeg(chunkBuffers, chunks[0].mimeType);
+            concatenatedBuffer = result.buffer;
+          } catch (ffmpegError) {
+            console.warn("[Transcription] ffmpeg concat failed, falling back to Buffer.concat:", ffmpegError);
+            concatenatedBuffer = Buffer.concat(chunkBuffers);
+          }
+
+          // Upload final concatenated audio file
+          const extension = chunks[0].mimeType.split('/')[1] || 'webm';
+          const finalFileKey = `consultations/${ctx.user.id}/${input.consultationId}/audio-recovered-${nanoid()}.${extension}`;
+          const { url: finalUrl } = await storagePut(
+            finalFileKey,
+            concatenatedBuffer,
+            chunks[0].mimeType
+          );
+
+          // Calculate total duration from chunks
+          const totalDuration = chunks.reduce((sum, c) => sum + (c.durationSeconds || 0), 0);
+
+          // Update consultation with recovered audio
+          await updateConsultation(input.consultationId, {
+            audioUrl: finalUrl,
+            audioFileKey: finalFileKey,
+            audioDurationSeconds: totalDuration || null,
+          });
+
+          audioUrl = finalUrl;
+          console.log(`[Transcription] Audio recovered from ${chunks.length} chunks: ${(concatenatedBuffer.length / (1024 * 1024)).toFixed(1)}MB`);
+
+          // Clean up chunks from database
+          await deleteAudioChunksByConsultation(input.consultationId);
         }
+
+        const DENTAL_PROMPT = "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro. Identifique e marque cada falante usando 'Dentista:' ou 'Paciente:'. Termos técnicos odontológicos precisam ser transcritos com exatidão.";
 
         // Transcribe audio using Whisper (supports long audio via chunking)
         const result = await transcribeLongAudio({
-          audioUrl: consultation.audioUrl,
+          audioUrl,
           language: "pt",
-          prompt: "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro. Identifique e marque cada falante usando 'Dentista:' ou 'Paciente:'. Termos técnicos odontológicos precisam ser transcritos com exatidão.",
+          prompt: DENTAL_PROMPT,
         });
 
         if ('error' in result) {

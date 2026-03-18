@@ -1092,3 +1092,11 @@
 ## Bug Fix: "Voice transcription failed" na review
 - [x] Causa: ffmpeg -c copy falha com WebM/Opus e certos MP3 (Error initializing output stream)
 - [x] Fix: substituir -c copy por re-encoding (-vn -ar 16000 -ac 1 -b:a 64k) + conversão WebM→MP3
+
+## Bug Fix - Áudio não encontrado na consulta (v41)
+- [x] Investigar por que consulta 2880001 não tem audioUrl no banco
+  - Causa: gravação progressiva (73 chunks) mas finalizeAudioRecording não foi chamado → audioUrl ficou NULL
+- [x] Corrigir fluxo de transcrição para lidar com áudio ausente ou URL inválida
+  - Fix: rota transcribe agora detecta audioUrl NULL, recupera chunks automaticamente, concatena via ffmpeg, faz upload do áudio recuperado e prossegue com transcrição
+- [x] Criar 22 testes unitários para recuperação de chunks (audio-chunk-recovery.test.ts)
+- [x] 433 testes passando, zero erros TypeScript
