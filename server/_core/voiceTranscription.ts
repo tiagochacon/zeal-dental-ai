@@ -89,7 +89,7 @@ export async function transcribeLongAudio(
     }
 
     // Download audio to temp file
-    console.log(`[Transcription] Downloading audio from URL...`);
+    console.log(`[Transcription] Downloading audio from URL: ${options.audioUrl}`);
     let audioBuffer: Buffer;
     let mimeType: string;
     try {
@@ -102,7 +102,25 @@ export async function transcribeLongAudio(
         };
       }
       audioBuffer = Buffer.from(await response.arrayBuffer());
-      mimeType = response.headers.get('content-type') || 'audio/mpeg';
+      const contentType = response.headers.get('content-type') || '';
+      
+      // If S3 returns application/octet-stream, infer from URL extension
+      if (!contentType || contentType === 'application/octet-stream') {
+        const urlPath = new URL(options.audioUrl).pathname.toLowerCase();
+        if (urlPath.endsWith('.webm')) mimeType = 'audio/webm';
+        else if (urlPath.endsWith('.mp3')) mimeType = 'audio/mpeg';
+        else if (urlPath.endsWith('.wav')) mimeType = 'audio/wav';
+        else if (urlPath.endsWith('.m4a')) mimeType = 'audio/mp4';
+        else if (urlPath.endsWith('.ogg')) mimeType = 'audio/ogg';
+        else if (urlPath.endsWith('.flac')) mimeType = 'audio/flac';
+        else mimeType = 'audio/mpeg';
+        console.log(`[Transcription] Content-Type was '${contentType}', inferred from URL: ${mimeType}`);
+      } else {
+        mimeType = contentType;
+        if (mimeType.includes('webm')) mimeType = 'audio/webm';
+        else if (mimeType.includes('mp3') || mimeType.includes('mpeg')) mimeType = 'audio/mpeg';
+        console.log(`[Transcription] Using Content-Type: ${mimeType}`);
+      }
     } catch (error) {
       return {
         error: "Failed to fetch audio file",
@@ -256,29 +274,47 @@ async function transcribeAudioChunked(
 
       // Check if chunk is still too large (shouldn't happen with 10min chunks, but safety)
       if (chunkBuffer.length > WHISPER_MAX_SIZE_BYTES) {
-        console.warn(`[Transcription] Chunk ${i + 1} is ${(chunkBuffer.length / (1024 * 1024)).toFixed(1)}MB (>25MB). Converting to compressed format...`);
-        // Convert to opus/webm for compression
-        const compressedFile = path.join(tmpDir, `chunk_${i}_compressed.webm`);
-        await execFileAsync('ffmpeg', [
-          '-i', chunkFile,
-          '-c:a', 'libopus',
-          '-b:a', '32k',
-          '-y', compressedFile
-        ]);
-        const compressedBuffer = await fs.promises.readFile(compressedFile);
-        if (compressedBuffer.length > WHISPER_MAX_SIZE_BYTES) {
-          console.error(`[Transcription] Chunk ${i + 1} still too large after compression: ${(compressedBuffer.length / (1024 * 1024)).toFixed(1)}MB`);
-          continue; // Skip this chunk
+        const chunkSizeMB = (chunkBuffer.length / (1024 * 1024)).toFixed(1);
+        console.warn(`[Transcription] Chunk ${i + 1} is ${chunkSizeMB}MB (>25MB). Converting to MP3 32kbps...`);
+        
+        // Convert to MP3 32kbps mono 16kHz (almost always <25MB for 10min audio)
+        const compressedFile = path.join(tmpDir, `chunk_${i}_compressed.mp3`);
+        try {
+          await execFileAsync('ffmpeg', [
+            '-i', chunkFile,
+            '-c:a', 'libmp3lame',
+            '-b:a', '32k',
+            '-ar', '16000',
+            '-ac', '1',
+            '-y', compressedFile
+          ]);
+        } catch (ffmpegError) {
+          console.error(`[Transcription] Chunk ${i + 1} ffmpeg compression failed:`, ffmpegError);
+          throw new Error(`Failed to compress chunk ${i + 1}: ${ffmpegError instanceof Error ? ffmpegError.message : String(ffmpegError)}`);
         }
+        
+        const compressedBuffer = await fs.promises.readFile(compressedFile);
+        const compressedSizeMB = (compressedBuffer.length / (1024 * 1024)).toFixed(1);
+        console.log(`[Transcription] Chunk ${i + 1} compressed: ${chunkSizeMB}MB → ${compressedSizeMB}MB`);
+        
+        if (compressedBuffer.length > WHISPER_MAX_SIZE_BYTES) {
+          console.error(`[Transcription] Chunk ${i + 1} still too large after MP3 compression: ${compressedSizeMB}MB. This should not happen.`);
+          throw new Error(`Chunk ${i + 1} exceeds 25MB limit even after MP3 32kbps compression (${compressedSizeMB}MB). Duration may be >10 minutes.`);
+        }
+        
         // Use compressed buffer
-        const result = await transcribeAudioDirect(compressedBuffer, 'audio/webm', {
+        console.log(`[Transcription] Transcribing compressed chunk ${i + 1}/${chunkFiles.length}`);
+        const result = await transcribeAudioDirect(compressedBuffer, 'audio/mp3', {
           ...options,
           prompt: chunkPrompt,
         });
+        
         if ('error' in result) {
-          console.error(`[Transcription] Chunk ${i + 1} failed:`, result.error);
-          continue;
+          console.error(`[Transcription] Chunk ${i + 1} transcription failed:`, result.error);
+          throw new Error(`Chunk ${i + 1} transcription failed: ${result.error}`);
         }
+        
+        console.log(`[Transcription] Chunk ${i + 1} transcribed successfully: ${result.text.length} chars`);
         processChunkResult(result, chunk, i, allSegments, chunks);
         fullText += (fullText ? " " : "") + result.text.trim();
         detectedLanguage = result.language || detectedLanguage;
@@ -287,15 +323,20 @@ async function transcribeAudioChunked(
       }
 
       // Transcribe chunk
+      const chunkSizeMB = (chunkBuffer.length / (1024 * 1024)).toFixed(1);
+      console.log(`[Transcription] Transcribing chunk ${i + 1}/${chunkFiles.length} (${chunkSizeMB}MB, ${chunk.startSec}s - ${chunk.endSec}s)`);
       const result = await transcribeAudioDirect(chunkBuffer, mimeType, {
         ...options,
         prompt: chunkPrompt,
       });
 
       if ('error' in result) {
-        console.error(`[Transcription] Chunk ${i + 1} failed:`, result.error);
-        continue; // Skip failed chunks instead of failing entirely
+        console.error(`[Transcription] Chunk ${i + 1} transcription failed:`, result.error);
+        throw new Error(`Chunk ${i + 1} transcription failed: ${result.error}`);
       }
+      
+      console.log(`[Transcription] Chunk ${i + 1} transcribed successfully: ${result.text.length} chars`);
+
 
       // Process segments with timestamp offset and overlap dedup
       processChunkResult(result, chunk, i, allSegments, chunks);
