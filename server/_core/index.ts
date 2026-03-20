@@ -11,6 +11,7 @@ import { SERVER_CONFIG, HTTP_STATUS } from "../constants";
 import stripeWebhook from "../stripe/webhook";
 import audioUploadRouter from "../routes/audioUpload";
 import consultationAudioUploadRouter from "../routes/consultationAudioUpload";
+import { transcribeRouter } from "../routes/transcribe.route";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -40,8 +41,8 @@ async function startServer() {
   app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhook);
   
   // Configure body parser with reasonable limits for security
-  // 10MB is sufficient for audio files while preventing DoS attacks
-  app.use(express.json({ limit: SERVER_CONFIG.MAX_UPLOAD_SIZE }));
+  // 5MB for JSON (includes base64 audio chunks), 10MB for other uploads
+  app.use(express.json({ limit: "5mb" }));
   app.use(express.urlencoded({ limit: SERVER_CONFIG.MAX_UPLOAD_SIZE, extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
@@ -49,6 +50,8 @@ async function startServer() {
   app.use("/api/calls/upload-audio", audioUploadRouter);
   // Audio upload route for consultations (multipart, supports large files up to 1.5GB)
   app.use("/api/consultations/upload-audio", consultationAudioUploadRouter);
+  // Transcribe endpoint for progressive audio transcription
+  app.use("/api", transcribeRouter);
   // tRPC API
   app.use(
     "/api/trpc",
