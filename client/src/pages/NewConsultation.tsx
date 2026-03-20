@@ -15,6 +15,7 @@ import { useUsageLimit, getTriggerFromError } from "@/hooks/useUsageLimit";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { AudioRecorder } from "@/components/consultations/AudioRecorder";
 
 const STEPS = [
   { id: 1, label: "Paciente", icon: User },
@@ -33,34 +34,21 @@ export default function NewConsultation() {
   const [inputMode, setInputMode] = useState<"audio" | "text">("audio");
   const [consultationText, setConsultationText] = useState("");
 
+  // Audio recording state
+  const [consultationId, setConsultationId] = useState<number | null>(null);
+  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isCreatingConsultation, setIsCreatingConsultation] = useState(false);
+
   // Upgrade modal state
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeTrigger, setUpgradeTrigger] = useState<UpgradeModalTrigger>("trial_limit");
   const usageLimit = useUsageLimit();
 
-  // Recording state
-  const [isRecording, setIsRecording] = useState(false);
-  const [isPaused, setIsPaused] = useState(false);
-  const [recordingTime, setRecordingTime] = useState(0);
-  const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [uploadingChunk, setUploadingChunk] = useState(false);
-  const [chunksUploaded, setChunksUploaded] = useState(0);
-  const [chunksTranscribed, setChunksTranscribed] = useState(0);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-
   // Refs
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const chunksRef = useRef<Blob[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const recordingSessionIdRef = useRef<string | null>(null);
-  const chunkIndexRef = useRef<number>(0);
-  const chunkQueueRef = useRef<Blob[]>([]);
-  const isProcessingQueueRef = useRef<boolean>(false);
-  const wakeLockRef = useRef<any>(null);
-  const currentConsultationIdRef = useRef<number | null>(null);
 
   // Queries
   const { data: patients, isLoading: patientsLoading } = trpc.patients.list.useQuery(
@@ -72,45 +60,18 @@ export default function NewConsultation() {
   const createPatientMutation = trpc.patients.create.useMutation();
   const createConsultationMutation = trpc.consultations.create.useMutation();
   const uploadAudioMutation = trpc.consultations.uploadAudio.useMutation();
-  const uploadAudioChunkMutation = trpc.consultations.uploadAudioChunk.useMutation();
-  const transcribeAudioChunkMutation = trpc.consultations.transcribeAudioChunk.useMutation();
-  const finalizeAudioRecordingMutation = trpc.consultations.finalizeAudioRecording.useMutation();
   const updateTranscriptMutation = trpc.consultations.updateTranscript.useMutation();
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
       if (audioUrl) URL.revokeObjectURL(audioUrl);
-      if (wakeLockRef.current) {
-        wakeLockRef.current.release().catch(() => {});
-      }
     };
   }, [audioUrl]);
 
-  const blobToBase64 = (blob: Blob): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64 = (reader.result as string).split(',')[1];
-        resolve(base64);
-      };
-      reader.onerror = reject;
-      reader.readAsDataURL(blob);
-    });
-  };
+  const ensureConsultation = async (): Promise<number> => {
+    if (consultationId) return consultationId;
 
-  const requestWakeLock = async () => {
-    try {
-      if ('wakeLock' in navigator) {
-        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
-      }
-    } catch (err) {
-      console.log('Wake Lock não suportado ou falhou:', err);
-    }
-  };
-
-  const ensurePatientAndConsultation = async (): Promise<{ patientId: number; patientName: string; consultationId: number }> => {
     let patientId: number;
     let patientName: string;
 
@@ -120,7 +81,6 @@ export default function NewConsultation() {
         (p) => p.name.trim().toLowerCase() === normalizedName
       );
       if (existingPatient) {
-        // Reutilizar paciente existente em vez de bloquear
         patientId = existingPatient.id;
         patientName = existingPatient.name;
       } else {
@@ -138,112 +98,17 @@ export default function NewConsultation() {
       patientName,
     });
 
-    return {
-      patientId,
-      patientName,
-      consultationId: consultationResult.consultationId,
-    };
+    setConsultationId(consultationResult.consultationId);
+    return consultationResult.consultationId;
   };
 
-  const startRecording = async () => {
+  // Called when user enters step 2 with audio mode — create consultation eagerly
+  const handleStartAudioMode = async () => {
+    if (consultationId) return; // already created
+    setIsCreatingConsultation(true);
     try {
-      if (!isStep1Valid) {
-        toast.error("Selecione ou cadastre um paciente antes de gravar.");
-        return;
-      }
-
-      const { consultationId } = await ensurePatientAndConsultation();
-      currentConsultationIdRef.current = consultationId;
-
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
-
-      mediaRecorderRef.current = mediaRecorder;
-      chunksRef.current = [];
-      recordingSessionIdRef.current = `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      chunkIndexRef.current = 0;
-      chunkQueueRef.current = [];
-      setChunksUploaded(0);
-      setChunksTranscribed(0);
-
-      requestWakeLock();
-
-      const processChunkQueue = async () => {
-        if (isProcessingQueueRef.current || chunkQueueRef.current.length === 0) return;
-        const consultationId = currentConsultationIdRef.current;
-        const sessionId = recordingSessionIdRef.current;
-        if (!consultationId || !sessionId) return;
-
-        isProcessingQueueRef.current = true;
-        setUploadingChunk(true);
-        const blob = chunkQueueRef.current.shift()!;
-        const chunkIdx = chunkIndexRef.current;
-
-        try {
-          const base64 = await blobToBase64(blob);
-          await uploadAudioChunkMutation.mutateAsync({
-            consultationId,
-            recordingSessionId: sessionId,
-            chunkIndex: chunkIdx,
-            audioBase64: base64,
-            mimeType: "audio/webm",
-            durationSeconds: 60,
-          });
-          chunkIndexRef.current += 1;
-          setChunksUploaded((prev) => prev + 1);
-
-          // Progressive transcription: chunks are now normalized to MP3 in backend
-          // Safe to transcribe each chunk independently
-          transcribeAudioChunkMutation.mutateAsync({
-            consultationId,
-            recordingSessionId: sessionId,
-            chunkIndex: chunkIdx,
-          }).then(() => {
-            setChunksTranscribed((prev) => prev + 1);
-          }).catch((err) => {
-            console.warn(`Transcrição do chunk ${chunkIdx} falhou (será feita ao finalizar):`, err);
-          });
-        } catch (error) {
-          console.error("Erro ao enviar chunk:", error);
-        } finally {
-          setUploadingChunk(false);
-          isProcessingQueueRef.current = false;
-          if (chunkQueueRef.current.length > 0) {
-            processChunkQueue();
-          }
-        }
-      };
-
-      mediaRecorder.ondataavailable = (e) => {
-        if (e.data.size > 0) {
-          chunksRef.current.push(e.data);
-          if (currentConsultationIdRef.current) {
-            chunkQueueRef.current.push(e.data);
-            processChunkQueue();
-          }
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
-        setAudioBlob(blob);
-        setAudioUrl(URL.createObjectURL(blob));
-        stream.getTracks().forEach((track) => track.stop());
-        if (wakeLockRef.current) {
-          wakeLockRef.current.release().catch(() => {});
-          wakeLockRef.current = null;
-        }
-      };
-
-      mediaRecorder.start(60000);
-      setIsRecording(true);
-      setRecordingTime(0);
-
-      timerRef.current = setInterval(() => {
-        setRecordingTime((prev) => prev + 1);
-      }, 1000);
+      await ensureConsultation();
     } catch (error: any) {
-      console.error("Error starting recording:", error);
       if (
         error?.data?.code === "FORBIDDEN" ||
         error?.message?.includes("LIMIT_EXCEEDED") ||
@@ -256,41 +121,28 @@ export default function NewConsultation() {
         setShowUpgradeModal(true);
         return;
       }
-      if (error?.message?.includes("paciente")) {
-        toast.error(error.message);
-        return;
-      }
-      toast.error("Erro ao acessar o microfone. Verifique as permissões.");
+      toast.error("Erro ao criar consulta. Tente novamente.");
+    } finally {
+      setIsCreatingConsultation(false);
     }
   };
 
-  const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
-      setIsRecording(false);
-      setIsPaused(false);
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-        timerRef.current = null;
-      }
+  // When AudioRecorder finishes transcription, save and navigate
+  const handleTranscriptReady = async (transcript: string) => {
+    if (!consultationId) {
+      toast.error("Erro: consulta não encontrada.");
+      return;
     }
-  };
-
-  const pauseRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      if (isPaused) {
-        mediaRecorderRef.current.resume();
-        timerRef.current = setInterval(() => {
-          setRecordingTime(prev => prev + 1);
-        }, 1000);
-      } else {
-        mediaRecorderRef.current.pause();
-        if (timerRef.current) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-        }
-      }
-      setIsPaused(!isPaused);
+    try {
+      await updateTranscriptMutation.mutateAsync({
+        consultationId,
+        transcript,
+      });
+      toast.success("Transcrição concluída!");
+      setLocation(`/consultation/${consultationId}/review`);
+    } catch (error: any) {
+      console.error("Error saving transcript:", error);
+      toast.error("Erro ao salvar transcrição.");
     }
   };
 
@@ -307,7 +159,6 @@ export default function NewConsultation() {
         toast.error('Arquivo muito grande. O limite é 1.5GB.');
         return;
       }
-      // Show size info for large files
       const sizeMB = (file.size / (1024 * 1024)).toFixed(0);
       if (file.size > 100 * 1024 * 1024) {
         toast.info(`Arquivo de ${sizeMB}MB detectado. O upload pode levar alguns minutos.`);
@@ -321,10 +172,7 @@ export default function NewConsultation() {
     setAudioBlob(null);
     if (audioUrl) URL.revokeObjectURL(audioUrl);
     setAudioUrl(null);
-    setRecordingTime(0);
-    setChunksUploaded(0);
-    currentConsultationIdRef.current = null;
-    recordingSessionIdRef.current = null;
+    setConsultationId(null);
   };
 
   const formatTime = (seconds: number) => {
@@ -335,14 +183,13 @@ export default function NewConsultation() {
 
   // Step validation
   const isStep1Valid = isNewPatient ? newPatientName.trim().length > 0 : selectedPatientId !== "";
-  const isStep2Valid = inputMode === "audio" ? !!audioBlob : consultationText.trim().length > 0;
 
   const selectedPatientName = isNewPatient
     ? newPatientName
     : patients?.find((p) => p.id === parseInt(selectedPatientId))?.name || "";
 
   const uploadAudioMultipart = async (
-    consultationId: number,
+    cId: number,
     blob: Blob,
     durationSec: number
   ): Promise<void> => {
@@ -363,7 +210,7 @@ export default function NewConsultation() {
 
     const formData = new FormData();
     formData.append("file", blob, filename);
-    formData.append("consultationId", String(consultationId));
+    formData.append("consultationId", String(cId));
     formData.append("durationSeconds", String(durationSec));
 
     return new Promise((resolve, reject) => {
@@ -399,51 +246,27 @@ export default function NewConsultation() {
     });
   };
 
-  const handleNextStep = () => {
+  const handleNextStep = async () => {
     if (currentStep === 1 && isStep1Valid) {
       setCurrentStep(2);
+      // Pre-create consultation for audio mode
+      if (inputMode === "audio") {
+        await handleStartAudioMode();
+      }
     }
   };
 
+  // Submit for file upload or text mode
   const handleSubmit = async () => {
-    if (inputMode === "audio" && !audioBlob) {
-      toast.error("Por favor, grave ou faça upload de um áudio.");
-      return;
-    }
     if (inputMode === "text" && !consultationText.trim()) {
       toast.error("Por favor, digite o texto da consulta.");
       return;
     }
-    if (!selectedPatientId && !newPatientName) {
-      toast.error("Por favor, selecione ou cadastre um paciente.");
-      return;
-    }
-
-    const usedProgressiveRecording =
-      recordingSessionIdRef.current && chunksUploaded > 0;
-
-    try {
-      if (inputMode === "audio" && usedProgressiveRecording) {
-        const consultationId = currentConsultationIdRef.current;
-        if (!consultationId) {
-          toast.error("Erro: sessão de gravação inválida. Tente novamente.");
-          return;
-        }
-        await finalizeAudioRecordingMutation.mutateAsync({
-          consultationId,
-          recordingSessionId: recordingSessionIdRef.current!,
-          totalDurationSeconds: recordingTime,
-        });
-        toast.success("Gravação finalizada com sucesso!");
-        setLocation(`/consultation/${consultationId}/review`);
-        return;
-      }
-
-      const { patientId, patientName, consultationId } =
-        await ensurePatientAndConsultation();
-
-      if (inputMode === "audio" && audioBlob) {
-        const MULTIPART_THRESHOLD = 10 * 1024 * 1024; // 10MB
+    if (inputMode === "audio" && audioBlob) {
+      // File upload flow (not progressive recording)
+      try {
+        const cId = await ensureConsultation();
+        const MULTIPART_THRESHOLD = 10 * 1024 * 1024;
         const useMultipart = audioBlob.size > MULTIPART_THRESHOLD;
 
         try {
@@ -451,7 +274,7 @@ export default function NewConsultation() {
             setIsUploading(true);
             setUploadProgress(0);
             toast.info("Enviando áudio... Isso pode levar alguns minutos para arquivos grandes.");
-            await uploadAudioMultipart(consultationId, audioBlob, recordingTime || 0);
+            await uploadAudioMultipart(cId, audioBlob, 0);
           } else {
             const base64 = await new Promise<string>((resolve, reject) => {
               const reader = new FileReader();
@@ -463,50 +286,71 @@ export default function NewConsultation() {
               reader.readAsDataURL(audioBlob);
             });
             await uploadAudioMutation.mutateAsync({
-              consultationId,
+              consultationId: cId,
               audioBase64: base64,
               mimeType: audioBlob.type || "audio/webm",
-              durationSeconds: recordingTime || undefined,
             });
           }
           toast.success("Áudio enviado com sucesso!");
-          setLocation(`/consultation/${consultationId}/review`);
+          setLocation(`/consultation/${cId}/review`);
         } finally {
           setIsUploading(false);
           setUploadProgress(0);
         }
-      } else if (inputMode === "text") {
+      } catch (error: any) {
+        console.error("Error uploading audio:", error);
+        if (
+          error?.data?.code === "FORBIDDEN" ||
+          error?.message?.includes("LIMIT_EXCEEDED") ||
+          error?.message?.includes("Limite")
+        ) {
+          const trigger = error?.message?.includes("LIMIT_EXCEEDED")
+            ? getTriggerFromError(error.message)
+            : usageLimit.getUpgradeTrigger() || "trial_limit";
+          setUpgradeTrigger(trigger);
+          setShowUpgradeModal(true);
+          return;
+        }
+        toast.error("Erro ao enviar áudio. Tente novamente.");
+      }
+      return;
+    }
+
+    if (inputMode === "text") {
+      try {
+        const cId = await ensureConsultation();
         await updateTranscriptMutation.mutateAsync({
-          consultationId,
+          consultationId: cId,
           transcript: consultationText,
         });
         toast.success("Consulta criada com sucesso!");
-        setLocation(`/consultation/${consultationId}/review`);
+        setLocation(`/consultation/${cId}/review`);
+      } catch (error: any) {
+        console.error("Error creating consultation:", error);
+        if (
+          error?.data?.code === "FORBIDDEN" ||
+          error?.message?.includes("LIMIT_EXCEEDED") ||
+          error?.message?.includes("Limite")
+        ) {
+          const trigger = error?.message?.includes("LIMIT_EXCEEDED")
+            ? getTriggerFromError(error.message)
+            : usageLimit.getUpgradeTrigger() || "trial_limit";
+          setUpgradeTrigger(trigger);
+          setShowUpgradeModal(true);
+          return;
+        }
+        toast.error("Erro ao criar consulta. Tente novamente.");
       }
-    } catch (error: any) {
-      console.error("Error creating consultation:", error);
-      if (
-        error?.data?.code === "FORBIDDEN" ||
-        error?.message?.includes("LIMIT_EXCEEDED") ||
-        error?.message?.includes("Limite")
-      ) {
-        const trigger = error?.message?.includes("LIMIT_EXCEEDED")
-          ? getTriggerFromError(error.message)
-          : usageLimit.getUpgradeTrigger() || "trial_limit";
-        setUpgradeTrigger(trigger);
-        setShowUpgradeModal(true);
-        return;
-      }
-      toast.error("Erro ao criar consulta. Tente novamente.");
     }
   };
 
   const isSubmitting = createPatientMutation.isPending ||
                        createConsultationMutation.isPending ||
                        uploadAudioMutation.isPending ||
-                       finalizeAudioRecordingMutation.isPending ||
                        updateTranscriptMutation.isPending ||
                        isUploading;
+
+  const isStep2Valid = inputMode === "text" ? consultationText.trim().length > 0 : !!audioBlob;
 
   if (authLoading) {
     return (
@@ -679,10 +523,19 @@ export default function NewConsultation() {
               className="w-full"
               size="lg"
               onClick={handleNextStep}
-              disabled={!isStep1Valid}
+              disabled={!isStep1Valid || isCreatingConsultation}
             >
-              Continuar
-              <ChevronRight className="h-4 w-4 ml-2" />
+              {isCreatingConsultation ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Preparando...
+                </>
+              ) : (
+                <>
+                  Continuar
+                  <ChevronRight className="h-4 w-4 ml-2" />
+                </>
+              )}
             </Button>
           </motion.div>
         )}
@@ -725,7 +578,12 @@ export default function NewConsultation() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-4 lg:p-6 pt-0 lg:pt-0">
-                <Tabs value={inputMode} onValueChange={(v) => setInputMode(v as "audio" | "text")}>
+                <Tabs value={inputMode} onValueChange={(v) => {
+                  setInputMode(v as "audio" | "text");
+                  if (v === "audio" && !consultationId) {
+                    handleStartAudioMode();
+                  }
+                }}>
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="audio" className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
                       <Mic className="h-4 w-4" />
@@ -738,63 +596,17 @@ export default function NewConsultation() {
                   </TabsList>
 
                   <TabsContent value="audio" className="mt-4 lg:mt-6">
-                    {!audioBlob ? (
-                      <>
-                        <div className="flex flex-col items-center gap-4 lg:gap-6 py-6 lg:py-8">
-                          {isRecording ? (
-                            <>
-                              <div className="relative">
-                                <div className="w-20 h-20 lg:w-24 lg:h-24 rounded-full bg-destructive/20 flex items-center justify-center">
-                                  <div className="w-14 h-14 lg:w-16 lg:h-16 rounded-full bg-destructive animate-pulse flex items-center justify-center">
-                                    <Mic className="h-6 w-6 lg:h-8 lg:w-8 text-white" />
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="text-2xl lg:text-3xl font-mono font-bold">
-                                {formatTime(recordingTime)}
-                              </div>
-                              {chunksUploaded > 0 && (
-                                <div className="text-xs text-muted-foreground flex flex-col items-center gap-1">
-                                  <div className="flex items-center gap-2">
-                                    <div className={`w-2 h-2 rounded-full ${uploadingChunk ? 'bg-yellow-500 animate-pulse' : 'bg-green-500'}`} />
-                                    {uploadingChunk ? 'Enviando...' : `${chunksUploaded} chunk(s) enviado(s)`}
-                                  </div>
-                                  {chunksTranscribed > 0 && (
-                                    <span className="text-emerald-600">{chunksTranscribed} transcrito(s)</span>
-                                  )}
-                                </div>
-                              )}
-                              <p className="text-xs text-center text-muted-foreground max-w-sm px-4">
-                                Mantenha a tela ativa para melhor qualidade de gravação
-                              </p>
-                              <div className="flex gap-2 lg:gap-4">
-                                <Button variant="outline" size="sm" onClick={pauseRecording}>
-                                  {isPaused ? <Play className="h-4 w-4 mr-1 lg:mr-2" /> : <Pause className="h-4 w-4 mr-1 lg:mr-2" />}
-                                  {isPaused ? 'Continuar' : 'Pausar'}
-                                </Button>
-                                <Button variant="destructive" size="sm" onClick={stopRecording}>
-                                  <Square className="h-4 w-4 mr-1 lg:mr-2" />
-                                  Parar
-                                </Button>
-                              </div>
-                            </>
-                          ) : (
-                            <>
-                              <Button
-                                size="lg"
-                                className="h-20 w-20 lg:h-24 lg:w-24 rounded-full"
-                                onClick={startRecording}
-                              >
-                                <Mic className="h-8 w-8 lg:h-10 lg:w-10" />
-                              </Button>
-                              <p className="text-sm text-muted-foreground text-center">
-                                Clique para iniciar a gravação
-                              </p>
-                            </>
-                          )}
-                        </div>
+                    {consultationId ? (
+                      <div className="space-y-4">
+                        {/* Progressive AudioRecorder */}
+                        <AudioRecorder
+                          consultationId={consultationId}
+                          onTranscriptReady={handleTranscriptReady}
+                          onError={(msg) => toast.error(msg)}
+                        />
 
-                        {!isRecording && (
+                        {/* File upload alternative */}
+                        {!audioBlob && (
                           <>
                             <div className="relative my-4 lg:my-6">
                               <div className="absolute inset-0 flex items-center">
@@ -827,20 +639,28 @@ export default function NewConsultation() {
                             </div>
                           </>
                         )}
-                      </>
+
+                        {/* Uploaded file preview */}
+                        {audioBlob && (
+                          <div className="space-y-4">
+                            <div className="p-3 lg:p-4 rounded-lg bg-muted">
+                              <audio src={audioUrl || undefined} controls className="w-full" />
+                            </div>
+                            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                              <p className="text-xs lg:text-sm text-muted-foreground">
+                                Áudio carregado
+                              </p>
+                              <Button variant="outline" size="sm" onClick={resetAudio}>
+                                Remover
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     ) : (
-                      <div className="space-y-4">
-                        <div className="p-3 lg:p-4 rounded-lg bg-muted">
-                          <audio src={audioUrl || undefined} controls className="w-full" />
-                        </div>
-                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                          <p className="text-xs lg:text-sm text-muted-foreground">
-                            {recordingTime > 0 ? `Duração: ${formatTime(recordingTime)}` : 'Áudio carregado'}
-                          </p>
-                          <Button variant="outline" size="sm" onClick={resetAudio}>
-                            Gravar Novamente
-                          </Button>
-                        </div>
+                      <div className="flex flex-col items-center gap-4 py-8">
+                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                        <p className="text-sm text-muted-foreground">Preparando gravação...</p>
                       </div>
                     )}
                   </TabsContent>
@@ -897,28 +717,32 @@ export default function NewConsultation() {
               </CardContent>
             </Card>
 
-            {/* Submit Button */}
-            <Button
-              className="w-full"
-              size="lg"
-              onClick={handleSubmit}
-              disabled={!isStep2Valid || isSubmitting}
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  {isUploading || uploadProgress > 0
-                    ? `Enviando áudio... ${uploadProgress}%`
-                    : finalizeAudioRecordingMutation.isPending
-                      ? 'Finalizando gravação...'
+            {/* Submit Button — only for file upload or text mode */}
+            {(inputMode === "text" || (inputMode === "audio" && audioBlob)) && (
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={handleSubmit}
+                disabled={
+                  (inputMode === "text" && !consultationText.trim()) ||
+                  (inputMode === "audio" && !audioBlob) ||
+                  isSubmitting
+                }
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    {isUploading || uploadProgress > 0
+                      ? `Enviando áudio... ${uploadProgress}%`
                       : 'Processando...'}
-                </>
-              ) : (
-                inputMode === "audio"
-                  ? "Continuar para Transcrição"
-                  : "Continuar para Revisão"
-              )}
-            </Button>
+                  </>
+                ) : (
+                  inputMode === "audio"
+                    ? "Continuar para Transcrição"
+                    : "Continuar para Revisão"
+                )}
+              </Button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

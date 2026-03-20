@@ -38,7 +38,6 @@ import {
 import { storagePut, storageDelete } from "./storage";
 import { transcribeLongAudio } from "./_core/voiceTranscription";
 import { concatenateAudioChunksWithFfmpeg } from "./helpers/concatenateAudioChunks";
-import { normalizeAudioChunkToMp3 } from "./_core/normalizeAudioChunk";
 import { invokeLLM } from "./_core/llm";
 import { invokeLLMWithRetry } from "./helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "./helpers/validateNeurovendasAnalysis";
@@ -602,24 +601,15 @@ export const appRouter = router({
         );
 
         // Convert base64 to buffer
-        let audioBuffer = Buffer.from(input.audioBase64, 'base64');
-        const originalSizeBytes = audioBuffer.length;
-        
-        // Normalize WebM chunks to MP3 for robust transcription
-        if (input.mimeType.includes('webm')) {
-          console.log(`[UploadChunk] Normalizing WebM chunk ${input.chunkIndex} (${(originalSizeBytes / 1024).toFixed(1)}KB)`);
-          audioBuffer = await normalizeAudioChunkToMp3(audioBuffer, input.mimeType);
-        }
-        
+        const audioBuffer = Buffer.from(input.audioBase64, 'base64');
         const sizeBytes = audioBuffer.length;
         
-        // Generate unique file key for chunk (always save as MP3 after normalization)
-        const extension = input.mimeType.includes('webm') ? 'mp3' : (input.mimeType.split('/')[1] || 'mp3');
-        const fileKey = `consultations/${ctx.user.id}/${input.consultationId}/chunks/${input.recordingSessionId}/chunk-${input.chunkIndex}.${extension}`;
+        // Generate unique file key for chunk (keep original format, no ffmpeg conversion)
+        const extension = input.mimeType.split('/')[1]?.split(';')[0] || 'webm';
+        const fileKey = `consultations/${ctx.user.id}/${input.consultationId}/chunks/${input.recordingSessionId}/chunk-${input.chunkIndex}-${nanoid(6)}.${extension}`;
         
-        // Upload normalized chunk to S3
-        const mimeTypeForStorage = input.mimeType.includes('webm') ? 'audio/mpeg' : input.mimeType;
-        const { url } = await storagePut(fileKey, audioBuffer, mimeTypeForStorage);
+        // Upload raw chunk to S3
+        const { url } = await storagePut(fileKey, audioBuffer, input.mimeType);
 
         // Store chunk metadata in database
         await createAudioChunk({

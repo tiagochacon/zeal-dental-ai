@@ -209,7 +209,11 @@ export const audioChunks = mysqlTable("audioChunks", {
   mimeType: varchar("mimeType", { length: 50 }).notNull(),
   sizeBytes: int("sizeBytes").notNull(),
   durationSeconds: int("durationSeconds"),
+  // Transcription tracking
+  transcriptionStatus: mysqlEnum("transcriptionStatus", ["pending", "transcribing", "done", "error"]).default("pending").notNull(),
   transcriptText: text("transcriptText"),
+  transcriptionError: text("transcriptionError"),
+  transcribedAt: timestamp("transcribedAt"),
   uploadedAt: timestamp("uploadedAt").defaultNow().notNull(),
 });
 

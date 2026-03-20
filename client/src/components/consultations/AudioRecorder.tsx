@@ -1,28 +1,54 @@
 import { useState, useCallback } from "react";
-import { Mic, MicOff, Pause, Play, Square, RotateCcw, CheckCircle2, Loader2, AlertCircle, Waves } from "lucide-react";
+import {
+  Mic,
+  Pause,
+  Play,
+  Square,
+  RotateCcw,
+  CheckCircle2,
+  Loader2,
+  AlertCircle,
+  Waves,
+  Upload,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useProgressiveAudioRecorder } from "@/hooks/useProgressiveAudioRecorder";
 import { formatDuration } from "@/lib/utils";
 import type { ChunkTranscription } from "@/hooks/useProgressiveAudioRecorder";
 
 interface AudioRecorderProps {
+  consultationId: number;
   onTranscriptReady: (transcript: string) => void;
+  onRecordingSessionId?: (sessionId: string) => void;
   onError?: (msg: string) => void;
 }
 
-export function AudioRecorder({ onTranscriptReady, onError }: AudioRecorderProps) {
+export function AudioRecorder({
+  consultationId,
+  onTranscriptReady,
+  onRecordingSessionId,
+  onError,
+}: AudioRecorderProps) {
   const [micError, setMicError] = useState<string | null>(null);
 
   const recorder = useProgressiveAudioRecorder({
+    consultationId,
     chunkDurationMs: 60_000, // flush every 60s
-    onChunkTranscribed: (c) => console.log(`✅ Chunk ${c.index} transcrito`),
-    onChunkError: (c) => console.warn(`⚠️ Chunk ${c.index} falhou:`, c.error),
+    onChunkTranscribed: (c) => console.log(`[AudioRecorder] Chunk ${c.index} transcrito`),
+    onChunkError: (c) => console.warn(`[AudioRecorder] Chunk ${c.index} falhou:`, c.error),
   });
 
   const handleStart = async () => {
     setMicError(null);
     try {
       await recorder.start();
+      // Notify parent of the session ID after start
+      if (onRecordingSessionId) {
+        // Small delay to ensure sessionId is set
+        setTimeout(() => {
+          onRecordingSessionId(recorder.recordingSessionId);
+        }, 100);
+      }
     } catch {
       const msg = "Não foi possível acessar o microfone. Verifique as permissões.";
       setMicError(msg);
@@ -52,7 +78,10 @@ export function AudioRecorder({ onTranscriptReady, onError }: AudioRecorderProps
           recorder.isRecording && "border-red-400 bg-red-50 dark:bg-red-950/20",
           recorder.isPaused && "border-yellow-400 bg-yellow-50 dark:bg-yellow-950/20",
           recorder.isStopped && "border-green-400 bg-green-50 dark:bg-green-950/20",
-          !recorder.isRecording && !recorder.isPaused && !recorder.isStopped && "border-border bg-card"
+          !recorder.isRecording &&
+            !recorder.isPaused &&
+            !recorder.isStopped &&
+            "border-border bg-card"
         )}
       >
         {/* Waveform / icon */}
@@ -173,9 +202,7 @@ export function AudioRecorder({ onTranscriptReady, onError }: AudioRecorderProps
       {recorder.totalChunks > 0 && (
         <div className="rounded-xl border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-sm font-medium">
-              Transcrição em progresso
-            </p>
+            <p className="text-sm font-medium">Transcrição em progresso</p>
             <p className="text-xs text-muted-foreground">
               {recorder.completedChunks}/{recorder.totalChunks} segmentos
             </p>
@@ -186,7 +213,11 @@ export function AudioRecorder({ onTranscriptReady, onError }: AudioRecorderProps
             <div
               className="h-full rounded-full bg-primary transition-all duration-500"
               style={{
-                width: `${recorder.totalChunks > 0 ? (recorder.completedChunks / recorder.totalChunks) * 100 : 0}%`,
+                width: `${
+                  recorder.totalChunks > 0
+                    ? (recorder.completedChunks / recorder.totalChunks) * 100
+                    : 0
+                }%`,
               }}
             />
           </div>
@@ -204,8 +235,12 @@ export function AudioRecorder({ onTranscriptReady, onError }: AudioRecorderProps
           {/* Live partial transcript */}
           {recorder.transcribedSoFar && (
             <div className="mt-2 rounded-lg bg-muted/50 p-3">
-              <p className="text-xs font-medium text-muted-foreground mb-1">Transcrição parcial</p>
-              <p className="text-sm leading-relaxed line-clamp-4">{recorder.transcribedSoFar}</p>
+              <p className="text-xs font-medium text-muted-foreground mb-1">
+                Transcrição parcial
+              </p>
+              <p className="text-sm leading-relaxed line-clamp-6 whitespace-pre-line">
+                {recorder.transcribedSoFar}
+              </p>
             </div>
           )}
 
@@ -229,14 +264,20 @@ function ChunkPill({ chunk }: { chunk: ChunkTranscription }) {
       title={chunk.error ?? chunk.text}
       className={cn(
         "inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium transition-colors",
-        chunk.status === "done" && "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
-        chunk.status === "transcribing" && "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+        chunk.status === "done" &&
+          "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400",
+        chunk.status === "transcribing" &&
+          "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400",
+        chunk.status === "uploading" &&
+          "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400",
         chunk.status === "pending" && "bg-muted text-muted-foreground",
-        chunk.status === "error" && "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+        chunk.status === "error" &&
+          "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
       )}
     >
       {chunk.status === "done" && <CheckCircle2 className="w-3 h-3" />}
       {chunk.status === "transcribing" && <Loader2 className="w-3 h-3 animate-spin" />}
+      {chunk.status === "uploading" && <Upload className="w-3 h-3 animate-pulse" />}
       {chunk.status === "error" && <AlertCircle className="w-3 h-3" />}
       Seg. {chunk.index + 1}
     </div>

@@ -4,18 +4,24 @@ export type RecordingState = "idle" | "recording" | "paused" | "stopped";
 
 export interface ChunkTranscription {
   index: number;
-  status: "pending" | "transcribing" | "done" | "error";
+  status: "pending" | "uploading" | "transcribing" | "done" | "error";
   text: string;
   error?: string;
 }
 
 export interface ProgressiveRecorderOptions {
-  /** Tamanho de cada chunk em ms. Padrão: 30000 (30s) */
+  /** Consultation ID to associate chunks with */
+  consultationId: number;
+  /** Tamanho de cada chunk em ms. Padrão: 60000 (60s) */
   chunkDurationMs?: number;
   /** Chamado quando um chunk termina de ser transcrito */
   onChunkTranscribed?: (chunk: ChunkTranscription) => void;
-  /** Chamado quando um erro ocorre em um chunk — não cancela os demais */
+  /** Chamado quando um erro ocorre em um chunk */
   onChunkError?: (chunk: ChunkTranscription) => void;
+}
+
+function generateSessionId(): string {
+  return `rec_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
@@ -27,21 +33,29 @@ async function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+/**
+ * Send chunk to backend: uploads to S3 + transcribes via Forge API (Whisper)
+ */
 async function transcribeChunkRequest(
   blob: Blob,
   mimeType: string,
-  index: number
+  index: number,
+  consultationId: number,
+  recordingSessionId: string,
+  durationSeconds?: number
 ): Promise<string> {
   const base64 = await blobToBase64(blob);
-  const ext = mimeType.includes("mp4") ? "mp4" : "webm";
 
   const res = await fetch("/api/transcribe-chunk", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       audioBase64: base64,
-      fileName: `chunk_${index}.${ext}`,
       mimeType,
+      consultationId,
+      recordingSessionId,
+      chunkIndex: index,
+      durationSeconds,
     }),
   });
 
@@ -54,8 +68,13 @@ async function transcribeChunkRequest(
   return (data as any).transcript as string;
 }
 
-export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions = {}) {
-  const { chunkDurationMs = 30_000, onChunkTranscribed, onChunkError } = options;
+export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions) {
+  const {
+    consultationId,
+    chunkDurationMs = 60_000,
+    onChunkTranscribed,
+    onChunkError,
+  } = options;
 
   const [state, setState] = useState<RecordingState>("idle");
   const [duration, setDuration] = useState(0);
@@ -72,11 +91,12 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
   const chunkIndexRef = useRef(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chunkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  // Serial queue: transcriptions go in order, don't block each other
+  const sessionIdRef = useRef<string>("");
+  const segmentStartTimeRef = useRef<number>(0);
+  // Serial queue: transcriptions go in order
   const transcriptionQueueRef = useRef<Promise<void>>(Promise.resolve());
   const stateRef = useRef<RecordingState>("idle");
 
-  // Keep stateRef in sync for use inside callbacks
   const setStateSync = (s: RecordingState) => {
     stateRef.current = s;
     setState(s);
@@ -87,15 +107,25 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
     setChunks((prev) => prev.map((c) => (c.index === index ? { ...c, ...update } : c)));
   };
 
-  // ─── Dispatch blob → queue transcription ────────────────────────────────────
+  // ─── Dispatch blob → queue upload + transcription ───────────────────────────
   const dispatchChunkBlob = useCallback(
-    (blob: Blob, index: number) => {
-      setChunks((prev) => [...prev, { index, status: "pending", text: "" }]);
+    (blob: Blob, index: number, segmentDurationMs: number) => {
+      setChunks((prev) => [...prev, { index, status: "uploading", text: "" }]);
+
+      const sessionId = sessionIdRef.current;
+      const durationSec = Math.round(segmentDurationMs / 1000);
 
       transcriptionQueueRef.current = transcriptionQueueRef.current.then(async () => {
         updateChunk(index, { status: "transcribing" });
         try {
-          const text = await transcribeChunkRequest(blob, mimeTypeRef.current, index);
+          const text = await transcribeChunkRequest(
+            blob,
+            mimeTypeRef.current,
+            index,
+            consultationId,
+            sessionId,
+            durationSec
+          );
           updateChunk(index, { status: "done", text });
           onChunkTranscribed?.({ index, status: "done", text });
         } catch (err: any) {
@@ -105,13 +135,14 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
         }
       });
     },
-    [onChunkTranscribed, onChunkError]
+    [consultationId, onChunkTranscribed, onChunkError]
   );
 
   // ─── Start a fresh MediaRecorder segment ────────────────────────────────────
   const startSegment = useCallback(
     (stream: MediaStream) => {
       const segmentBlobs: Blob[] = [];
+      segmentStartTimeRef.current = Date.now();
 
       const recorder = new MediaRecorder(stream, { mimeType: mimeTypeRef.current });
 
@@ -125,7 +156,8 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
       recorder.onstop = () => {
         if (segmentBlobs.length === 0) return;
         const blob = new Blob(segmentBlobs, { type: mimeTypeRef.current });
-        dispatchChunkBlob(blob, chunkIndexRef.current++);
+        const segmentDuration = Date.now() - segmentStartTimeRef.current;
+        dispatchChunkBlob(blob, chunkIndexRef.current++, segmentDuration);
 
         // Auto-restart if still recording
         if (stateRef.current === "recording" && streamRef.current) {
@@ -139,11 +171,10 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
     [dispatchChunkBlob]
   );
 
-  // ─── Flush current segment early (called by interval) ───────────────────────
+  // ─── Flush current segment early ───────────────────────────────────────────
   const flushSegment = useCallback(() => {
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state !== "recording") return;
-    // onstop will restart automatically
     recorder.stop();
   }, []);
 
@@ -157,6 +188,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
       streamRef.current = stream;
       allRawBlobsRef.current = [];
       chunkIndexRef.current = 0;
+      sessionIdRef.current = generateSessionId();
       transcriptionQueueRef.current = Promise.resolve();
 
       setChunks([]);
@@ -195,7 +227,6 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
 
     const recorder = mediaRecorderRef.current;
     if (!recorder || recorder.state === "inactive") {
-      // Build full blob from what we have
       if (allRawBlobsRef.current.length > 0) {
         const full = new Blob(allRawBlobsRef.current, { type: mimeTypeRef.current });
         setAudioBlob(full);
@@ -215,7 +246,12 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
     };
     recorder.onstop = () => {
       if (lastBlobs.length > 0) {
-        dispatchChunkBlob(new Blob(lastBlobs, { type: mimeTypeRef.current }), chunkIndexRef.current++);
+        const segmentDuration = Date.now() - segmentStartTimeRef.current;
+        dispatchChunkBlob(
+          new Blob(lastBlobs, { type: mimeTypeRef.current }),
+          chunkIndexRef.current++,
+          segmentDuration
+        );
       }
       const full = new Blob(allRawBlobsRef.current, { type: mimeTypeRef.current });
       setAudioBlob(full);
@@ -256,7 +292,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
           .filter((c) => c.status === "done")
           .map((c) => c.text.trim())
           .filter(Boolean)
-          .join(" ");
+          .join("\n\n");
         setFinalTranscript(text);
         setIsAssembling(false);
         resolve(text);
@@ -276,6 +312,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
     setIsAssembling(false);
     allRawBlobsRef.current = [];
     chunkIndexRef.current = 0;
+    sessionIdRef.current = "";
     if (timerRef.current) clearInterval(timerRef.current);
     if (chunkTimerRef.current) clearInterval(chunkTimerRef.current);
   }, []);
@@ -291,7 +328,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
     .sort((a, b) => a.index - b.index)
     .map((c) => c.text.trim())
     .filter(Boolean)
-    .join(" ");
+    .join("\n\n");
 
   return {
     state,
@@ -301,6 +338,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions 
     chunks,
     finalTranscript,
     isAssembling,
+    recordingSessionId: sessionIdRef.current,
     start,
     stop,
     pause,

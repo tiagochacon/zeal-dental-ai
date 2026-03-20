@@ -420,7 +420,37 @@ export async function updateAudioChunkTranscript(
 
   await db
     .update(audioChunks)
-    .set({ transcriptText })
+    .set({ 
+      transcriptText,
+      transcriptionStatus: "done" as const,
+      transcribedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(audioChunks.consultationId, consultationId),
+        eq(audioChunks.recordingSessionId, recordingSessionId),
+        eq(audioChunks.chunkIndex, chunkIndex)
+      )
+    );
+}
+
+export async function updateAudioChunkStatus(
+  consultationId: number,
+  recordingSessionId: string,
+  chunkIndex: number,
+  status: "pending" | "transcribing" | "done" | "error",
+  error?: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+
+  await db
+    .update(audioChunks)
+    .set({ 
+      transcriptionStatus: status,
+      ...(error && { transcriptionError: error }),
+      ...(status === "done" && { transcribedAt: new Date() }),
+    })
     .where(
       and(
         eq(audioChunks.consultationId, consultationId),

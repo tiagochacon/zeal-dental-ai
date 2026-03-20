@@ -1100,3 +1100,13 @@
   - Fix: rota transcribe agora detecta audioUrl NULL, recupera chunks automaticamente, concatena via ffmpeg, faz upload do áudio recuperado e prossegue com transcrição
 - [x] Criar 22 testes unitários para recuperação de chunks (audio-chunk-recovery.test.ts)
 - [x] 433 testes passando, zero erros TypeScript
+
+## Redesign Transcrição Progressiva (v43)
+- [x] Redesenhar schema DB: campos transcriptionStatus, transcriptText, errorMessage, recordingSessionId em audioChunks
+- [x] Remover normalização ffmpeg de chunks individuais (causa erro em produção)
+- [x] Reescrever endpoint transcribe-chunk: upload S3 + transcrição Whisper direta via Forge API (sem ffmpeg)
+- [x] Reescrever hook useProgressiveAudioRecorder para usar novo endpoint REST
+- [x] Reescrever AudioRecorder com feedback visual de progresso (pills, barra, transcrição parcial)
+- [x] Integrar AudioRecorder no NewConsultation.tsx com criação antecipada de consulta
+- [x] Testes vitest para novo fluxo (17 testes em transcribe-chunk.test.ts)
+- [x] 450 testes passando, zero erros TypeScript
