@@ -1110,3 +1110,12 @@
 - [x] Integrar AudioRecorder no NewConsultation.tsx com criação antecipada de consulta
 - [x] Testes vitest para novo fluxo (17 testes em transcribe-chunk.test.ts)
 - [x] 450 testes passando, zero erros TypeScript
+- [x] BUG-FIX: Erro "Unexpected token '<'" no /api/transcribe-chunk - frontend recebe HTML em vez de JSON
+
+## Bug Fix: Chunks param após 31min + HTML em vez de JSON (v44)
+- [x] Aumentar limite body: rota /api/transcribe-chunk agora tem body parser próprio de 50MB, global subiu para 10MB
+- [x] Rota /api/transcribe-chunk registrada ANTES do express.json global para usar seu próprio parser
+- [x] Corrigir response_format: backend agora detecta JSON verbose do Whisper e extrai apenas o campo .text
+- [x] Adicionar retry com backoff exponencial (3 tentativas, 2s/4s/8s) no frontend
+- [x] Tratar erro 413 e respostas não-JSON: detecta content-type e faz retry automático
+- [x] Suportar gravações de até 90 minutos (sem limite de chunks)

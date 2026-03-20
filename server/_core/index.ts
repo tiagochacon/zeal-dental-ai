@@ -40,9 +40,13 @@ async function startServer() {
   // MUST be registered BEFORE express.json()
   app.use("/api/stripe/webhook", express.raw({ type: "application/json" }), stripeWebhook);
   
+  // Transcribe endpoint needs large body limit for base64 audio chunks (up to 50MB)
+  // MUST be registered BEFORE the global express.json() to use its own parser
+  app.use("/api/transcribe-chunk", express.json({ limit: "50mb" }), transcribeRouter);
+  
   // Configure body parser with reasonable limits for security
-  // 5MB for JSON (includes base64 audio chunks), 10MB for other uploads
-  app.use(express.json({ limit: "5mb" }));
+  // 10MB for JSON (includes base64 audio chunks in tRPC), 10MB for other uploads
+  app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ limit: SERVER_CONFIG.MAX_UPLOAD_SIZE, extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
@@ -50,8 +54,6 @@ async function startServer() {
   app.use("/api/calls/upload-audio", audioUploadRouter);
   // Audio upload route for consultations (multipart, supports large files up to 1.5GB)
   app.use("/api/consultations/upload-audio", consultationAudioUploadRouter);
-  // Transcribe endpoint for progressive audio transcription
-  app.use("/api", transcribeRouter);
   // tRPC API
   app.use(
     "/api/trpc",

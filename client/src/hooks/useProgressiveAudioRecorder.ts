@@ -33,8 +33,12 @@ async function blobToBase64(blob: Blob): Promise<string> {
   });
 }
 
+const MAX_RETRIES = 3;
+const RETRY_BASE_DELAY_MS = 2000;
+
 /**
  * Send chunk to backend: uploads to S3 + transcribes via Forge API (Whisper)
+ * Includes retry with exponential backoff for transient failures.
  */
 async function transcribeChunkRequest(
   blob: Blob,
@@ -45,27 +49,64 @@ async function transcribeChunkRequest(
   durationSeconds?: number
 ): Promise<string> {
   const base64 = await blobToBase64(blob);
-
-  const res = await fetch("/api/transcribe-chunk", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      audioBase64: base64,
-      mimeType,
-      consultationId,
-      recordingSessionId,
-      chunkIndex: index,
-      durationSeconds,
-    }),
+  const payload = JSON.stringify({
+    audioBase64: base64,
+    mimeType,
+    consultationId,
+    recordingSessionId,
+    chunkIndex: index,
+    durationSeconds,
   });
 
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: res.statusText }));
-    throw new Error((err as any).error ?? "Falha na transcrição");
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt - 1);
+      console.log(`[Chunk ${index}] Retry ${attempt}/${MAX_RETRIES} after ${delay}ms`);
+      await new Promise((r) => setTimeout(r, delay));
+    }
+
+    try {
+      const res = await fetch("/api/transcribe-chunk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      });
+
+      // If we got HTML back (413 Payload Too Large, 502 Bad Gateway, etc.), retry
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        const text = await res.text().catch(() => "");
+        lastError = new Error(`Servidor retornou ${res.status} (não-JSON). Tentativa ${attempt + 1}/${MAX_RETRIES + 1}`);
+        console.warn(`[Chunk ${index}] Non-JSON response (${res.status}):`, text.substring(0, 200));
+        continue;
+      }
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: res.statusText }));
+        const errorMsg = (err as any).error ?? "Falha na transcrição";
+        // Retry on server errors (5xx), don't retry on client errors (4xx)
+        if (res.status >= 500) {
+          lastError = new Error(errorMsg);
+          continue;
+        }
+        throw new Error(errorMsg);
+      }
+
+      const data = await res.json();
+      return (data as any).transcript as string;
+    } catch (err: any) {
+      // Network errors are retryable
+      if (err?.name === "TypeError" || err?.message?.includes("fetch")) {
+        lastError = err;
+        continue;
+      }
+      throw err;
+    }
   }
 
-  const data = await res.json();
-  return (data as any).transcript as string;
+  throw lastError ?? new Error(`Falha após ${MAX_RETRIES + 1} tentativas`);
 }
 
 export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions) {

@@ -19,7 +19,7 @@ const DENTAL_PROMPT =
 // Receives a single audio chunk (base64), uploads to S3, saves to DB,
 // transcribes via Forge API (Whisper), and returns transcript.
 // Called progressively while recording is still in progress.
-transcribeRouter.post("/transcribe-chunk", async (req, res) => {
+transcribeRouter.post("/", async (req, res) => {
   // Auth check
   let user: any = null;
   try {
@@ -120,8 +120,21 @@ transcribeRouter.post("/transcribe-chunk", async (req, res) => {
       return res.status(502).json({ error: errorMsg, chunkIndex, status: "error" });
     }
 
-    // response_format=text returns plain string
-    const transcript = (await whisperRes.text()).trim();
+    // response_format=text should return plain string, but Forge API may return JSON
+    const rawResponse = (await whisperRes.text()).trim();
+    let transcript = rawResponse;
+    
+    // If response is JSON (Forge API sometimes ignores response_format), extract text
+    if (rawResponse.startsWith("{")) {
+      try {
+        const parsed = JSON.parse(rawResponse);
+        transcript = (parsed.text || "").trim();
+        console.log(`[TranscribeChunk] Chunk ${chunkIndex}: parsed JSON response, extracted text`);
+      } catch {
+        // Not valid JSON, use raw response
+        transcript = rawResponse;
+      }
+    }
 
     console.log(
       `[TranscribeChunk] Chunk ${chunkIndex} transcribed: ${transcript.length} chars, preview: "${transcript.substring(0, 80)}..."`
@@ -145,7 +158,7 @@ transcribeRouter.post("/transcribe-chunk", async (req, res) => {
 
 // ─── GET /api/transcribe-chunk/status ─────────────────────────────────────────
 // Returns the transcription status of all chunks for a session
-transcribeRouter.get("/transcribe-chunk/status", async (req, res) => {
+transcribeRouter.get("/status", async (req, res) => {
   let user: any = null;
   try {
     user = await sdk.authenticateRequest(req);
