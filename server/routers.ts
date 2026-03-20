@@ -38,6 +38,7 @@ import {
 import { storagePut, storageDelete } from "./storage";
 import { transcribeLongAudio } from "./_core/voiceTranscription";
 import { concatenateAudioChunksWithFfmpeg } from "./helpers/concatenateAudioChunks";
+import { normalizeAudioChunkToMp3 } from "./_core/normalizeAudioChunk";
 import { invokeLLM } from "./_core/llm";
 import { invokeLLMWithRetry } from "./helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "./helpers/validateNeurovendasAnalysis";
@@ -606,7 +607,6 @@ export const appRouter = router({
         
         // Normalize WebM chunks to MP3 for robust transcription
         if (input.mimeType.includes('webm')) {
-          const { normalizeAudioChunkToMp3 } = require('./_core/normalizeAudioChunk');
           console.log(`[UploadChunk] Normalizing WebM chunk ${input.chunkIndex} (${(originalSizeBytes / 1024).toFixed(1)}KB)`);
           audioBuffer = await normalizeAudioChunkToMp3(audioBuffer, input.mimeType);
         }
