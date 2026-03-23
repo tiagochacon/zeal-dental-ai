@@ -101,7 +101,7 @@ async function startServer() {
     (async () => {
       try {
         const { supabase } = await import("../lib/supabaseClient");
-        const { error } = await supabase.from("users").select("id").limit(1);
+        const { error } = await supabase.from("Users").select("id").limit(1);
         if (error) {
           console.error("❌ [Supabase] Falha na conexão ou RLS bloqueando:", error.message);
           console.error("   Verifique se o RLS está desabilitado no Supabase Dashboard.");

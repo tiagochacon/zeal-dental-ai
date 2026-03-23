@@ -16,7 +16,7 @@ import type { User } from "../drizzle/schema";
  */
 export async function getClinicGestor(clinicId: number): Promise<User | null> {
   const { data: clinic, error: clinicError } = await supabase
-    .from("clinics")
+    .from("Clinics")
     .select("ownerId")
     .eq("id", clinicId)
     .limit(1)
@@ -24,7 +24,7 @@ export async function getClinicGestor(clinicId: number): Promise<User | null> {
   if (clinicError || !clinic) return null;
 
   const { data: owner, error: ownerError } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("id", clinic.ownerId)
     .limit(1)

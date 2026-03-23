@@ -38,7 +38,7 @@ export const clinicRouter = router({
       await updateDentistProfile(ctx.user.id, {});
       const { supabase } = await import("../lib/supabaseClient");
       await supabase
-        .from("users")
+        .from("Users")
         .update({ clinicId: clinic.id, clinicRole: "gestor" })
         .eq("id", ctx.user.id);
 

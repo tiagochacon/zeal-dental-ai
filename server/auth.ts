@@ -33,7 +33,7 @@ export async function createUser(data: {
   name: string;
 }): Promise<{ id: number; email: string; name: string; role: string; openId: string }> {
   const { data: existing, error: existingError } = await supabase
-    .from("users")
+    .from("Users")
     .select("id")
     .eq("email", data.email.toLowerCase())
     .limit(1)
@@ -46,7 +46,7 @@ export async function createUser(data: {
   const openId = `email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
 
   const { data: row, error } = await supabase
-    .from("users")
+    .from("Users")
     .insert({
       email: data.email.toLowerCase(),
       passwordHash,
@@ -82,7 +82,7 @@ export async function createUser(data: {
 
 export async function authenticateUser(email: string, password: string) {
   const { data: row, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("email", email.toLowerCase())
     .limit(1)
@@ -100,7 +100,7 @@ export async function authenticateUser(email: string, password: string) {
   if (!isValid) throw new Error("Email ou senha incorretos");
 
   await supabase
-    .from("users")
+    .from("Users")
     .update({ lastSignedIn: new Date().toISOString() })
     .eq("id", user.id);
 
@@ -121,7 +121,7 @@ export async function authenticateUser(email: string, password: string) {
 
 export async function getUserByIdAuth(id: number) {
   const { data: row, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("id", id)
     .limit(1)

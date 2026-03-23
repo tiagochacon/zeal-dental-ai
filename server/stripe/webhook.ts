@@ -30,7 +30,7 @@ async function isEventProcessed(eventId: string): Promise<boolean> {
     return false;
   }
   const { data, error } = await supabase
-    .from("payment_logs")
+    .from("Payment_logs")
     .select("id")
     .eq("eventId", eventId)
     .limit(1)
@@ -61,7 +61,7 @@ async function logPaymentEvent(
 ) {
   try {
     // @ts-ignore - Supabase schema mismatch during migration
-    const { error } = await supabase.from("payment_logs").insert({
+    const { error } = await supabase.from("Payment_logs").insert({
       eventId,
       eventType,
       status,
@@ -313,7 +313,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, even
     if (supabase) {
       // @ts-ignore - Supabase schema mismatch during migration
       await supabase
-        .from("users")
+        .from("Users")
         .update({ consultationCount: 7 })
         .eq("id", user.id);
     }

@@ -15,7 +15,7 @@ export async function resetMonthlyConsultationCounts() {
     const now = new Date();
 
     const { data: usersToCheck, error } = await supabase
-      .from("users")
+      .from("Users")
       .select("id, consultationCountResetAt")
       .lte("consultationCountResetAt", now.toISOString());
 
@@ -34,7 +34,7 @@ export async function resetMonthlyConsultationCounts() {
 
       if (now >= nextResetDate) {
         await supabase
-          .from("users")
+          .from("Users")
           .update({ consultationCount: 0, consultationCountResetAt: now.toISOString() })
           .eq("id", user.id);
 

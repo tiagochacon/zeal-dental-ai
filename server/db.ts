@@ -98,7 +98,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   if (!values.lastSignedIn) values.lastSignedIn = new Date().toISOString();
 
   const { error } = await supabase
-    .from("users")
+    .from("Users")
     .upsert(values, { onConflict: "openId" });
   if (error) {
     console.error("[Database] Failed to upsert user:", error);
@@ -108,7 +108,7 @@ export async function upsertUser(user: InsertUser): Promise<void> {
 
 export async function getUserByOpenId(openId: string): Promise<User | undefined> {
   const { data, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("openId", openId)
     .limit(1)
@@ -121,7 +121,7 @@ export async function getUserByOpenId(openId: string): Promise<User | undefined>
 }
 
 export async function updateUserCRO(userId: number, croNumber: string): Promise<void> {
-  const { error } = await supabase.from("users").update({ croNumber }).eq("id", userId);
+  const { error } = await supabase.from("Users").update({ croNumber }).eq("id", userId);
   assertNoError(error, "updateUserCRO");
 }
 
@@ -129,13 +129,13 @@ export async function updateDentistProfile(
   userId: number,
   data: { name?: string; croNumber?: string; phone?: string; specialty?: string; clinicAddress?: string }
 ): Promise<void> {
-  const { error } = await supabase.from("users").update(data).eq("id", userId);
+  const { error } = await supabase.from("Users").update(data).eq("id", userId);
   assertNoError(error, "updateDentistProfile");
 }
 
 export async function getUserById(userId: number): Promise<User | undefined> {
   const { data, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("id", userId)
     .limit(1)
@@ -148,7 +148,7 @@ export async function getUserById(userId: number): Promise<User | undefined> {
 
 export async function createPatient(data: InsertPatient): Promise<Patient> {
   const { data: row, error } = await supabase
-    .from("patients")
+    .from("Patients")
     .insert(data)
     .select()
     .single();
@@ -163,7 +163,7 @@ export async function getPatientByNameForDentist(
   const normalized = name.trim().toLowerCase();
   if (!normalized) return undefined;
   const { data, error } = await supabase
-    .from("patients")
+    .from("Patients")
     .select("*")
     .eq("dentistId", dentistId)
     .ilike("name", normalized)
@@ -175,7 +175,7 @@ export async function getPatientByNameForDentist(
 
 export async function getPatientsByDentist(dentistId: number): Promise<Patient[]> {
   const { data, error } = await supabase
-    .from("patients")
+    .from("Patients")
     .select("*")
     .eq("dentistId", dentistId)
     .order("updatedAt", { ascending: false });
@@ -185,7 +185,7 @@ export async function getPatientsByDentist(dentistId: number): Promise<Patient[]
 
 export async function getPatientsByClinic(clinicId: number): Promise<Patient[]> {
   const { data, error } = await supabase
-    .from("patients")
+    .from("Patients")
     .select("*")
     .eq("clinicId", clinicId)
     .order("updatedAt", { ascending: false });
@@ -195,7 +195,7 @@ export async function getPatientsByClinic(clinicId: number): Promise<Patient[]> 
 
 export async function getPatientById(id: number): Promise<Patient | undefined> {
   const { data, error } = await supabase
-    .from("patients")
+    .from("Patients")
     .select("*")
     .eq("id", id)
     .limit(1)
@@ -205,23 +205,23 @@ export async function getPatientById(id: number): Promise<Patient | undefined> {
 }
 
 export async function updatePatient(id: number, data: Partial<InsertPatient>): Promise<void> {
-  const { error } = await supabase.from("patients").update(data).eq("id", id);
+  const { error } = await supabase.from("Patients").update(data).eq("id", id);
   assertNoError(error, "updatePatient");
 }
 
 export async function deletePatient(id: number): Promise<void> {
   // Get consultations first to cascade delete feedbacks and audioChunks
   const { data: patientConsultations } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("id")
     .eq("patientId", id);
 
   for (const c of patientConsultations ?? []) {
-    await supabase.from("feedbacks").delete().eq("consultationId", c.id);
-    await supabase.from("audioChunks").delete().eq("consultationId", c.id);
+    await supabase.from("Feedbacks").delete().eq("consultationId", c.id);
+    await supabase.from("AudioChunks").delete().eq("consultationId", c.id);
   }
-  await supabase.from("consultations").delete().eq("patientId", id);
-  const { error } = await supabase.from("patients").delete().eq("id", id);
+  await supabase.from("Consultations").delete().eq("patientId", id);
+  const { error } = await supabase.from("Patients").delete().eq("id", id);
   assertNoError(error, "deletePatient");
 }
 
@@ -229,7 +229,7 @@ export async function deletePatient(id: number): Promise<void> {
 
 export async function createConsultation(data: InsertConsultation): Promise<{ id: number }> {
   const { data: row, error } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .insert(data)
     .select("id")
     .single();
@@ -239,7 +239,7 @@ export async function createConsultation(data: InsertConsultation): Promise<{ id
 
 export async function getConsultationsByDentist(dentistId: number): Promise<Consultation[]> {
   const { data, error } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("*")
     .eq("dentistId", dentistId)
     .order("createdAt", { ascending: false });
@@ -249,7 +249,7 @@ export async function getConsultationsByDentist(dentistId: number): Promise<Cons
 
 export async function getConsultationsByClinic(clinicId: number): Promise<Consultation[]> {
   const { data: clinicDentists, error: dentistsError } = await supabase
-    .from("users")
+    .from("Users")
     .select("id")
     .eq("clinicId", clinicId);
   assertNoError(dentistsError, "getConsultationsByClinic.dentists");
@@ -258,7 +258,7 @@ export async function getConsultationsByClinic(clinicId: number): Promise<Consul
   if (dentistIds.length === 0) return [];
 
   const { data, error } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("*")
     .in("dentistId", dentistIds)
     .order("createdAt", { ascending: false });
@@ -268,7 +268,7 @@ export async function getConsultationsByClinic(clinicId: number): Promise<Consul
 
 export async function getConsultationById(id: number): Promise<Consultation | undefined> {
   const { data, error } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("*")
     .eq("id", id)
     .limit(1)
@@ -282,7 +282,7 @@ export async function getConsultationsByPatient(
   dentistId: number
 ): Promise<Consultation[]> {
   const { data, error } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("*")
     .eq("patientId", patientId)
     .eq("dentistId", dentistId)
@@ -293,7 +293,7 @@ export async function getConsultationsByPatient(
 
 export async function getConsultationsByPatientAll(patientId: number): Promise<Consultation[]> {
   const { data, error } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("*")
     .eq("patientId", patientId)
     .order("createdAt", { ascending: false });
@@ -316,12 +316,12 @@ export async function updateConsultation(
     finalizedAt: Date | null;
   }>
 ): Promise<void> {
-  const { error } = await supabase.from("consultations").update(data).eq("id", id);
+  const { error } = await supabase.from("Consultations").update(data).eq("id", id);
   assertNoError(error, "updateConsultation");
 }
 
 export async function deleteConsultation(id: number): Promise<void> {
-  const { error } = await supabase.from("consultations").delete().eq("id", id);
+  const { error } = await supabase.from("Consultations").delete().eq("id", id);
   assertNoError(error, "deleteConsultation");
 }
 
@@ -329,7 +329,7 @@ export async function deleteConsultation(id: number): Promise<void> {
 
 export async function createFeedback(data: InsertFeedback): Promise<Feedback> {
   const { data: row, error } = await supabase
-    .from("feedbacks")
+    .from("Feedbacks")
     .insert(data)
     .select()
     .single();
@@ -339,7 +339,7 @@ export async function createFeedback(data: InsertFeedback): Promise<Feedback> {
 
 export async function getFeedbackByConsultation(consultationId: number): Promise<Feedback | null> {
   const { data, error } = await supabase
-    .from("feedbacks")
+    .from("Feedbacks")
     .select("*")
     .eq("consultationId", consultationId)
     .limit(1)
@@ -349,7 +349,7 @@ export async function getFeedbackByConsultation(consultationId: number): Promise
 }
 
 export async function deleteFeedbacksByConsultation(consultationId: number): Promise<void> {
-  const { error } = await supabase.from("feedbacks").delete().eq("consultationId", consultationId);
+  const { error } = await supabase.from("Feedbacks").delete().eq("consultationId", consultationId);
   assertNoError(error, "deleteFeedbacksByConsultation");
 }
 
@@ -357,7 +357,7 @@ export async function deleteFeedbacksByConsultation(consultationId: number): Pro
 
 export async function getDefaultTemplates(): Promise<ConsultationTemplate[]> {
   const { data, error } = await supabase
-    .from("consultationTemplates")
+    .from("ConsultationTemplate")
     .select("*")
     .eq("isDefault", true);
   assertNoError(error, "getDefaultTemplates");
@@ -366,7 +366,7 @@ export async function getDefaultTemplates(): Promise<ConsultationTemplate[]> {
 
 export async function getTemplatesByDentist(dentistId: number): Promise<ConsultationTemplate[]> {
   const { data, error } = await supabase
-    .from("consultationTemplates")
+    .from("ConsultationTemplate")
     .select("*")
     .eq("dentistId", dentistId);
   assertNoError(error, "getTemplatesByDentist");
@@ -374,14 +374,14 @@ export async function getTemplatesByDentist(dentistId: number): Promise<Consulta
 }
 
 export async function createTemplate(data: InsertConsultationTemplate): Promise<void> {
-  const { error } = await supabase.from("consultationTemplates").insert(data);
+  const { error } = await supabase.from("ConsultationTemplate").insert(data);
   assertNoError(error, "createTemplate");
 }
 
 // ==================== AUDIO CHUNK FUNCTIONS ====================
 
 export async function createAudioChunk(data: InsertAudioChunk): Promise<void> {
-  const { error } = await supabase.from("audioChunks").insert(data);
+  const { error } = await supabase.from("AudioChunks").insert(data);
   assertNoError(error, "createAudioChunk");
 }
 
@@ -390,7 +390,7 @@ export async function getAudioChunksBySession(
   recordingSessionId: string
 ): Promise<AudioChunk[]> {
   const { data, error } = await supabase
-    .from("audioChunks")
+    .from("AudioChunks")
     .select("*")
     .eq("consultationId", consultationId)
     .eq("recordingSessionId", recordingSessionId)
@@ -404,7 +404,7 @@ export async function deleteAudioChunks(
   recordingSessionId: string
 ): Promise<void> {
   const { error } = await supabase
-    .from("audioChunks")
+    .from("AudioChunks")
     .delete()
     .eq("consultationId", consultationId)
     .eq("recordingSessionId", recordingSessionId);
@@ -418,7 +418,7 @@ export async function updateAudioChunkTranscript(
   transcriptText: string
 ): Promise<void> {
   const { error } = await supabase
-    .from("audioChunks")
+    .from("AudioChunks")
     .update({
       transcriptText,
       transcriptionStatus: "done",
@@ -442,7 +442,7 @@ export async function updateAudioChunkStatus(
   if (status === "done") update.transcribedAt = new Date().toISOString();
 
   const { error: dbError } = await supabase
-    .from("audioChunks")
+    .from("AudioChunks")
     .update(update)
     .eq("consultationId", consultationId)
     .eq("recordingSessionId", recordingSessionId)
@@ -452,7 +452,7 @@ export async function updateAudioChunkStatus(
 
 export async function getAudioChunksByConsultation(consultationId: number): Promise<AudioChunk[]> {
   const { data, error } = await supabase
-    .from("audioChunks")
+    .from("AudioChunks")
     .select("*")
     .eq("consultationId", consultationId)
     .order("chunkIndex", { ascending: true });
@@ -461,7 +461,7 @@ export async function getAudioChunksByConsultation(consultationId: number): Prom
 }
 
 export async function deleteAudioChunksByConsultation(consultationId: number): Promise<void> {
-  const { error } = await supabase.from("audioChunks").delete().eq("consultationId", consultationId);
+  const { error } = await supabase.from("AudioChunks").delete().eq("consultationId", consultationId);
   assertNoError(error, "deleteAudioChunksByConsultation");
 }
 
@@ -479,13 +479,13 @@ export async function updateUserSubscription(
     consultationCount?: number;
   }
 ): Promise<void> {
-  const { error } = await supabase.from("users").update(data).eq("id", userId);
+  const { error } = await supabase.from("Users").update(data).eq("id", userId);
   assertNoError(error, "updateUserSubscription");
 }
 
 export async function getUserByEmail(email: string): Promise<User | undefined> {
   const { data, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("email", email)
     .limit(1)
@@ -496,7 +496,7 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
 
 export async function getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined> {
   const { data, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("stripeCustomerId", stripeCustomerId)
     .limit(1)
@@ -515,7 +515,7 @@ export async function updateUserByStripeCustomerId(
   }
 ): Promise<void> {
   const { error } = await supabase
-    .from("users")
+    .from("Users")
     .update(data)
     .eq("stripeCustomerId", stripeCustomerId);
   assertNoError(error, "updateUserByStripeCustomerId");
@@ -525,7 +525,7 @@ export async function updateUserByStripeCustomerId(
 
 export async function startUserTrial(userId: number, trialEndsAt: Date): Promise<void> {
   const { error } = await supabase
-    .from("users")
+    .from("Users")
     .update({ trialStartedAt: new Date().toISOString(), trialEndsAt: trialEndsAt.toISOString() })
     .eq("id", userId);
   assertNoError(error, "startUserTrial");
@@ -533,7 +533,7 @@ export async function startUserTrial(userId: number, trialEndsAt: Date): Promise
 
 export async function incrementConsultationCount(userId: number): Promise<void> {
   const { data: rows, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("consultationCount, consultationCountResetAt")
     .eq("id", userId)
     .limit(1)
@@ -551,13 +551,13 @@ export async function incrementConsultationCount(userId: number): Promise<void> 
     ? { consultationCount: 1, consultationCountResetAt: now.toISOString() }
     : { consultationCount: (rows.consultationCount ?? 0) + 1 };
 
-  const { error: updateError } = await supabase.from("users").update(update).eq("id", userId);
+  const { error: updateError } = await supabase.from("Users").update(update).eq("id", userId);
   assertNoError(updateError, "incrementConsultationCount");
 }
 
 export async function getConsultationCount(userId: number): Promise<number> {
   const { data: rows, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("consultationCount, consultationCountResetAt")
     .eq("id", userId)
     .limit(1)
@@ -576,7 +576,7 @@ export async function getConsultationCount(userId: number): Promise<number> {
 
 export async function resetMonthlyConsultationCount(userId: number): Promise<void> {
   const { error } = await supabase
-    .from("users")
+    .from("Users")
     .update({ consultationCount: 0, consultationCountResetAt: new Date().toISOString() })
     .eq("id", userId);
   assertNoError(error, "resetMonthlyConsultationCount");
@@ -584,7 +584,7 @@ export async function resetMonthlyConsultationCount(userId: number): Promise<voi
 
 export async function resetConsultationCount(userId: number): Promise<void> {
   const { error } = await supabase
-    .from("users")
+    .from("Users")
     .update({ consultationCount: 0, consultationCountResetAt: new Date().toISOString() })
     .eq("id", userId);
   assertNoError(error, "resetConsultationCount");
@@ -594,7 +594,7 @@ export async function resetConsultationCount(userId: number): Promise<void> {
 
 export async function resetUserAccount(email: string) {
   const { data: userRows, error: userError } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("email", email)
     .limit(1)
@@ -605,29 +605,29 @@ export async function resetUserAccount(email: string) {
   const user = userRows as User;
 
   const { data: userConsultations } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("id")
     .eq("dentistId", user.id);
 
   const stats = { consultationsDeleted: (userConsultations ?? []).length, patientsDeleted: 0, audioChunksDeleted: 0, feedbacksDeleted: 0 };
 
   for (const c of userConsultations ?? []) {
-    const { data: fbs } = await supabase.from("feedbacks").select("id").eq("consultationId", c.id);
+    const { data: fbs } = await supabase.from("Feedbacks").select("id").eq("consultationId", c.id);
     stats.feedbacksDeleted += (fbs ?? []).length;
-    await supabase.from("feedbacks").delete().eq("consultationId", c.id);
+    await supabase.from("Feedbacks").delete().eq("consultationId", c.id);
 
-    const { data: acs } = await supabase.from("audioChunks").select("id").eq("consultationId", c.id);
+    const { data: acs } = await supabase.from("AudioChunks").select("id").eq("consultationId", c.id);
     stats.audioChunksDeleted += (acs ?? []).length;
-    await supabase.from("audioChunks").delete().eq("consultationId", c.id);
+    await supabase.from("AudioChunks").delete().eq("consultationId", c.id);
   }
 
-  await supabase.from("consultations").delete().eq("dentistId", user.id);
+  await supabase.from("Consultations").delete().eq("dentistId", user.id);
 
-  const { data: userPatients } = await supabase.from("patients").select("id").eq("dentistId", user.id);
+  const { data: userPatients } = await supabase.from("Patients").select("id").eq("dentistId", user.id);
   stats.patientsDeleted = (userPatients ?? []).length;
-  await supabase.from("patients").delete().eq("dentistId", user.id);
+  await supabase.from("Patients").delete().eq("dentistId", user.id);
 
-  await supabase.from("users").update({
+  await supabase.from("Users").update({
     subscriptionStatus: "active",
     consultationCount: 0,
     consultationCountResetAt: new Date().toISOString(),
@@ -639,14 +639,14 @@ export async function resetUserAccount(email: string) {
 // ==================== CLINIC FUNCTIONS ====================
 
 export async function createClinic(data: InsertClinic): Promise<Clinic> {
-  const { data: row, error } = await supabase.from("clinics").insert(data).select().single();
+  const { data: row, error } = await supabase.from("Clinics").insert(data).select().single();
   assertNoError(error, "createClinic");
   return row as Clinic;
 }
 
 export async function getClinicById(id: number): Promise<Clinic | undefined> {
   const { data, error } = await supabase
-    .from("clinics")
+    .from("Clinics")
     .select("*")
     .eq("id", id)
     .limit(1)
@@ -657,7 +657,7 @@ export async function getClinicById(id: number): Promise<Clinic | undefined> {
 
 export async function ensureUserIsGestor(userId: number): Promise<{ clinicId: number }> {
   const { data: userRow, error: userError } = await supabase
-    .from("users")
+    .from("Users")
     .select("*")
     .eq("id", userId)
     .limit(1)
@@ -669,39 +669,39 @@ export async function ensureUserIsGestor(userId: number): Promise<{ clinicId: nu
 
   if (currentUser.clinicId) {
     if (currentUser.clinicRole !== "gestor") {
-      await supabase.from("users").update({ clinicRole: "gestor" }).eq("id", userId);
+      await supabase.from("Users").update({ clinicRole: "gestor" }).eq("id", userId);
     }
     return { clinicId: currentUser.clinicId };
   }
 
   const { data: existingClinic } = await supabase
-    .from("clinics")
+    .from("Clinics")
     .select("*")
     .eq("ownerId", userId)
     .limit(1)
     .maybeSingle();
 
   if (existingClinic) {
-    await supabase.from("users").update({ clinicId: existingClinic.id, clinicRole: "gestor" }).eq("id", userId);
+    await supabase.from("Users").update({ clinicId: existingClinic.id, clinicRole: "gestor" }).eq("id", userId);
     return { clinicId: existingClinic.id };
   }
 
   const clinicName = currentUser.name ? `Clínica ${currentUser.name}` : "Minha Clínica";
   const { data: newClinic, error: clinicError } = await supabase
-    .from("clinics")
+    .from("Clinics")
     .insert({ name: clinicName, ownerId: userId })
     .select("id")
     .single();
   assertNoError(clinicError, "ensureUserIsGestor.createClinic");
 
   const clinicId = (newClinic as { id: number }).id;
-  await supabase.from("users").update({ clinicId, clinicRole: "gestor" }).eq("id", userId);
+  await supabase.from("Users").update({ clinicId, clinicRole: "gestor" }).eq("id", userId);
   return { clinicId };
 }
 
 export async function getClinicByOwnerId(ownerId: number): Promise<Clinic | undefined> {
   const { data, error } = await supabase
-    .from("clinics")
+    .from("Clinics")
     .select("*")
     .eq("ownerId", ownerId)
     .limit(1)
@@ -711,13 +711,13 @@ export async function getClinicByOwnerId(ownerId: number): Promise<Clinic | unde
 }
 
 export async function updateClinic(id: number, data: Partial<InsertClinic>): Promise<void> {
-  const { error } = await supabase.from("clinics").update(data).eq("id", id);
+  const { error } = await supabase.from("Clinics").update(data).eq("id", id);
   assertNoError(error, "updateClinic");
 }
 
 export async function getClinicMembers(clinicId: number) {
   const { data, error } = await supabase
-    .from("users")
+    .from("Users")
     .select("id, name, email, clinicRole, createdAt, lastSignedIn")
     .eq("clinicId", clinicId)
     .order("createdAt", { ascending: false });
@@ -734,7 +734,7 @@ export async function addClinicMember(data: {
 }): Promise<number> {
   const openId = `email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
   const { data: row, error } = await supabase
-    .from("users")
+    .from("Users")
     .insert({
       name: data.name,
       email: data.email,
@@ -757,52 +757,52 @@ export async function updateClinicMember(
   userId: number,
   data: { name?: string; clinicRole?: "crc" | "dentista" }
 ): Promise<void> {
-  const { error } = await supabase.from("users").update(data).eq("id", userId);
+  const { error } = await supabase.from("Users").update(data).eq("id", userId);
   assertNoError(error, "updateClinicMember");
 }
 
 export async function removeClinicMember(userId: number): Promise<void> {
-  await supabase.from("feedbacks").delete().eq("dentistId", userId);
+  await supabase.from("Feedbacks").delete().eq("dentistId", userId);
 
   const { data: userConsultations } = await supabase
-    .from("consultations")
+    .from("Consultations")
     .select("id")
     .eq("dentistId", userId);
 
   for (const c of userConsultations ?? []) {
-    await supabase.from("feedbacks").delete().eq("consultationId", c.id);
-    await supabase.from("audioChunks").delete().eq("consultationId", c.id);
+    await supabase.from("Feedbacks").delete().eq("consultationId", c.id);
+    await supabase.from("AudioChunks").delete().eq("consultationId", c.id);
   }
-  await supabase.from("consultations").delete().eq("dentistId", userId);
+  await supabase.from("Consultations").delete().eq("dentistId", userId);
 
-  const { data: userPatients } = await supabase.from("patients").select("id").eq("dentistId", userId);
+  const { data: userPatients } = await supabase.from("Patients").select("id").eq("dentistId", userId);
   for (const p of userPatients ?? []) {
-    const { data: pConsultations } = await supabase.from("consultations").select("id").eq("patientId", p.id);
+    const { data: pConsultations } = await supabase.from("Consultations").select("id").eq("patientId", p.id);
     for (const pc of pConsultations ?? []) {
-      await supabase.from("feedbacks").delete().eq("consultationId", pc.id);
-      await supabase.from("audioChunks").delete().eq("consultationId", pc.id);
+      await supabase.from("Feedbacks").delete().eq("consultationId", pc.id);
+      await supabase.from("AudioChunks").delete().eq("consultationId", pc.id);
     }
-    await supabase.from("consultations").delete().eq("patientId", p.id);
-    await supabase.from("patients").delete().eq("id", p.id);
+    await supabase.from("Consultations").delete().eq("patientId", p.id);
+    await supabase.from("Patients").delete().eq("id", p.id);
   }
 
-  await supabase.from("calls").delete().eq("crcId", userId);
-  await supabase.from("leads").delete().eq("crcId", userId);
-  const { error } = await supabase.from("users").delete().eq("id", userId);
+  await supabase.from("Calls").delete().eq("crcId", userId);
+  await supabase.from("Leads").delete().eq("crcId", userId);
+  const { error } = await supabase.from("Users").delete().eq("id", userId);
   assertNoError(error, "removeClinicMember");
 }
 
 // ==================== LEAD FUNCTIONS ====================
 
 export async function createLead(data: InsertLead): Promise<Lead> {
-  const { data: row, error } = await supabase.from("leads").insert(data).select().single();
+  const { data: row, error } = await supabase.from("Leads").insert(data).select().single();
   assertNoError(error, "createLead");
   return row as Lead;
 }
 
 export async function getLeadsByClinic(clinicId: number): Promise<Lead[]> {
   const { data, error } = await supabase
-    .from("leads")
+    .from("Leads")
     .select("*")
     .eq("clinicId", clinicId)
     .order("createdAt", { ascending: false });
@@ -812,7 +812,7 @@ export async function getLeadsByClinic(clinicId: number): Promise<Lead[]> {
 
 export async function getLeadsByCRC(crcId: number): Promise<Lead[]> {
   const { data, error } = await supabase
-    .from("leads")
+    .from("Leads")
     .select("*")
     .eq("crcId", crcId)
     .order("createdAt", { ascending: false });
@@ -822,7 +822,7 @@ export async function getLeadsByCRC(crcId: number): Promise<Lead[]> {
 
 export async function getLeadById(id: number): Promise<Lead | undefined> {
   const { data, error } = await supabase
-    .from("leads")
+    .from("Leads")
     .select("*")
     .eq("id", id)
     .limit(1)
@@ -832,18 +832,18 @@ export async function getLeadById(id: number): Promise<Lead | undefined> {
 }
 
 export async function updateLead(id: number, data: Partial<InsertLead>): Promise<void> {
-  const { error } = await supabase.from("leads").update(data).eq("id", id);
+  const { error } = await supabase.from("Leads").update(data).eq("id", id);
   assertNoError(error, "updateLead");
 }
 
 export async function deleteLead(id: number): Promise<void> {
-  const { error } = await supabase.from("leads").delete().eq("id", id);
+  const { error } = await supabase.from("Leads").delete().eq("id", id);
   assertNoError(error, "deleteLead");
 }
 
 export async function convertLeadToPatient(leadId: number, dentistId: number): Promise<Patient> {
   const { data: leadRow, error: leadError } = await supabase
-    .from("leads")
+    .from("Leads")
     .select("*")
     .eq("id", leadId)
     .limit(1)
@@ -853,7 +853,7 @@ export async function convertLeadToPatient(leadId: number, dentistId: number): P
 
   const lead = leadRow as Lead;
   const { data: patientRow, error: patientError } = await supabase
-    .from("patients")
+    .from("Patients")
     .insert({
       dentistId,
       name: lead.name,
@@ -867,21 +867,21 @@ export async function convertLeadToPatient(leadId: number, dentistId: number): P
     .single();
   assertNoError(patientError, "convertLeadToPatient.createPatient");
 
-  await supabase.from("leads").update({ isConverted: true, convertedPatientId: (patientRow as Patient).id }).eq("id", leadId);
+  await supabase.from("Leads").update({ isConverted: true, convertedPatientId: (patientRow as Patient).id }).eq("id", leadId);
   return patientRow as Patient;
 }
 
 // ==================== CALL FUNCTIONS ====================
 
 export async function createCall(data: InsertCall): Promise<Call> {
-  const { data: row, error } = await supabase.from("calls").insert(data).select().single();
+  const { data: row, error } = await supabase.from("Calls").insert(data).select().single();
   assertNoError(error, "createCall");
   return row as Call;
 }
 
 export async function getCallsByClinic(clinicId: number): Promise<Call[]> {
   const { data, error } = await supabase
-    .from("calls")
+    .from("Calls")
     .select("*")
     .eq("clinicId", clinicId)
     .order("createdAt", { ascending: false });
@@ -891,7 +891,7 @@ export async function getCallsByClinic(clinicId: number): Promise<Call[]> {
 
 export async function getCallsByCRC(crcId: number): Promise<Call[]> {
   const { data, error } = await supabase
-    .from("calls")
+    .from("Calls")
     .select("*")
     .eq("crcId", crcId)
     .order("createdAt", { ascending: false });
@@ -901,7 +901,7 @@ export async function getCallsByCRC(crcId: number): Promise<Call[]> {
 
 export async function getCallsByLead(leadId: number): Promise<Call[]> {
   const { data, error } = await supabase
-    .from("calls")
+    .from("Calls")
     .select("*")
     .eq("leadId", leadId)
     .order("createdAt", { ascending: false });
@@ -911,7 +911,7 @@ export async function getCallsByLead(leadId: number): Promise<Call[]> {
 
 export async function getCallById(id: number): Promise<Call | undefined> {
   const { data, error } = await supabase
-    .from("calls")
+    .from("Calls")
     .select("*")
     .eq("id", id)
     .limit(1)
@@ -936,7 +936,7 @@ export async function updateCall(
     finalizedAt: Date | null;
   }>
 ): Promise<void> {
-  const { error } = await supabase.from("calls").update(data).eq("id", id);
+  const { error } = await supabase.from("Calls").update(data).eq("id", id);
   assertNoError(error, "updateCall");
 }
 
@@ -944,7 +944,7 @@ export async function finalizeCall(
   id: number,
   data: { schedulingResult: "scheduled" | "not_scheduled" | "callback" | "no_answer"; schedulingNotes?: string }
 ): Promise<void> {
-  const { error } = await supabase.from("calls").update({
+  const { error } = await supabase.from("Calls").update({
     ...data,
     status: "finalized",
     finalizedAt: new Date().toISOString(),
@@ -955,25 +955,25 @@ export async function finalizeCall(
 // ==================== CLINIC STATS FUNCTIONS ====================
 
 export async function getClinicStats(clinicId: number) {
-  const { data: allLeads } = await supabase.from("leads").select("id, isConverted").eq("clinicId", clinicId);
+  const { data: allLeads } = await supabase.from("Leads").select("id, isConverted").eq("clinicId", clinicId);
   const totalLeads = (allLeads ?? []).length;
   const convertedLeads = (allLeads ?? []).filter((l: { isConverted: boolean }) => l.isConverted).length;
 
-  const { data: allCalls } = await supabase.from("calls").select("id, schedulingResult").eq("clinicId", clinicId);
+  const { data: allCalls } = await supabase.from("Calls").select("id, schedulingResult").eq("clinicId", clinicId);
   const totalCalls = (allCalls ?? []).length;
   const scheduledCalls = (allCalls ?? []).filter((c: { schedulingResult: string }) => c.schedulingResult === "scheduled").length;
 
-  const { data: clinicMembers } = await supabase.from("users").select("id").eq("clinicId", clinicId);
+  const { data: clinicMembers } = await supabase.from("Users").select("id").eq("clinicId", clinicId);
   const memberIds = (clinicMembers ?? []).map((m: { id: number }) => m.id);
 
-  const { data: clinicPatients } = await supabase.from("patients").select("id").eq("clinicId", clinicId);
+  const { data: clinicPatients } = await supabase.from("Patients").select("id").eq("clinicId", clinicId);
   const clinicPatientIds = new Set((clinicPatients ?? []).map((p: { id: number }) => p.id));
 
   const consultationMap = new Map<number, { id: number; treatmentClosed: boolean }>();
 
   if (memberIds.length > 0) {
     const { data: dentistConsultations } = await supabase
-      .from("consultations")
+      .from("Consultations")
       .select("id, treatmentClosed")
       .in("dentistId", memberIds);
     for (const c of dentistConsultations ?? []) consultationMap.set(c.id, c);
@@ -981,7 +981,7 @@ export async function getClinicStats(clinicId: number) {
 
   if (clinicPatientIds.size > 0) {
     const { data: patientConsultations } = await supabase
-      .from("consultations")
+      .from("Consultations")
       .select("id, treatmentClosed")
       .in("patientId", Array.from(clinicPatientIds));
     for (const c of patientConsultations ?? []) consultationMap.set(c.id, c);
@@ -993,7 +993,7 @@ export async function getClinicStats(clinicId: number) {
 
   if (totalConsultations > 0 && closedTreatments === 0) {
     for (const c of allClinicConsultations) {
-      const { data: fbs } = await supabase.from("feedbacks").select("treatmentClosed").eq("consultationId", c.id);
+      const { data: fbs } = await supabase.from("Feedbacks").select("treatmentClosed").eq("consultationId", c.id);
       if ((fbs ?? []).some((f: { treatmentClosed: boolean }) => f.treatmentClosed === true)) closedTreatments++;
     }
   }
