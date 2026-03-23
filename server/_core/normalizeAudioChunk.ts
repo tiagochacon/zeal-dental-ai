@@ -45,12 +45,13 @@ export async function normalizeAudioChunkToMp3(
 
     // Read normalized MP3
     const normalizedBuffer = await fs.promises.readFile(outputFile);
+    const result = Buffer.isBuffer(normalizedBuffer) ? normalizedBuffer : Buffer.from(normalizedBuffer);
     
     console.log(
-      `[NormalizeChunk] Normalized: ${(audioBuffer.length / 1024).toFixed(1)}KB → ${(normalizedBuffer.length / 1024).toFixed(1)}KB`
+      `[NormalizeChunk] Normalized: ${(audioBuffer.length / 1024).toFixed(1)}KB → ${(result.length / 1024).toFixed(1)}KB`
     );
 
-    return normalizedBuffer;
+    return result;
   } catch (error) {
     console.error("[NormalizeChunk] Normalization failed:", error);
     throw new Error(

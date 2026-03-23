@@ -8,7 +8,7 @@ import {
   updateAudioChunkStatus,
   getAudioChunksBySession,
 } from "../db";
-import { normalizeAudioChunkToMp3 } from "../_core/normalizeAudioChunk";
+
 import { nanoid } from "nanoid";
 
 export const transcribeRouter = Router();
@@ -197,23 +197,10 @@ transcribeRouter.post("/", async (req, res) => {
     // NÃO retornar erro — continuar com a transcrição mesmo sem persistência no DB
   }
 
-  // ─── STEP 3: Normalize audio to MP3 (non-fatal — fallback para buffer original) ─
-  // normalizeAudioChunkToMp3 usa ffmpeg para garantir que o WebM/MP4 é um arquivo
-  // válido e auto-contido que o Whisper consegue decodificar corretamente.
-  let audioBuffer = rawBuffer;
-  let normalizedMimeType = mimeType;
-  try {
-    audioBuffer = await normalizeAudioChunkToMp3(rawBuffer, mimeType);
-    normalizedMimeType = "audio/mpeg";
-    console.log(
-      `[TranscribeChunk] Chunk ${chunkIndex} normalized to MP3: ${(audioBuffer.length / 1024).toFixed(1)}KB`
-    );
-  } catch (normErr: any) {
-    console.warn(
-      `[TranscribeChunk] Normalização falhou para chunk ${chunkIndex} (${normErr?.message}). Usando buffer original.`
-    );
-    // Usar buffer original como fallback
-  }
+  // ─── STEP 3: Use raw WebM buffer (Whisper accepts WebM natively) ─
+  // Whisper pode transcrever WebM bruto do MediaRecorder sem normalização
+  const audioBuffer = rawBuffer;
+  const normalizedMimeType = mimeType;
 
   // ─── STEP 4: Check Forge API config ──────────────────────────────────────────
   if (!ENV.forgeApiUrl || !ENV.forgeApiKey) {
