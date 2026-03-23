@@ -16,9 +16,7 @@ import {
   STRIPE_PRODUCT_IDS,
   PlanTier
 } from "./products";
-import { getDb } from "../db";
-import { paymentLogs, users } from "../../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { supabase } from "../lib/supabaseClient";
 import Stripe from "stripe";
 
 const router = Router();
@@ -27,14 +25,14 @@ const router = Router();
 // IDEMPOTENCY: Check if event was already processed
 // ============================================
 async function isEventProcessed(eventId: string): Promise<boolean> {
-  const db = await getDb();
-  if (!db) return false;
-  const existing = await db
-    .select()
-    .from(paymentLogs)
-    .where(eq(paymentLogs.eventId, eventId))
-    .limit(1);
-  return existing.length > 0;
+  const { data, error } = await supabase
+    .from("payment_logs")
+    .select("id")
+    .eq("eventId", eventId)
+    .limit(1)
+    .maybeSingle();
+  if (error) return false;
+  return !!data;
 }
 
 // ============================================
@@ -58,12 +56,7 @@ async function logPaymentEvent(
   }
 ) {
   try {
-    const db = await getDb();
-    if (!db) {
-      console.error(`[Webhook] Cannot log event: database not available`);
-      return;
-    }
-    await db.insert(paymentLogs).values({
+    const { error } = await supabase.from("payment_logs").insert({
       eventId,
       eventType,
       status,
@@ -78,13 +71,15 @@ async function logPaymentEvent(
       errorMessage: data.errorMessage,
       rawPayload: data.rawPayload,
     });
-    console.log(`[Webhook] Event logged: ${eventId} - ${status}`);
-  } catch (err) {
-    // If duplicate key error, it's fine (idempotency)
-    const message = err instanceof Error ? err.message : "Unknown error";
-    if (!message.includes("Duplicate entry")) {
-      console.error(`[Webhook] Failed to log event: ${message}`);
+    if (error) {
+      if (!error.message.includes("duplicate") && !error.message.includes("unique")) {
+        console.error(`[Webhook] Failed to log event: ${error.message}`);
+      }
+    } else {
+      console.log(`[Webhook] Event logged: ${eventId} - ${status}`);
     }
+  } catch (err) {
+    console.error(`[Webhook] Failed to log event:`, err);
   }
 }
 
@@ -507,12 +502,10 @@ async function handleSubscriptionDeleted(eventId: string, subscription: Stripe.S
   });
   
   // Also exhaust trial by setting consultation count to max
-  const db = await getDb();
-  if (db) {
-    await db.update(users).set({
-      consultationCount: 7, // Trial limit is 7, so this exhausts the trial
-    }).where(eq(users.id, user.id));
-  }
+  await supabase
+    .from("users")
+    .update({ consultationCount: 7 })
+    .eq("id", user.id);
 
   console.log(`[Webhook] User ${user.id} subscription canceled - trial EXHAUSTED, must resubscribe`);
 

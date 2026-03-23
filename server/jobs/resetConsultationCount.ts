@@ -6,46 +6,37 @@
  * Exemplo: node -e "require('./resetConsultationCount').resetMonthlyConsultationCounts()"
  */
 
-import { getDb } from "../db";
-import { users } from "../../drizzle/schema";
-import { eq, lte } from "drizzle-orm";
+import { supabase } from "../lib/supabaseClient";
 
 export async function resetMonthlyConsultationCounts() {
-  const db = await getDb();
-  if (!db) {
-    console.error("[Reset Job] Database not available");
-    return;
-  }
-
   try {
     console.log("[Reset Job] Starting monthly consultation count reset...");
 
-    // Get all users with consultation_count > 0 and reset date in the past
     const now = new Date();
-    
-    // Find users whose reset date is today or earlier
-    const usersToReset = await db
-      .select()
-      .from(users)
-      .where(lte(users.consultationCountResetAt, now));
 
-    console.log(`[Reset Job] Found ${usersToReset.length} users to reset`);
+    const { data: usersToCheck, error } = await supabase
+      .from("users")
+      .select("id, consultationCountResetAt")
+      .lte("consultationCountResetAt", now.toISOString());
 
-    // Reset consultation count for each user
+    if (error) {
+      console.error("[Reset Job] Error fetching users:", error.message);
+      return;
+    }
+
+    console.log(`[Reset Job] Found ${(usersToCheck ?? []).length} users to check`);
+
     let resetCount = 0;
-    for (const user of usersToReset) {
-      // Only reset if the reset date has passed (monthly cycle)
+    for (const user of usersToCheck ?? []) {
       const resetDate = new Date(user.consultationCountResetAt);
       const nextResetDate = new Date(resetDate);
       nextResetDate.setMonth(nextResetDate.getMonth() + 1);
 
       if (now >= nextResetDate) {
-        await db.update(users)
-          .set({
-            consultationCount: 0,
-            consultationCountResetAt: now,
-          })
-          .where(eq(users.id, user.id));
+        await supabase
+          .from("users")
+          .update({ consultationCount: 0, consultationCountResetAt: now.toISOString() })
+          .eq("id", user.id);
 
         resetCount++;
         console.log(`[Reset Job] Reset consultation count for user ${user.id}`);

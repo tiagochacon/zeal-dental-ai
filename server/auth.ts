@@ -1,7 +1,6 @@
 import bcrypt from "bcrypt";
-import { getDb } from "./db";
-import { users } from "../drizzle/schema";
-import { eq } from "drizzle-orm";
+import { supabase } from "./lib/supabaseClient";
+import type { User } from "../drizzle/schema";
 
 // NOTE: Existing admin users created before this change may not have clinicRole='gestor'.
 // Run the following SQL manually to fix them:
@@ -33,44 +32,41 @@ export async function createUser(data: {
   password: string;
   name: string;
 }): Promise<{ id: number; email: string; name: string; role: string; openId: string }> {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
-
-  const existingUser = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, data.email.toLowerCase()))
-    .limit(1);
-
-  if (existingUser.length > 0) {
-    throw new Error("Email já cadastrado");
-  }
+  const { data: existing, error: existingError } = await supabase
+    .from("users")
+    .select("id")
+    .eq("email", data.email.toLowerCase())
+    .limit(1)
+    .maybeSingle();
+  if (existingError) throw new Error(existingError.message);
+  if (existing) throw new Error("Email já cadastrado");
 
   const passwordHash = await hashPassword(data.password);
   const isAdmin = isAdminEmail(data.email);
-
   const openId = `email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-  
-  const result = await db.insert(users).values({
-    email: data.email.toLowerCase(),
-    passwordHash,
-    name: data.name,
-    openId,
-    loginMethod: "email",
-    role: isAdmin ? "admin" : "user",
-    // Admins get active subscription status automatically
-    subscriptionStatus: isAdmin ? "active" : "inactive",
-  });
 
-  const insertId = result[0].insertId;
+  const { data: row, error } = await supabase
+    .from("users")
+    .insert({
+      email: data.email.toLowerCase(),
+      passwordHash,
+      name: data.name,
+      openId,
+      loginMethod: "email",
+      role: isAdmin ? "admin" : "user",
+      subscriptionStatus: isAdmin ? "active" : "inactive",
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(error.message);
 
-  // If this is an admin user, immediately create their clinic and assign gestor role
+  const insertId = (row as { id: number }).id;
+
   if (isAdmin) {
     try {
-      const { ensureUserIsGestor } = await import('./db');
+      const { ensureUserIsGestor } = await import("./db");
       await ensureUserIsGestor(insertId);
     } catch (err) {
-      // Non-fatal: admin can set up clinic manually later
       console.warn(`[Auth] Could not auto-create clinic for admin user ${insertId}:`, err);
     }
   }
@@ -85,43 +81,35 @@ export async function createUser(data: {
 }
 
 export async function authenticateUser(email: string, password: string) {
-  const db = await getDb();
-  if (!db) throw new Error("Database not available");
+  const { data: row, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("email", email.toLowerCase())
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!row) throw new Error("Email ou senha incorretos");
 
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.email, email.toLowerCase()))
-    .limit(1);
-
-  if (result.length === 0) {
-    throw new Error("Email ou senha incorretos");
-  }
-
-  const user = result[0];
+  const user = row as User;
 
   if (!user.passwordHash) {
     throw new Error("Esta conta usa login social. Por favor, use o método de login original.");
   }
 
   const isValid = await verifyPassword(password, user.passwordHash);
+  if (!isValid) throw new Error("Email ou senha incorretos");
 
-  if (!isValid) {
-    throw new Error("Email ou senha incorretos");
-  }
-
-  // Update last signed in
-  await db
-    .update(users)
-    .set({ lastSignedIn: new Date() })
-    .where(eq(users.id, user.id));
+  await supabase
+    .from("users")
+    .update({ lastSignedIn: new Date().toISOString() })
+    .eq("id", user.id);
 
   return {
     id: user.id,
     email: user.email,
     name: user.name,
     role: user.role,
-    openId: user.openId || '',
+    openId: user.openId || "",
     subscriptionStatus: user.subscriptionStatus,
     trialEndsAt: user.trialEndsAt,
     consultationCount: user.consultationCount,
@@ -132,14 +120,12 @@ export async function authenticateUser(email: string, password: string) {
 }
 
 export async function getUserByIdAuth(id: number) {
-  const db = await getDb();
-  if (!db) return null;
-
-  const result = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, id))
-    .limit(1);
-
-  return result[0] || null;
+  const { data: row, error } = await supabase
+    .from("users")
+    .select("*")
+    .eq("id", id)
+    .limit(1)
+    .maybeSingle();
+  if (error) return null;
+  return row as User | null;
 }

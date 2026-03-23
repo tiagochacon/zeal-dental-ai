@@ -34,16 +34,13 @@ export const clinicRouter = router({
       });
 
       // Update user to be gestor of this clinic
-      const db = (await import("../db")).getDb;
-      const dbInstance = await db();
-      if (dbInstance) {
-        const { users } = await import("../../drizzle/schema");
-        const { eq } = await import("drizzle-orm");
-        await dbInstance.update(users).set({
-          clinicId: clinic.id,
-          clinicRole: "gestor",
-        }).where(eq(users.id, ctx.user.id));
-      }
+      const { updateDentistProfile } = await import("../db");
+      await updateDentistProfile(ctx.user.id, {});
+      const { supabase } = await import("../lib/supabaseClient");
+      await supabase
+        .from("users")
+        .update({ clinicId: clinic.id, clinicRole: "gestor" })
+        .eq("id", ctx.user.id);
 
       return clinic;
     }),
