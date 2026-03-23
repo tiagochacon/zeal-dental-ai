@@ -26,8 +26,11 @@ function getEnvVar(key: string, defaultValue?: string): string {
 export const ENV = {
   appId: getEnvVar("VITE_APP_ID"),
   cookieSecret: getEnvVar("JWT_SECRET"),
-  databaseUrl: getEnvVar("DATABASE_URL"),
-  oAuthServerUrl: getEnvVar("OAUTH_SERVER_URL"),
+  // Supabase (replaces DATABASE_URL)
+  supabaseUrl: getEnvVar("SUPABASE_URL", ""),
+  supabaseAnonKey: getEnvVar("SUPABASE_ANON_KEY", ""),
+  // OAuth (kept for backward compatibility, but not used with email/password auth)
+  oAuthServerUrl: getEnvVar("OAUTH_SERVER_URL", ""),
   ownerOpenId: getEnvVar("OWNER_OPEN_ID", ""),
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: getEnvVar("BUILT_IN_FORGE_API_URL"),
