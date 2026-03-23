@@ -36,6 +36,14 @@ async function blobToBase64(blob: Blob): Promise<string> {
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000;
 
+// Textos que indicam alucinação do Whisper — filtrados na montagem final
+const HALLUCINATION_MARKERS = [
+  "diálogo entre dentista e paciente",
+  "transcrição de consulta odontológica clínica",
+  "consulta odontológica. português brasileiro.",
+  "vocabulário esperado",
+];
+
 /**
  * Send chunk to backend: uploads to S3 + transcribes via Forge API (Whisper)
  * Includes retry with exponential backoff for transient failures.
@@ -85,13 +93,32 @@ async function transcribeChunkRequest(
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: res.statusText }));
-        const errorMsg = (err as any).error ?? "Falha na transcrição";
+        const msg = (err as any).error ?? "Falha na transcrição";
+
+        // Classificar erro para mensagem mais clara ao usuário
+        let friendlyMsg = msg;
+        if (
+          msg.includes("RLS") ||
+          msg.includes("violates") ||
+          msg.includes("security policy") ||
+          msg.includes("row-level")
+        ) {
+          friendlyMsg =
+            "Erro de banco de dados (RLS ativo). Verifique as configurações do Supabase.";
+        } else if (
+          msg.includes("Forge") ||
+          msg.includes("Whisper") ||
+          msg.includes("transcri")
+        ) {
+          friendlyMsg = "Erro no serviço de transcrição. Tentando novamente...";
+        }
+
         // Retry on server errors (5xx), don't retry on client errors (4xx)
         if (res.status >= 500) {
-          lastError = new Error(errorMsg);
+          lastError = new Error(friendlyMsg);
           continue;
         }
-        throw new Error(errorMsg);
+        throw new Error(friendlyMsg);
       }
 
       const data = await res.json();
@@ -333,6 +360,14 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
           .filter((c) => c.status === "done")
           .map((c) => c.text.trim())
           .filter(Boolean)
+          // Filtrar textos de alucinação do Whisper que possam ter escapado do servidor
+          .filter((t) => {
+            const lower = t.toLowerCase();
+            const isHallucination =
+              t.length < 300 &&
+              HALLUCINATION_MARKERS.some((marker) => lower.includes(marker));
+            return !isHallucination;
+          })
           .join("\n\n");
         setFinalTranscript(text);
         setIsAssembling(false);

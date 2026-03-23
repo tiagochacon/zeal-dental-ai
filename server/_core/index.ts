@@ -96,6 +96,27 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`✅ Server running on http://localhost:${port}/`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
+
+    // Verificação de conexão Supabase (não-blocante — roda após o servidor subir)
+    (async () => {
+      try {
+        const { supabase } = await import("../lib/supabaseClient");
+        const { error } = await supabase.from("users").select("id").limit(1);
+        if (error) {
+          console.error("❌ [Supabase] Falha na conexão ou RLS bloqueando:", error.message);
+          console.error(
+            "❌ [Supabase] AÇÃO NECESSÁRIA: Desabilite o RLS no Dashboard do Supabase → SQL Editor →\n" +
+            '   ALTER TABLE "audioChunks" DISABLE ROW LEVEL SECURITY;\n' +
+            "   ALTER TABLE users DISABLE ROW LEVEL SECURITY;\n" +
+            "   (e demais tabelas)"
+          );
+        } else {
+          console.log("✅ [Supabase] Conexão OK.");
+        }
+      } catch (err: any) {
+        console.error("❌ [Supabase] Erro ao testar conexão:", err?.message ?? err);
+      }
+    })();
   });
 }
 
