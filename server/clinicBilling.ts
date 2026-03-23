@@ -1,4 +1,3 @@
-// @ts-nocheck - Supabase schema mismatch during migration
 /**
  * Clinic Billing Helper
  *

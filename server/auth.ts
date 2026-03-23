@@ -1,4 +1,3 @@
-// @ts-nocheck - Supabase schema mismatch during migration
 import bcrypt from "bcrypt";
 import { supabase } from "./lib/supabaseClient";
 import type { User } from "../drizzle/schema";

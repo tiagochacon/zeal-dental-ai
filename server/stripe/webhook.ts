@@ -1,4 +1,3 @@
-// @ts-nocheck - Supabase schema mismatch during migration from Drizzle/MySQL
 import { Request, Response, Router } from "express";
 import { stripe, isStripeConfigured } from "./stripe";
 import { 
@@ -144,7 +143,7 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       productId,
       planType: tier,
       amount: session.amount_total ? session.amount_total / 100 : undefined,
-      currency: session.currency,
+      currency: session.currency ?? undefined,
     });
   } catch (error: any) {
     console.error("[Webhook] Error processing checkout session:", error.message);
@@ -338,7 +337,7 @@ async function handleSubscriptionDeleted(subscription: Stripe.Subscription, even
 // Handle invoice.paid
 async function handleInvoicePaid(invoice: Stripe.Invoice, eventId: string) {
   const stripeCustomerId = invoice.customer as string;
-  const subscriptionId = invoice.subscription as string;
+  const subscriptionId = (invoice as any).subscription as string;
 
   if (!stripeCustomerId) {
     console.error("[Webhook] Missing customer in invoice");
@@ -390,7 +389,7 @@ router.post("/", async (req: Request, res: Response) => {
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
+    event = stripe!.webhooks.constructEvent(
       req.body,
       req.headers["stripe-signature"] as string,
       process.env.STRIPE_WEBHOOK_SECRET || ""

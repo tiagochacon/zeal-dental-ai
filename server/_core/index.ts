@@ -1,3 +1,4 @@
+import "dotenv/config";
 import express from "express";
 import { createServer } from "http";
 import net from "net";
@@ -96,28 +97,21 @@ async function startServer() {
     console.log(`✅ Server running on http://localhost:${port}/`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
 
-    // Verificação de conexão Supabase (desabilitada enquanto credenciais não estão configuradas)
-    if (process.env.SUPABASE_URL && process.env.SUPABASE_ANON_KEY) {
-      (async () => {
-        try {
-          const { supabase } = await import("../lib/supabaseClient");
-          if (!supabase) {
-            console.warn("⚠️  [Supabase] Cliente não inicializado.");
-            return;
-          }
-          const { error } = await supabase.from("users").select("id").limit(1);
-          if (error) {
-            console.error("❌ [Supabase] Falha na conexão ou RLS bloqueando:", error.message);
-          } else {
-            console.log("✅ [Supabase] Conexão OK.");
-          }
-        } catch (err: any) {
-          console.error("❌ [Supabase] Erro ao testar conexão:", err?.message ?? err);
+    // Verificação de conexão Supabase (não-blocante — roda após o servidor subir)
+    (async () => {
+      try {
+        const { supabase } = await import("../lib/supabaseClient");
+        const { error } = await supabase.from("users").select("id").limit(1);
+        if (error) {
+          console.error("❌ [Supabase] Falha na conexão ou RLS bloqueando:", error.message);
+          console.error("   Verifique se o RLS está desabilitado no Supabase Dashboard.");
+        } else {
+          console.log("✅ [Supabase] Conexão OK.");
         }
-      })();
-    } else {
-      console.warn("⚠️  [Supabase] SUPABASE_URL e SUPABASE_ANON_KEY não configurados. Adicione em Settings → Secrets.");
-    }
+      } catch (err: any) {
+        console.error("❌ [Supabase] Erro ao testar conexão:", err?.message ?? err);
+      }
+    })();
   });
 }
 

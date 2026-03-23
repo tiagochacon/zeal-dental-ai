@@ -1,4 +1,3 @@
-// @ts-nocheck - Supabase schema mismatch during migration
 import { router, protectedProcedure } from "../_core/trpc";
 import { z } from "zod";
 import { TRPCError } from "@trpc/server";

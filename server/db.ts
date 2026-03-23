@@ -1,4 +1,3 @@
-// @ts-nocheck - Supabase schema mismatch during migration
 /**
  * Database layer \u2014 powered by Supabase (PostgreSQL).
  * Preserves the same exported function signatures as the original Drizzle/MySQL version.

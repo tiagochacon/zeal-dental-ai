@@ -1,4 +1,3 @@
-// @ts-nocheck - Supabase schema mismatch during migration
 /**
  * Job para resetar consultation_count dos usu\u00e1rios no ciclo de billing
  * Este job deve ser executado diariamente (idealmente à meia-noite UTC)
