@@ -14,24 +14,30 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  // Track if login was just completed to avoid useEffect overriding redirectTo
+  const [justLoggedIn, setJustLoggedIn] = useState(false);
 
   const loginMutation = trpc.auth.emailLogin.useMutation({
     onSuccess: async (data) => {
       toast.success("Login realizado com sucesso!");
-      await refresh();
-      // Redirect based on user role (CRC -> /crc, Gestor -> /gestor, etc.)
-      setLocation(data.redirectTo || "/");
+      setJustLoggedIn(true);
+      // Use window.location.href for a clean navigation after login
+      // This ensures the auth state is loaded fresh without stale cache issues
+      setTimeout(() => {
+        window.location.href = data.redirectTo || "/";
+      }, 500);
     },
     onError: (err) => {
       setError(err.message || "Erro ao fazer login. Verifique suas credenciais.");
     },
   });
 
+  // Only redirect if user was already logged in (not after a fresh login)
   useEffect(() => {
-    if (user && !loading) {
+    if (user && !loading && !justLoggedIn) {
       setLocation("/");
     }
-  }, [user, loading, setLocation]);
+  }, [user, loading, setLocation, justLoggedIn]);
 
   if (loading) {
     return (

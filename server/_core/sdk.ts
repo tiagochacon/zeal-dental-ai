@@ -292,9 +292,12 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
+    // Update lastSignedIn — non-blocking so it never breaks auth.me
+    db.upsertUser({
       openId: user.openId,
       lastSignedIn: signedInAt,
+    }).catch((err) => {
+      console.warn("[Auth] Failed to update lastSignedIn (non-critical):", err);
     });
 
     return user;

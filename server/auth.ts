@@ -81,15 +81,18 @@ export async function createUser(data: {
 }
 
 export async function authenticateUser(email: string, password: string) {
-  const { data: row, error } = await supabase
+  // Fetch all rows for this email (there may be duplicates in the DB)
+  const { data: rows, error } = await supabase
     .from("Users")
     .select("*")
     .eq("email", email.toLowerCase())
-    .limit(1)
-    .maybeSingle();
+    .order("id", { ascending: true });
   if (error) throw new Error(error.message);
-  if (!row) throw new Error("Email ou senha incorretos");
+  if (!rows || rows.length === 0) throw new Error("Email ou senha incorretos");
 
+  // Prefer the row that has a passwordHash (email login)
+  const rowWithHash = (rows as User[]).find((r) => r.passwordHash);
+  const row = rowWithHash ?? (rows[0] as User);
   const user = row as User;
 
   if (!user.passwordHash) {

@@ -71,6 +71,18 @@ function assertNoError(error: { message: string } | null, context = "Database") 
   if (error) throw new Error(`[${context}] ${error.message}`);
 }
 
+// Helper: get next available ID for tables without auto-increment
+async function getNextId(tableName: string): Promise<number> {
+  const { data } = await supabase
+    .from(tableName)
+    .select("id")
+    .order("id", { ascending: false })
+    .limit(1);
+  const maxId = data && data.length > 0 ? (data[0] as { id: number }).id : 0;
+  // Add a random offset (1-100) to reduce race condition risk
+  return maxId + Math.floor(Math.random() * 10) + 1;
+}
+
 /**
  * Legacy compat: returns null (Supabase client is used directly, not via getDb).
  * Kept so existing imports don't break.
@@ -97,12 +109,34 @@ export async function upsertUser(user: InsertUser): Promise<void> {
   }
   if (!values.lastSignedIn) values.lastSignedIn = new Date().toISOString();
 
-  const { error } = await supabase
+  // First try to find existing user by openId
+  const { data: existing } = await supabase
     .from("Users")
-    .upsert(values, { onConflict: "openId" });
-  if (error) {
-    console.error("[Database] Failed to upsert user:", error);
-    throw new Error(error.message);
+    .select("id")
+    .eq("openId", user.openId)
+    .limit(1)
+    .maybeSingle();
+
+  if (existing) {
+    // Update existing user
+    const { error } = await supabase
+      .from("Users")
+      .update(values)
+      .eq("openId", user.openId);
+    if (error) {
+      console.error("[Database] Failed to update user:", error);
+      throw new Error(error.message);
+    }
+  } else {
+    // Insert new user — need explicit id since table has no auto-increment
+    const newUserId = await getNextId("Users");
+    const { error } = await supabase
+      .from("Users")
+      .insert({ ...values, id: newUserId });
+    if (error) {
+      console.error("[Database] Failed to insert user:", error);
+      throw new Error(error.message);
+    }
   }
 }
 
@@ -111,13 +145,13 @@ export async function getUserByOpenId(openId: string): Promise<User | undefined>
     .from("Users")
     .select("*")
     .eq("openId", openId)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
   if (error) {
     console.warn("[Database] Cannot get user:", error.message);
     return undefined;
   }
-  return data as User | undefined ?? undefined;
+  if (!data || data.length === 0) return undefined;
+  return data[0] as User;
 }
 
 export async function updateUserCRO(userId: number, croNumber: string): Promise<void> {
@@ -147,9 +181,10 @@ export async function getUserById(userId: number): Promise<User | undefined> {
 // ==================== PATIENT FUNCTIONS ====================
 
 export async function createPatient(data: InsertPatient): Promise<Patient> {
+  const id = await getNextId("Patients");
   const { data: row, error } = await supabase
     .from("Patients")
-    .insert(data)
+    .insert({ ...data, id })
     .select()
     .single();
   assertNoError(error, "createPatient");
@@ -228,9 +263,10 @@ export async function deletePatient(id: number): Promise<void> {
 // ==================== CONSULTATION FUNCTIONS ====================
 
 export async function createConsultation(data: InsertConsultation): Promise<{ id: number }> {
+  const id = await getNextId("Consultations");
   const { data: row, error } = await supabase
     .from("Consultations")
-    .insert(data)
+    .insert({ ...data, id })
     .select("id")
     .single();
   assertNoError(error, "createConsultation");
@@ -328,9 +364,10 @@ export async function deleteConsultation(id: number): Promise<void> {
 // ==================== FEEDBACK FUNCTIONS ====================
 
 export async function createFeedback(data: InsertFeedback): Promise<Feedback> {
+  const id = await getNextId("Feedbacks");
   const { data: row, error } = await supabase
     .from("Feedbacks")
-    .insert(data)
+    .insert({ ...data, id })
     .select()
     .single();
   assertNoError(error, "createFeedback");
@@ -374,14 +411,16 @@ export async function getTemplatesByDentist(dentistId: number): Promise<Consulta
 }
 
 export async function createTemplate(data: InsertConsultationTemplate): Promise<void> {
-  const { error } = await supabase.from("ConsultationTemplate").insert(data);
+  const id = await getNextId("ConsultationTemplate");
+  const { error } = await supabase.from("ConsultationTemplate").insert({ ...data, id });
   assertNoError(error, "createTemplate");
 }
 
 // ==================== AUDIO CHUNK FUNCTIONS ====================
 
 export async function createAudioChunk(data: InsertAudioChunk): Promise<void> {
-  const { error } = await supabase.from("AudioChunks").insert(data);
+  const id = await getNextId("AudioChunks");
+  const { error } = await supabase.from("AudioChunks").insert({ ...data, id });
   assertNoError(error, "createAudioChunk");
 }
 
@@ -639,7 +678,8 @@ export async function resetUserAccount(email: string) {
 // ==================== CLINIC FUNCTIONS ====================
 
 export async function createClinic(data: InsertClinic): Promise<Clinic> {
-  const { data: row, error } = await supabase.from("Clinics").insert(data).select().single();
+  const id = await getNextId("Clinics");
+  const { data: row, error } = await supabase.from("Clinics").insert({ ...data, id }).select().single();
   assertNoError(error, "createClinic");
   return row as Clinic;
 }
@@ -687,9 +727,10 @@ export async function ensureUserIsGestor(userId: number): Promise<{ clinicId: nu
   }
 
   const clinicName = currentUser.name ? `Clínica ${currentUser.name}` : "Minha Clínica";
+  const clinicNextId = await getNextId("Clinics");
   const { data: newClinic, error: clinicError } = await supabase
     .from("Clinics")
-    .insert({ name: clinicName, ownerId: userId })
+    .insert({ id: clinicNextId, name: clinicName, ownerId: userId })
     .select("id")
     .single();
   assertNoError(clinicError, "ensureUserIsGestor.createClinic");
@@ -733,9 +774,11 @@ export async function addClinicMember(data: {
   clinicRole: "crc" | "dentista";
 }): Promise<number> {
   const openId = `email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const memberId = await getNextId("Users");
   const { data: row, error } = await supabase
     .from("Users")
     .insert({
+      id: memberId,
       name: data.name,
       email: data.email,
       passwordHash: data.passwordHash,
@@ -795,7 +838,8 @@ export async function removeClinicMember(userId: number): Promise<void> {
 // ==================== LEAD FUNCTIONS ====================
 
 export async function createLead(data: InsertLead): Promise<Lead> {
-  const { data: row, error } = await supabase.from("Leads").insert(data).select().single();
+  const id = await getNextId("Leads");
+  const { data: row, error } = await supabase.from("Leads").insert({ ...data, id }).select().single();
   assertNoError(error, "createLead");
   return row as Lead;
 }
@@ -852,9 +896,11 @@ export async function convertLeadToPatient(leadId: number, dentistId: number): P
   if (!leadRow) throw new Error("Lead not found");
 
   const lead = leadRow as Lead;
+  const convertedPatientId = await getNextId("Patients");
   const { data: patientRow, error: patientError } = await supabase
     .from("Patients")
     .insert({
+      id: convertedPatientId,
       dentistId,
       name: lead.name,
       phone: lead.phone,
@@ -874,7 +920,8 @@ export async function convertLeadToPatient(leadId: number, dentistId: number): P
 // ==================== CALL FUNCTIONS ====================
 
 export async function createCall(data: InsertCall): Promise<Call> {
-  const { data: row, error } = await supabase.from("Calls").insert(data).select().single();
+  const id = await getNextId("Calls");
+  const { data: row, error } = await supabase.from("Calls").insert({ ...data, id }).select().single();
   assertNoError(error, "createCall");
   return row as Call;
 }
