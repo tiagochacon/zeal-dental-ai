@@ -1119,3 +1119,10 @@
 - [x] Adicionar retry com backoff exponencial (3 tentativas, 2s/4s/8s) no frontend
 - [x] Tratar erro 413 e respostas não-JSON: detecta content-type e faz retry automático
 - [x] Suportar gravações de até 90 minutos (sem limite de chunks)
+
+## Bug Fix: Erro "fetch failed" no login + Limpeza de env.ts (v45)
+- [ ] Investigar erro "fetch failed" na página /login
+- [ ] Remover variáveis obsoletas do env.ts (DATABASE_URL, JWT_SECRET, etc.)
+- [ ] Configurar Supabase corretamente para autenticação
+- [ ] Testar login com Supabase
+- [ ] BUG-FIX: TypeError fetch failed na página de login - servidor tenta Supabase sem credenciais configuradas
