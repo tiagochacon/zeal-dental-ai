@@ -284,9 +284,10 @@ export async function deletePatient(id: number): Promise<void> {
 
 export async function createConsultation(data: InsertConsultation): Promise<{ id: number }> {
   const id = await getNextId("Consultations");
+  const now = new Date().toISOString();
   const { data: row, error } = await supabase
     .from("Consultations")
-    .insert({ ...data, id })
+    .insert({ ...data, id, createdAt: now, updatedAt: now })
     .select("id")
     .single();
   assertNoError(error, "createConsultation");
@@ -957,14 +958,20 @@ export async function convertLeadToPatient(leadId: number, dentistId: number): P
 function normalizeCall(row: any): Call {
   if (!row) return row;
   const { callStatus, ...rest } = row;
-  return { ...rest, status: callStatus ?? rest.status } as Call;
+  return {
+    ...rest,
+    status: callStatus ?? rest.status,
+    callInsights: parseJsonField(rest.callInsights),
+    neurovendasAnalysis: parseJsonField(rest.neurovendasAnalysis),
+  } as Call;
 }
 
 export async function createCall(data: InsertCall): Promise<Call> {
   const id = await getNextId("Calls");
+  const now = new Date().toISOString();
   // Map TypeScript 'status' field → 'callStatus' column for insert
   const { status, ...insertRest } = data as any;
-  const insertData = { ...insertRest, id, ...(status !== undefined ? { callStatus: status } : {}) };
+  const insertData = { ...insertRest, id, createdAt: now, updatedAt: now, ...(status !== undefined ? { callStatus: status } : {}) };
   const { data: row, error } = await supabase.from("Calls").insert(insertData).select().single();
   assertNoError(error, "createCall");
   return normalizeCall(row);
@@ -1029,7 +1036,11 @@ export async function updateCall(
 ): Promise<void> {
   // Map TypeScript field name 'status' to actual Supabase column name 'callStatus'
   const { status, ...rest } = data as any;
-  const updateData = { ...rest, ...(status !== undefined ? { callStatus: status } : {}) };
+  // Serialize JSON fields for text columns in Supabase
+  const toSave: Record<string, unknown> = { ...rest };
+  if ("callInsights" in rest) toSave.callInsights = toJsonText(rest.callInsights);
+  if ("neurovendasAnalysis" in rest) toSave.neurovendasAnalysis = toJsonText(rest.neurovendasAnalysis);
+  const updateData = { ...toSave, ...(status !== undefined ? { callStatus: status } : {}) };
   const { error } = await supabase.from("Calls").update(updateData).eq("id", id);
   assertNoError(error, "updateCall");
 }
