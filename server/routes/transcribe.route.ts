@@ -279,6 +279,23 @@ transcribeRouter.post("/", async (req, res) => {
     const errBody = await whisperRes.text().catch(() => "");
     const errorMsg = `Whisper ${whisperRes.status}: ${whisperRes.statusText} ${errBody}`;
     console.error(`[TranscribeChunk] Chunk ${chunkIndex} failed:`, errorMsg);
+
+    // If Whisper rejects the audio format (e.g. partial WebM chunk without full header),
+    // treat as empty transcript instead of error — the audio is saved in S3 for recovery.
+    const isFormatError =
+      whisperRes.status === 400 &&
+      (errBody.includes("could not be decoded") || errBody.includes("format is not supported"));
+
+    if (isFormatError) {
+      console.warn(
+        `[TranscribeChunk] Chunk ${chunkIndex}: formato não suportado pelo Whisper (chunk WebM parcial?). Salvando transcript vazio.`
+      );
+      try {
+        await updateAudioChunkTranscript(consultationId, recordingSessionId, chunkIndex, "");
+      } catch {}
+      return res.json({ transcript: "", chunkIndex, status: "done" });
+    }
+
     try {
       await updateAudioChunkStatus(
         consultationId,

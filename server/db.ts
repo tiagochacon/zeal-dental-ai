@@ -78,7 +78,8 @@ async function getNextId(tableName: string): Promise<number> {
     .select("id")
     .order("id", { ascending: false })
     .limit(1);
-  const maxId = data && data.length > 0 ? (data[0] as { id: number }).id : 0;
+  const rawId = data && data.length > 0 ? (data[0] as { id: unknown }).id : 0;
+  const maxId = Number(rawId) || 0;
   // Add a random offset (1-100) to reduce race condition risk
   return maxId + Math.floor(Math.random() * 10) + 1;
 }
@@ -188,7 +189,9 @@ export async function createPatient(data: InsertPatient): Promise<Patient> {
     .select()
     .single();
   assertNoError(error, "createPatient");
-  return row as Patient;
+  const patient = row as Patient;
+  patient.id = Number(patient.id);
+  return patient;
 }
 
 export async function getPatientByNameForDentist(
@@ -270,7 +273,7 @@ export async function createConsultation(data: InsertConsultation): Promise<{ id
     .select("id")
     .single();
   assertNoError(error, "createConsultation");
-  return { id: (row as { id: number }).id };
+  return { id: Number((row as { id: unknown }).id) };
 }
 
 export async function getConsultationsByDentist(dentistId: number): Promise<Consultation[]> {

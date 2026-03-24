@@ -98,8 +98,9 @@ export default function NewConsultation() {
       patientName,
     });
 
-    setConsultationId(consultationResult.consultationId);
-    return consultationResult.consultationId;
+    const cIdNum = Number(consultationResult.consultationId);
+    setConsultationId(cIdNum);
+    return cIdNum;
   };
 
   // Called when user enters step 2 with audio mode — create consultation eagerly
@@ -135,7 +136,7 @@ export default function NewConsultation() {
     }
     try {
       await updateTranscriptMutation.mutateAsync({
-        consultationId,
+        consultationId: Number(consultationId),
         transcript,
       });
       toast.success("Transcrição concluída!");
