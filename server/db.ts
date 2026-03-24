@@ -71,6 +71,23 @@ function assertNoError(error: { message: string } | null, context = "Database") 
   if (error) throw new Error(`[${context}] ${error.message}`);
 }
 
+// Helper: safely parse a JSON field stored as text in Supabase (text columns return strings)
+function parseJsonField<T>(val: unknown): T | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === "object") return val as T; // jsonb columns already parsed
+  if (typeof val === "string") {
+    try { return JSON.parse(val) as T; } catch { return null; }
+  }
+  return null;
+}
+
+// Helper: serialize an object/value for storage in a Supabase text column
+function toJsonText(val: unknown): string | null {
+  if (val === null || val === undefined) return null;
+  if (typeof val === "string") return val; // already a JSON string
+  return JSON.stringify(val);
+}
+
 // Helper: get next available ID for tables without auto-increment
 async function getNextId(tableName: string): Promise<number> {
   const { data } = await supabase
@@ -313,7 +330,14 @@ export async function getConsultationById(id: number): Promise<Consultation | un
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as Consultation | undefined ?? undefined;
+  if (!data) return undefined;
+  const row = data as Record<string, unknown>;
+  return {
+    ...row,
+    soapNote: parseJsonField<SOAPNote>(row.soapNote),
+    treatmentPlan: parseJsonField<TreatmentPlan>(row.treatmentPlan),
+    neurovendasAnalysis: parseJsonField<NeurovendasAnalysis>(row.neurovendasAnalysis),
+  } as unknown as Consultation;
 }
 
 export async function getConsultationsByPatient(
@@ -351,11 +375,18 @@ export async function updateConsultation(
     soapNote: SOAPNote | null;
     treatmentPlan: TreatmentPlan | null;
     neurovendasAnalysis: NeurovendasAnalysis | null;
+    odontogramData: unknown | null;
     status: "draft" | "transcribed" | "reviewed" | "finalized";
     finalizedAt: Date | null;
   }>
 ): Promise<void> {
-  const { error } = await supabase.from("Consultations").update(data).eq("id", id);
+  // Supabase text columns require explicit JSON serialization for object fields
+  const toSave: Record<string, unknown> = { ...data };
+  if ("soapNote" in data) toSave.soapNote = toJsonText(data.soapNote);
+  if ("treatmentPlan" in data) toSave.treatmentPlan = toJsonText(data.treatmentPlan);
+  if ("neurovendasAnalysis" in data) toSave.neurovendasAnalysis = toJsonText(data.neurovendasAnalysis);
+  if ("odontogramData" in data) toSave.odontogramData = toJsonText(data.odontogramData);
+  const { error } = await supabase.from("Consultations").update(toSave).eq("id", id);
   assertNoError(error, "updateConsultation");
 }
 
@@ -1005,7 +1036,11 @@ export async function updateCall(
 
 export async function finalizeCall(
   id: number,
-  data: { schedulingResult: "scheduled" | "not_scheduled" | "callback" | "no_answer"; schedulingNotes?: string }
+  data: {
+    schedulingResult: "scheduled" | "not_scheduled" | "callback" | "no_answer";
+    schedulingNotes?: string;
+    observations?: string;
+  }
 ): Promise<void> {
   const { error } = await supabase.from("Calls").update({
     ...data,

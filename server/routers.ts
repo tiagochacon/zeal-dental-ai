@@ -471,9 +471,13 @@ export const appRouter = router({
           throw new Error("Paciente não encontrado");
         }
 
-        const soapNote = consultation.soapNote as SOAPNote | null;
+        // Parse soapNote defensively — text column returns a string that must be parsed
+        const rawSoap = consultation.soapNote;
+        const soapNote: SOAPNote | null = typeof rawSoap === "string"
+          ? (() => { try { return JSON.parse(rawSoap) as SOAPNote; } catch { return null; } })()
+          : (rawSoap as SOAPNote | null);
         if (!soapNote) {
-          throw new Error("Nota SOAP não disponível para gerar plano");
+          throw new Error("Nota SOAP não disponível para gerar plano. Por favor, gere as notas SOAP primeiro.");
         }
 
         const prompt = `Você é um assistente de IA odontológico especializado em planos de tratamento detalhados.\n\nGere um plano estruturado em JSON estritamente no formato abaixo, em português, com linguagem clínica clara e instruções detalhadas:\n\n{\n  \"summary\": \"...\",\n  \"steps\": [\n    {\n      \"title\": \"...\",\n      \"description\": \"...\",\n      \"duration\": \"...\",\n      \"frequency\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"medications\": [\n    {\n      \"name\": \"...\",\n      \"dose\": \"...\",\n      \"frequency\": \"...\",\n      \"duration\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"postOpInstructions\": [\"...\"],\n  \"warnings\": [\"...\"]\n}\n\nContexto:\n- Paciente: ${patient.name}\n- Histórico médico: ${patient.medicalHistory || "Não informado"}\n- Alergias: ${patient.allergies || "Não informado"}\n- Medicações em uso: ${patient.medications || "Não informado"}\n- Achados clínicos (SOAP): ${JSON.stringify(soapNote)}\n\nRegras:\n- Inclua cronogramas precisos (ex: \"a cada 12h por 8 dias\").\n- Inclua instruções pós-operatórias quando aplicável.\n- Não invente dados fora do contexto clínico fornecido.\n- Se os achados clínicos não incluem indicação para medicamentos, retorne "medications": [].\n- Se os achados clínicos não incluem procedimento cirúrgico, retorne "postOpInstructions": [].\n- Cada step do plano deve mapear diretamente a um tratamento listado nos achados do SOAP.\n- Se não houver medicamento, deixe medications como array vazio.\n- Retorne apenas JSON válido.`;
@@ -926,7 +930,22 @@ export const appRouter = router({
           await getConsultationById(input.consultationId), ctx.user
         );
 
-        if (!consultation.transcript) {
+        // If transcript is null, try to assemble from audio chunks (progressive recording fallback)
+        let effectiveTranscript = consultation.transcript;
+        if (!effectiveTranscript) {
+          const allChunks = await getAudioChunksByConsultation(input.consultationId);
+          const doneChunks = (allChunks as Array<{ transcriptionStatus?: string | null; transcriptText?: string | null; chunkIndex?: number | null }>)
+            .filter(c => c.transcriptionStatus === "done" && c.transcriptText)
+            .sort((a, b) => (a.chunkIndex ?? 0) - (b.chunkIndex ?? 0));
+          const assembled = doneChunks.map(c => c.transcriptText).filter(Boolean).join("\n\n");
+          if (assembled) {
+            effectiveTranscript = assembled;
+            await updateConsultation(input.consultationId, { transcript: assembled, status: "transcribed" as const });
+            console.log(`[SOAP] Transcript assembled from ${doneChunks.length} chunks for consultation ${input.consultationId}`);
+          }
+        }
+
+        if (!effectiveTranscript) {
           throw new Error("Nenhuma transcrição encontrada para esta consulta");
         }
 
@@ -934,7 +953,7 @@ export const appRouter = router({
         const prompt = `Você é um assistente de IA especializado em documentação odontológica brasileira.
 
 TRANSCRIÇÃO DA CONSULTA:
-${consultation.transcript}
+${effectiveTranscript}
 
 INSTRUÇÕES CRÍTICAS:
 1. NUNCA invente dados que não estejam na transcrição
@@ -1185,7 +1204,7 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
         }
 
         // Validação semântica anti-alucinação: rejeitar se campos críticos parecem inventados
-        const soapTranscriptWords = (consultation.transcript || '').toLowerCase().split(/\s+/);
+        const soapTranscriptWords = (effectiveTranscript || '').toLowerCase().split(/\s+/);
         const queixaWords = (soapNote.subjective as any)?.queixa_principal?.toLowerCase().split(/\s+/) || [];
         const sharedWords = queixaWords.filter((w: string) => w.length > 4 && soapTranscriptWords.some((tw: string) => tw.includes(w.slice(0, 5))));
         if (queixaWords.length > 3 && sharedWords.length === 0) {
@@ -1441,7 +1460,22 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
           await getConsultationById(input.consultationId), ctx.user
         );
 
-        if (!consultation.transcript) {
+        // If transcript is null, try to assemble from audio chunks (progressive recording fallback)
+        let neuroTranscript = consultation.transcript;
+        if (!neuroTranscript) {
+          const allChunks = await getAudioChunksByConsultation(input.consultationId);
+          const doneChunks = (allChunks as Array<{ transcriptionStatus?: string | null; transcriptText?: string | null; chunkIndex?: number | null }>)
+            .filter(c => c.transcriptionStatus === "done" && c.transcriptText)
+            .sort((a, b) => (a.chunkIndex ?? 0) - (b.chunkIndex ?? 0));
+          const assembled = doneChunks.map(c => c.transcriptText).filter(Boolean).join("\n\n");
+          if (assembled) {
+            neuroTranscript = assembled;
+            await updateConsultation(input.consultationId, { transcript: assembled, status: "transcribed" as const });
+            console.log(`[Neurovendas] Transcript assembled from ${doneChunks.length} chunks for consultation ${input.consultationId}`);
+          }
+        }
+
+        if (!neuroTranscript) {
           throw new Error("Esta consulta não possui transcrição para análise");
         }
 
@@ -1451,7 +1485,7 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
         }
 
         const metodologiaContext = await getMetodologiaContext();
-        const patientWordCount = countPatientWords(consultation.transcript || '');
+        const patientWordCount = countPatientWords(neuroTranscript || '');
 
         const systemMessage = `Você é um especialista em análise comportamental e neurovendas odontológicas, baseado na metodologia do Dr. Carlos Rodriguez. Sua função é EXCLUSIVAMENTE analisar transcrições de consultas odontológicas e extrair padrões de comportamento, motivações e técnicas de comunicação.
 
@@ -1496,7 +1530,7 @@ CONTEXTO CLÍNICO:
 - Metodologia disponível: sim
 
 TRANSCRIÇÃO DA CONSULTA:
-${consultation.transcript}
+${neuroTranscript}
 
 INSTRUÇÕES ESPECÍFICAS:
 

@@ -530,6 +530,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
       callId: z.number(),
       schedulingResult: z.enum(["scheduled", "not_scheduled", "callback", "no_answer"]),
       schedulingNotes: z.string().optional(),
+      observations: z.string().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const user = await getUserById(ctx.user.id);
@@ -545,6 +546,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
       await finalizeCall(input.callId, {
         schedulingResult: input.schedulingResult,
         schedulingNotes: input.schedulingNotes,
+        observations: input.observations,
       });
 
       return { success: true };
