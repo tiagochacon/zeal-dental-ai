@@ -390,8 +390,8 @@ if (chunksUploaded > 0) {
    - **Solução:** Garantir `orderBy(audioChunks.chunkIndex)` no DB
 2. Chunks com codecs diferentes
    - **Solução:** Forçar mimeType consistente
-3. Concatenação binária incompatível
-   - **Solução:** Usar ferramenta de remux (ffmpeg) no backend
+3. ~~Concatenação binária incompatível~~
+   - **Implementado:** `concatenateAudioChunksWithFfmpeg` usa ffmpeg concat demuxer
 
 ### Wake Lock não funciona
 
