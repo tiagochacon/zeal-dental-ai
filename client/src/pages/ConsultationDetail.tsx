@@ -960,14 +960,14 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {soapNote.subjective.queixa_principal && (
+          {soapNote.subjective?.queixa_principal && (
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-2">Queixa Principal</h4>
               <p className="text-sm leading-relaxed">{soapNote.subjective.queixa_principal}</p>
             </div>
           )}
           
-          {soapNote.subjective.historia_doenca_atual && (
+          {soapNote.subjective?.historia_doenca_atual && (
             <>
               <Separator />
               <div>
@@ -979,7 +979,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
             </>
           )}
           
-          {soapNote.subjective.historico_medico && soapNote.subjective.historico_medico.length > 0 && (
+          {soapNote.subjective?.historico_medico && soapNote.subjective.historico_medico.length > 0 && (
             <>
               <Separator />
               <div>
@@ -1004,7 +1004,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {soapNote.objective.exame_clinico_geral && (
+          {soapNote.objective?.exame_clinico_geral && (
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-2">Exame Clínico Geral</h4>
               <p className="text-sm leading-relaxed whitespace-pre-wrap">
@@ -1013,7 +1013,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
             </div>
           )}
           
-          {soapNote.objective.exame_clinico_especifico && soapNote.objective.exame_clinico_especifico.length > 0 && (
+          {soapNote.objective?.exame_clinico_especifico && soapNote.objective.exame_clinico_especifico.length > 0 && (
             <>
               <Separator />
               <div>
@@ -1027,7 +1027,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
             </>
           )}
           
-          {soapNote.objective.dentes_afetados && soapNote.objective.dentes_afetados.length > 0 && (
+          {soapNote.objective?.dentes_afetados && soapNote.objective.dentes_afetados.length > 0 && (
             <>
               <Separator />
               <div>
@@ -1051,7 +1051,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
           <div>
             <h4 className="text-sm font-semibold text-muted-foreground mb-2">Diagnósticos</h4>
             <ul className="text-sm space-y-1">
-              {soapNote.assessment.diagnosticos.map((diag, i) => (
+              {(soapNote.assessment?.diagnosticos || []).map((diag, i) => (
                 <li key={i}>• {diag}</li>
               ))}
             </ul>
@@ -1068,7 +1068,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {soapNote.plan.tratamentos && soapNote.plan.tratamentos.length > 0 && (
+          {soapNote.plan?.tratamentos && soapNote.plan.tratamentos.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-muted-foreground mb-2">Tratamentos Propostos</h4>
               <div className="space-y-3">
@@ -1093,7 +1093,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
             </div>
           )}
           
-          {soapNote.plan.orientacoes && soapNote.plan.orientacoes.length > 0 && (
+          {soapNote.plan?.orientacoes && soapNote.plan.orientacoes.length > 0 && (
             <>
               <Separator />
               <div>
@@ -1107,7 +1107,7 @@ function SOAPNoteViewer({ soapNote }: { soapNote: SOAPNote }) {
             </>
           )}
           
-          {soapNote.plan.lembretes_clinicos && soapNote.plan.lembretes_clinicos.length > 0 && (
+          {soapNote.plan?.lembretes_clinicos && soapNote.plan.lembretes_clinicos.length > 0 && (
             <>
               <Separator />
               <div>

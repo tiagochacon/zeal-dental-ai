@@ -1126,3 +1126,7 @@
 - [ ] Configurar Supabase corretamente para autenticação
 - [ ] Testar login com Supabase
 - [ ] BUG-FIX: TypeError fetch failed na página de login - servidor tenta Supabase sem credenciais configuradas
+
+## Correção de Bugs - Notas Clínicas e Ligações CRC (v35)
+- [ ] Corrigir erro queixa_principal undefined na geração de notas clínicas
+- [ ] Corrigir coluna status ausente na tabela Calls (erro schema cache Supabase)

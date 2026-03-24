@@ -922,11 +922,21 @@ export async function convertLeadToPatient(leadId: number, dentistId: number): P
 
 // ==================== CALL FUNCTIONS ====================
 
+// Normalize Supabase row: map 'callStatus' column → 'status' TypeScript field
+function normalizeCall(row: any): Call {
+  if (!row) return row;
+  const { callStatus, ...rest } = row;
+  return { ...rest, status: callStatus ?? rest.status } as Call;
+}
+
 export async function createCall(data: InsertCall): Promise<Call> {
   const id = await getNextId("Calls");
-  const { data: row, error } = await supabase.from("Calls").insert({ ...data, id }).select().single();
+  // Map TypeScript 'status' field → 'callStatus' column for insert
+  const { status, ...insertRest } = data as any;
+  const insertData = { ...insertRest, id, ...(status !== undefined ? { callStatus: status } : {}) };
+  const { data: row, error } = await supabase.from("Calls").insert(insertData).select().single();
   assertNoError(error, "createCall");
-  return row as Call;
+  return normalizeCall(row);
 }
 
 export async function getCallsByClinic(clinicId: number): Promise<Call[]> {
@@ -936,7 +946,7 @@ export async function getCallsByClinic(clinicId: number): Promise<Call[]> {
     .eq("clinicId", clinicId)
     .order("createdAt", { ascending: false });
   assertNoError(error, "getCallsByClinic");
-  return (data ?? []) as Call[];
+  return (data ?? []).map(normalizeCall) as Call[];
 }
 
 export async function getCallsByCRC(crcId: number): Promise<Call[]> {
@@ -946,7 +956,7 @@ export async function getCallsByCRC(crcId: number): Promise<Call[]> {
     .eq("crcId", crcId)
     .order("createdAt", { ascending: false });
   assertNoError(error, "getCallsByCRC");
-  return (data ?? []) as Call[];
+  return (data ?? []).map(normalizeCall) as Call[];
 }
 
 export async function getCallsByLead(leadId: number): Promise<Call[]> {
@@ -956,7 +966,7 @@ export async function getCallsByLead(leadId: number): Promise<Call[]> {
     .eq("leadId", leadId)
     .order("createdAt", { ascending: false });
   assertNoError(error, "getCallsByLead");
-  return (data ?? []) as Call[];
+  return (data ?? []).map(normalizeCall) as Call[];
 }
 
 export async function getCallById(id: number): Promise<Call | undefined> {
@@ -967,7 +977,7 @@ export async function getCallById(id: number): Promise<Call | undefined> {
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as Call | undefined ?? undefined;
+  return data ? normalizeCall(data) : undefined;
 }
 
 export async function updateCall(
@@ -986,7 +996,10 @@ export async function updateCall(
     finalizedAt: Date | null;
   }>
 ): Promise<void> {
-  const { error } = await supabase.from("Calls").update(data).eq("id", id);
+  // Map TypeScript field name 'status' to actual Supabase column name 'callStatus'
+  const { status, ...rest } = data as any;
+  const updateData = { ...rest, ...(status !== undefined ? { callStatus: status } : {}) };
+  const { error } = await supabase.from("Calls").update(updateData).eq("id", id);
   assertNoError(error, "updateCall");
 }
 
@@ -996,7 +1009,7 @@ export async function finalizeCall(
 ): Promise<void> {
   const { error } = await supabase.from("Calls").update({
     ...data,
-    status: "finalized",
+    callStatus: "finalized",
     finalizedAt: new Date().toISOString(),
   }).eq("id", id);
   assertNoError(error, "finalizeCall");
