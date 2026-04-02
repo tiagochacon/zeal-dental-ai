@@ -123,12 +123,13 @@ function getRoleLabel(user: { role?: string; clinicRole?: string | null } | null
 }
 
 function getRoleBadgeColor(user: { role?: string; clinicRole?: string | null } | null): string {
-  if (!user) return 'bg-gray-500';
-  if (user.clinicRole === 'gestor') return 'bg-purple-600';
-  if (user.clinicRole === 'crc') return 'bg-blue-600';
-  if (user.clinicRole === 'dentista') return 'bg-emerald-600';
-  if (user.role === 'admin') return 'bg-amber-600';
-  return 'bg-gray-500';
+  /* DS token: role badge colors mapped to design system semantic tokens */
+  if (!user) return 'bg-muted text-muted-foreground';
+  if (user.clinicRole === 'gestor') return 'bg-primary text-primary-foreground';
+  if (user.clinicRole === 'crc') return 'bg-accent/80 text-primary-foreground';
+  if (user.clinicRole === 'dentista') return 'bg-chart-5/70 text-foreground';
+  if (user.role === 'admin') return 'bg-warning text-warning-foreground';
+  return 'bg-muted text-muted-foreground';
 }
 
 const SIDEBAR_WIDTH_KEY = "sidebar-width";
@@ -172,7 +173,7 @@ export default function DashboardLayout({
               window.location.href = "/login";
             }}
             size="lg"
-            className="w-full shadow-lg hover:shadow-xl transition-all bg-blue-600 hover:bg-blue-700"
+            className="w-full"
           >
             Entrar
           </Button>
@@ -329,11 +330,11 @@ function DashboardLayoutContent({
                   onClick={() => setLocation("/subscription")}
                   className={`
                     w-full flex items-center gap-3 px-3 py-3 rounded-xl
-                    bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600
-                    hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500
-                    shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40
+                    bg-gradient-to-r from-primary/90 via-primary to-accent/80
+                    hover:from-primary/75 hover:via-primary/85 hover:to-accent/65
+                    shadow-lg shadow-primary/25 hover:shadow-primary/40
                     transition-all duration-300 transform hover:scale-[1.02]
-                    border border-indigo-400/30
+                    border border-primary/30
                     group
                     ${isCollapsed ? 'justify-center' : ''}
                   `}
@@ -346,13 +347,13 @@ function DashboardLayoutContent({
                       <span className="text-sm font-semibold text-white truncate">
                         Fazer Upgrade
                       </span>
-                      <span className="text-xs text-indigo-200 truncate">
+                      <span className="text-xs text-primary-foreground/70 truncate">
                         Desbloqueie o PRO
                       </span>
                     </div>
                   )}
                   {!isCollapsed && (
-                    <Crown className="h-4 w-4 text-yellow-300 ml-auto shrink-0 animate-pulse" />
+                    <Crown className="h-4 w-4 text-warning ml-auto shrink-0 animate-pulse" />
                   )}
                 </button>
               </div>

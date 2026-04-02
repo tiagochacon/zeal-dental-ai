@@ -74,7 +74,7 @@ export function RoleGuard({ allowedRoles, children, fallback }: RoleGuardProps) 
         </p>
         <button
           onClick={() => setLocation("/")}
-          className="text-blue-400 hover:text-blue-300 font-medium"
+          className="text-primary hover:text-primary/70 font-medium"
         >
           Voltar ao início
         </button>

@@ -97,16 +97,16 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
   // Admin users - no banner needed
   if (currentPlan === "admin" || currentPlan === "unlimited") {
     return (
-      <Card className={`bg-gradient-to-r from-purple-900/50 to-indigo-900/50 border-purple-500/30 ${className}`}>
+      <Card className={`bg-gradient-to-r from-primary/15 to-accent/10 border-primary/30 ${className}`}>
         <CardContent className="p-4 flex items-center gap-3">
-          <Crown className="h-5 w-5 text-yellow-400" />
+          <Crown className="h-5 w-5 text-warning" />
           <div>
-            <p className="text-sm font-medium text-white">
+            <p className="text-sm font-medium text-foreground">
               {currentPlan === "admin" ? "Acesso Administrativo" : "ZEAL Unlimited"}
             </p>
-            <p className="text-xs text-gray-400">Consultas ilimitadas</p>
+            <p className="text-xs text-muted-foreground">Consultas ilimitadas</p>
           </div>
-          <CheckCircle2 className="h-5 w-5 text-emerald-400 ml-auto" />
+          <CheckCircle2 className="h-5 w-5 text-chart-5 ml-auto" />
         </CardContent>
       </Card>
     );
@@ -115,25 +115,25 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
   // Pro users - best plan
   if (currentPlan === "pro") {
     return (
-      <Card className={`bg-gradient-to-r from-emerald-900/50 to-teal-900/50 border-emerald-500/30 ${className}`}>
+      <Card className={`bg-gradient-to-r from-chart-5/15 to-chart-4/10 border-chart-5/30 ${className}`}>
         <CardContent className="p-4">
           <div className="flex items-center gap-3 mb-3">
-            <Sparkles className="h-5 w-5 text-emerald-400" />
+            <Sparkles className="h-5 w-5 text-chart-5" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-white">ZEAL Pro</p>
-              <p className="text-xs text-gray-400">Você está no melhor plano!</p>
+              <p className="text-sm font-medium text-foreground">ZEAL Pro</p>
+              <p className="text-xs text-muted-foreground">Você está no melhor plano!</p>
             </div>
-            <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-300">
+            <Badge variant="secondary" className="bg-chart-5/20 text-chart-5 border-chart-5/30">
               {remaining}/{limit} restantes
             </Badge>
           </div>
           {showUsage && (
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${usagePercent}%` }}
                 transition={{ duration: 0.5 }}
-                className="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full"
+                className="h-full bg-gradient-to-r from-chart-5 to-chart-4 rounded-full"
               />
             </div>
           )}
@@ -145,13 +145,13 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
   // Basic users - show upgrade to Pro
   if (currentPlan === "basic") {
     return (
-      <Card className={`bg-gradient-to-r from-blue-900/50 to-indigo-900/50 border-blue-500/30 ${className}`}>
+      <Card className={`bg-gradient-to-r from-primary/15 to-accent/10 border-primary/30 ${className}`}>
         <CardContent className={variant === "compact" ? "p-3" : "p-4"}>
           <div className="flex items-center gap-3 mb-3">
-            <Zap className="h-5 w-5 text-blue-400" />
+            <Zap className="h-5 w-5 text-primary" />
             <div className="flex-1">
-              <p className="text-sm font-medium text-white">ZEAL Básico</p>
-              <p className="text-xs text-gray-400">
+              <p className="text-sm font-medium text-foreground">ZEAL Básico</p>
+              <p className="text-xs text-muted-foreground">
                 {isAtLimit 
                   ? "Limite atingido! Faça upgrade para continuar" 
                   : isNearLimit 
@@ -161,7 +161,6 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
             </div>
             <Button
               size="sm"
-              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
               onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
             >
               <Sparkles className="h-4 w-4 mr-1" />
@@ -169,17 +168,17 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
             </Button>
           </div>
           {showUsage && (
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${usagePercent}%` }}
                 transition={{ duration: 0.5 }}
                 className={`h-full rounded-full ${
                   isAtLimit 
-                    ? "bg-gradient-to-r from-red-500 to-orange-500" 
+                    ? "bg-destructive" 
                     : isNearLimit 
-                      ? "bg-gradient-to-r from-amber-500 to-yellow-500"
-                      : "bg-gradient-to-r from-blue-500 to-indigo-500"
+                      ? "bg-warning"
+                      : "bg-gradient-to-r from-primary to-accent"
                 }`}
               />
             </div>
@@ -193,20 +192,20 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
   return (
     <Card className={`${
       isAtLimit 
-        ? "bg-gradient-to-r from-red-900/50 to-orange-900/50 border-red-500/30"
+        ? "bg-gradient-to-r from-destructive/15 to-destructive/8 border-destructive/30"
         : isNearLimit
-          ? "bg-gradient-to-r from-amber-900/50 to-orange-900/50 border-amber-500/30"
-          : "bg-gradient-to-r from-amber-900/50 to-orange-900/50 border-amber-500/30"
+          ? "bg-gradient-to-r from-warning/15 to-warning/8 border-warning/30"
+          : "bg-gradient-to-r from-warning/15 to-warning/8 border-warning/30"
     } ${className}`}>
       <CardContent className={variant === "compact" ? "p-3" : "p-4"}>
         <div className="space-y-3">
           <div className="flex items-center gap-2">
             {isAtLimit ? (
-              <AlertCircle className="h-5 w-5 text-red-400" />
+              <AlertCircle className="h-5 w-5 text-destructive" />
             ) : isNearLimit ? (
-              <AlertCircle className="h-5 w-5 text-amber-400" />
+              <AlertCircle className="h-5 w-5 text-warning" />
             ) : (
-              <Zap className="h-5 w-5 text-amber-400" />
+              <Zap className="h-5 w-5 text-warning" />
             )}
             <p className="text-sm font-medium text-white">
               {isAtLimit 
@@ -217,7 +216,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
             </p>
             {currentPlan === "trial" && !isAtLimit && (
               <Badge variant="outline" className={`${
-                isNearLimit ? "border-amber-500/50 text-amber-300" : "border-amber-500/50 text-amber-300"
+                isNearLimit ? "border-warning/50 text-warning" : "border-warning/50 text-warning"
               } text-xs`}>
                 {remaining}/{limit} consultas
               </Badge>
@@ -225,17 +224,17 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
           </div>
           
           {showUsage && currentPlan === "trial" && (
-            <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
               <motion.div
                 initial={{ width: 0 }}
                 animate={{ width: `${usagePercent}%` }}
                 transition={{ duration: 0.5 }}
                 className={`h-full rounded-full ${
                   isAtLimit 
-                    ? "bg-gradient-to-r from-red-500 to-orange-500" 
+                    ? "bg-destructive" 
                     : isNearLimit 
-                      ? "bg-gradient-to-r from-amber-500 to-yellow-500"
-                      : "bg-gradient-to-r from-amber-500 to-orange-500"
+                      ? "bg-warning"
+                      : "bg-gradient-to-r from-warning to-warning/70"
                 }`}
               />
             </div>
@@ -256,7 +255,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
             <Button
               size="sm"
               variant="outline"
-              className="flex-1 border-blue-500/50 text-blue-300 hover:bg-blue-500/20"
+              className="flex-1 border-primary/50 text-primary hover:bg-primary/15"
               onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
             >
               Básico R$ 179,90
@@ -264,7 +263,7 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
             </Button>
             <Button
               size="sm"
-              className="flex-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700"
+              className="flex-1"
               onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
             >
               <Sparkles className="h-4 w-4 mr-1" />

@@ -60,12 +60,12 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-background via-[#0d1a2d] to-background relative overflow-hidden">
-      {/* Animated Background Effects - Deep Blue Theme */}
+    <div className="min-h-screen flex bg-background relative overflow-hidden">
+      {/* DS token: Reflect DS radial glow background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-blue-600/15 rounded-full blur-[180px] -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-        <div className="absolute bottom-0 right-0 w-[700px] h-[700px] bg-cyan-600/10 rounded-full blur-[160px] translate-x-1/2 translate-y-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/3 w-[500px] h-[500px] bg-blue-800/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[180px] -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+        <div className="absolute bottom-0 right-0 w-[700px] h-[700px] bg-accent/8 rounded-full blur-[160px] translate-x-1/2 translate-y-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/3 w-[500px] h-[500px] bg-primary/6 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
       {/* Left Side - Branding */}
@@ -73,11 +73,11 @@ export default function Login() {
         <div className="max-w-lg">
           <div className="flex items-center gap-4 mb-8">
             <img src="/logo.png" alt="ZEAL" className="h-16 w-auto drop-shadow-2xl" />
-            <span className="text-5xl font-bold text-white tracking-tight">Zeal</span>
+            <span className="text-5xl font-bold text-foreground tracking-tight">Zeal</span>
           </div>
           
           <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
-            Sua Clínica no Próximo Nível com <span className="text-blue-400">Inteligência Artificial</span>
+            Sua Clínica no Próximo Nível com <span className="text-primary">Inteligência Artificial</span>
           </h1>
           
           <p className="text-xl text-foreground/70 mb-8 leading-relaxed">
@@ -87,28 +87,28 @@ export default function Login() {
           
           <div className="space-y-5">
             <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-11 h-11 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-foreground/70 leading-relaxed">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais durante a consulta.</span>
+              <span className="text-muted-foreground leading-relaxed">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais durante a consulta.</span>
             </div>
             <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-full bg-blue-600/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-11 h-11 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-foreground/70 leading-relaxed">Diagnósticos e Tratamentos Precisos: Documentação clínica gerada automaticamente a partir do áudio da sua consulta.</span>
+              <span className="text-muted-foreground leading-relaxed">Diagnósticos e Tratamentos Precisos: Documentação clínica gerada automaticamente a partir do áudio da sua consulta.</span>
             </div>
             <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-full bg-cyan-600/20 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-cyan-400" fill="currentColor" viewBox="0 0 20 20">
+              <div className="w-11 h-11 rounded-full bg-accent/15 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
               </div>
-              <span className="text-cyan-300 font-medium leading-relaxed">Estratégia de Neurovendas: Scripts e gatilhos personalizados para aumentar o fechamento de tratamentos.</span>
+              <span className="text-accent font-medium leading-relaxed">Estratégia de Neurovendas: Scripts e gatilhos personalizados para aumentar o fechamento de tratamentos.</span>
             </div>
           </div>
         </div>
@@ -120,7 +120,7 @@ export default function Login() {
           {/* Mobile Logo */}
           <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
             <img src="/logo.png" alt="ZEAL" className="h-12 w-auto" />
-            <span className="text-3xl font-bold text-white tracking-tight">Zeal</span>
+            <span className="text-3xl font-bold text-foreground tracking-tight">Zeal</span>
           </div>
 
           <div className="bg-card/90 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-border shadow-2xl">
@@ -129,9 +129,9 @@ export default function Login() {
 
             {/* Error Message */}
             {error && (
-              <div className="mb-6 p-4 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-red-400 flex-shrink-0" />
-                <p className="text-red-400 text-sm">{error}</p>
+              <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-xl flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+                <p className="text-destructive text-sm">{error}</p>
               </div>
             )}
 
@@ -146,7 +146,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
+                  className="w-full h-12 bg-secondary border border-border/60 rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base transition-all disabled:opacity-50"
                 />
               </div>
 
@@ -157,7 +157,7 @@ export default function Login() {
                   <button
                     type="button"
                     onClick={() => toast.info("Recuperação de senha em breve!")}
-                    className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+                    className="text-xs text-primary hover:text-primary/70 transition-colors"
                   >
                     Esqueci minha senha
                   </button>
@@ -168,7 +168,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all disabled:opacity-50"
+                  className="w-full h-12 bg-secondary border border-border/60 rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base transition-all disabled:opacity-50"
                 />
                 <button
                   type="button"
@@ -187,7 +187,7 @@ export default function Login() {
               <Button 
                 type="submit"
                 disabled={loginMutation.isPending}
-                className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold text-base rounded-xl mt-6 transition-all duration-200 shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 hover:scale-[1.02] disabled:opacity-50 disabled:hover:scale-100"
+                className="w-full h-12 font-semibold text-base mt-6 hover:scale-[1.02] disabled:hover:scale-100 transition-all duration-200"
               >
                 {loginMutation.isPending ? (
                   <>
@@ -212,7 +212,7 @@ export default function Login() {
               {/* Register Link */}
               <div className="text-center">
                 <span className="text-muted-foreground">Não tem conta? </span>
-                <Link href="/pricing" className="text-blue-400 hover:text-blue-300 font-medium transition-colors">
+                <Link href="/pricing" className="text-primary hover:text-primary/70 font-medium transition-colors">
                   Veja nossos planos
                 </Link>
               </div>

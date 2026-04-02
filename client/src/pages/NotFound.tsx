@@ -27,7 +27,6 @@ export default function NotFound() {
 
         <Button
           onClick={() => setLocation("/")}
-          className="bg-blue-600 hover:bg-blue-700"
         >
           <Home className="w-4 h-4 mr-2" />
           Voltar ao Início
