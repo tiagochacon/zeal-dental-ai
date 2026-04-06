@@ -82,7 +82,7 @@ export default function Consultations() {
           placeholder="Buscar por paciente ou status..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-9 h-10"
+          className="pl-9 h-11 surface-glass border-white/5 text-foreground placeholder:text-muted-foreground transition-all focus-visible:ring-1 focus-visible:ring-primary/50"
         />
       </div>
 
@@ -135,7 +135,7 @@ export default function Consultations() {
               {filteredConsultations.map(consultation => (
                 <div
                   key={consultation.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 rounded-lg border border-border hover:border-primary/30 hover:bg-muted/30 transition-all duration-200 cursor-pointer group"
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl surface-glass border border-white/5 hover:bg-white/5 hover:border-primary/30 transition-all duration-200 cursor-pointer group"
                   onClick={() => setLocation(`/consultation/${consultation.id}`)}
                 >
                   <div className="min-w-0">
@@ -158,13 +158,13 @@ export default function Consultations() {
 
                     {/* Treatment Closed Badge */}
                     {consultation.status === "finalized" && (consultation as any).treatmentClosed === true && (
-                      <Badge className="bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20 gap-1">
+                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none font-medium gap-1 shadow-inner shadow-emerald-500/10">
                         <CheckCircle2 className="h-3 w-3" />
                         Fechado
                       </Badge>
                     )}
                     {consultation.status === "finalized" && (consultation as any).treatmentClosed === false && (
-                      <Badge className="bg-destructive/15 text-destructive border-destructive/20 gap-1">
+                      <Badge className="bg-destructive/10 text-destructive border-none font-medium gap-1 shadow-inner shadow-destructive/10">
                         <XCircle className="h-3 w-3" />
                         Não Fechado
                       </Badge>

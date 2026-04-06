@@ -67,7 +67,7 @@ export default function Calls() {
           placeholder="Buscar por nome do lead..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="pl-10 h-11 bg-secondary border-border rounded-xl"
+          className="pl-10 h-11 surface-glass border-white/5 text-foreground placeholder:text-muted-foreground transition-all focus-visible:ring-1 focus-visible:ring-primary/50"
         />
       </div>
 
@@ -104,7 +104,7 @@ export default function Calls() {
             const duration = formatDuration(call.audioDurationSeconds);
             return (
               <Link key={call.id} href={`/calls/${call.id}`}>
-                <div className="bg-card border border-border rounded-xl p-4 hover:border-primary/30 transition-all cursor-pointer">
+                <div className="surface-glass rounded-xl p-4 border border-white/5 transition-all hover:bg-white/5 hover:shadow-md hover:border-primary/30 cursor-pointer">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">

@@ -78,7 +78,7 @@ export default function DashboardGestor() {
         </Link>
       </div>
         {/* Funnel de Conversão */}
-        <div className="bg-card border border-border rounded-xl p-6 mb-6">
+        <div className="surface-glass rounded-xl p-6 mb-6">
           <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-blue-400" />
             Funil de Conversão
@@ -86,14 +86,14 @@ export default function DashboardGestor() {
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {/* Ligações */}
-            <div className="bg-gradient-to-br from-blue-600/10 to-blue-600/5 border border-blue-500/20 rounded-xl p-4 text-center">
+            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
               <PhoneCall className="h-8 w-8 text-blue-400 mx-auto mb-2" />
               <p className="text-3xl font-bold text-foreground">{stats.totalCalls}</p>
               <p className="text-xs text-muted-foreground">Ligações</p>
             </div>
 
             {/* Agendamentos */}
-            <div className="bg-gradient-to-br from-amber-600/10 to-amber-600/5 border border-amber-500/20 rounded-xl p-4 text-center">
+            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
               <CalendarCheck className="h-8 w-8 text-amber-400 mx-auto mb-2" />
               <p className="text-3xl font-bold text-foreground">{stats.scheduledCalls}</p>
               <p className="text-xs text-muted-foreground">Agendamentos</p>
@@ -103,7 +103,7 @@ export default function DashboardGestor() {
             </div>
 
             {/* Comparecimento */}
-            <div className="bg-gradient-to-br from-purple-600/10 to-purple-600/5 border border-purple-500/20 rounded-xl p-4 text-center">
+            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
               <Users className="h-8 w-8 text-purple-400 mx-auto mb-2" />
               <p className="text-3xl font-bold text-foreground">{stats.totalConsultations}</p>
               <p className="text-xs text-muted-foreground">Comparecimentos</p>
@@ -113,7 +113,7 @@ export default function DashboardGestor() {
             </div>
 
             {/* Fechamentos */}
-            <div className="bg-gradient-to-br from-green-600/10 to-green-600/5 border border-green-500/20 rounded-xl p-4 text-center">
+            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
               <TrendingUp className="h-8 w-8 text-green-400 mx-auto mb-2" />
               <p className="text-3xl font-bold text-foreground">{stats.closedTreatments}</p>
               <p className="text-xs text-muted-foreground">Fechamentos</p>
@@ -132,31 +132,31 @@ export default function DashboardGestor() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-24">Ligações</span>
-                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: pct(stats.totalCalls) }} />
+                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all" style={{ width: pct(stats.totalCalls) }} />
                   </div>
-                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.totalCalls}</span>
+                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.totalCalls}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-24">Agendados</span>
-                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-amber-500 rounded-full transition-all" style={{ width: pct(stats.scheduledCalls) }} />
+                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all" style={{ width: pct(stats.scheduledCalls) }} />
                   </div>
-                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.scheduledCalls}</span>
+                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.scheduledCalls}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-24">Comparecim.</span>
-                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-purple-500 rounded-full transition-all" style={{ width: pct(stats.totalConsultations) }} />
+                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all" style={{ width: pct(stats.totalConsultations) }} />
                   </div>
-                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.totalConsultations}</span>
+                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.totalConsultations}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-muted-foreground w-24">Fechamentos</span>
-                  <div className="flex-1 h-6 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: pct(stats.closedTreatments) }} />
+                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
+                    <div className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all" style={{ width: pct(stats.closedTreatments) }} />
                   </div>
-                  <span className="text-xs font-mono text-foreground w-10 text-right">{stats.closedTreatments}</span>
+                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.closedTreatments}</span>
                 </div>
               </div>
             );
@@ -166,7 +166,7 @@ export default function DashboardGestor() {
         {/* Rankings */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           {/* CRC Ranking */}
-          <div className="bg-card border border-border rounded-xl p-6">
+          <div className="surface-glass rounded-xl p-6">
             <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
               <Phone className="h-5 w-5 text-blue-400" />
               Ranking CRCs
@@ -191,7 +191,7 @@ export default function DashboardGestor() {
           </div>
 
           {/* Dentist Ranking */}
-          <div className="bg-card border border-border rounded-xl p-6">
+          <div className="surface-glass rounded-xl p-6">
             <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
               <Users className="h-5 w-5 text-purple-400" />
               Ranking Dentistas
@@ -219,22 +219,22 @@ export default function DashboardGestor() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link href="/team">
-            <div className="bg-card border border-border rounded-xl p-6 hover:border-blue-500/30 transition-all cursor-pointer">
-              <UserPlus className="h-8 w-8 text-blue-400 mb-3" />
+            <div className="surface-glass border border-white/5 rounded-xl p-6 hover:bg-white/5 transition-all cursor-pointer group">
+              <UserPlus className="h-8 w-8 text-blue-400 mb-3 group-hover:drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] transition-all" />
               <h3 className="font-semibold text-foreground">Gerenciar Time</h3>
               <p className="text-xs text-muted-foreground mt-1">Adicionar CRCs e Dentistas</p>
             </div>
           </Link>
           <Link href="/leads">
-            <div className="bg-card border border-border rounded-xl p-6 hover:border-amber-500/30 transition-all cursor-pointer">
-              <Phone className="h-8 w-8 text-amber-400 mb-3" />
+            <div className="surface-glass border border-white/5 rounded-xl p-6 hover:bg-white/5 transition-all cursor-pointer group">
+              <Phone className="h-8 w-8 text-amber-400 mb-3 group-hover:drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] transition-all" />
               <h3 className="font-semibold text-foreground">Ver Leads</h3>
               <p className="text-xs text-muted-foreground mt-1">Acompanhar leads e ligações</p>
             </div>
           </Link>
           <Link href="/patients">
-            <div className="bg-card border border-border rounded-xl p-6 hover:border-green-500/30 transition-all cursor-pointer">
-              <Users className="h-8 w-8 text-green-400 mb-3" />
+            <div className="surface-glass border border-white/5 rounded-xl p-6 hover:bg-white/5 transition-all cursor-pointer group">
+              <Users className="h-8 w-8 text-green-400 mb-3 group-hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.5)] transition-all" />
               <h3 className="font-semibold text-foreground">Ver Pacientes</h3>
               <p className="text-xs text-muted-foreground mt-1">Acompanhar consultas e tratamentos</p>
             </div>

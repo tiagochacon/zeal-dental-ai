@@ -67,7 +67,7 @@ export default function Leads() {
             placeholder="Buscar por nome, telefone ou email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-10 h-11 bg-secondary border-border rounded-xl"
+            className="pl-10 h-11 surface-glass border-white/5 text-foreground placeholder:text-muted-foreground transition-all focus-visible:ring-1 focus-visible:ring-primary/50"
           />
         </div>
 
@@ -97,7 +97,7 @@ export default function Leads() {
             {filtered.map((lead: any) => (
               <div
                 key={lead.id}
-                className="bg-card border border-border rounded-xl p-4 hover:border-blue-500/30 transition-all"
+                className="surface-glass rounded-xl p-4 border border-white/5 transition-all hover:bg-white/5 hover:shadow-md hover:border-primary/30"
               >
                 <div className="flex items-center justify-between">
                   <Link href={`/leads/${lead.id}`}>
@@ -150,7 +150,7 @@ export default function Leads() {
         )}
       {/* New Lead Dialog */}
       <Dialog open={showNewLead} onOpenChange={setShowNewLead}>
-        <DialogContent className="bg-card border-border max-w-md">
+        <DialogContent className="surface-glass border-white/5 shadow-2xl max-w-md">
           <DialogHeader>
             <DialogTitle>Novo Lead</DialogTitle>
           </DialogHeader>
@@ -205,7 +205,7 @@ export default function Leads() {
                 value={newLead.notes}
                 onChange={(e) => setNewLead({ ...newLead, notes: e.target.value })}
                 placeholder="Notas sobre o lead..."
-                className="w-full min-h-[80px] bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 py-3 text-sm resize-none"
+                className="w-full min-h-[80px] bg-white/5 border border-white/5 rounded-xl text-foreground placeholder:text-muted-foreground px-4 py-3 text-sm resize-none focus-visible:ring-1 focus-visible:ring-primary/50 focus:outline-none transition-all"
               />
             </div>
             <DialogFooter>

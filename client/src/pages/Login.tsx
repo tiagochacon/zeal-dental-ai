@@ -76,8 +76,8 @@ export default function Login() {
             <span className="text-5xl font-bold text-foreground tracking-tight">Zeal</span>
           </div>
           
-          <h1 className="text-4xl font-bold text-white mb-6 leading-tight">
-            Sua Clínica no Próximo Nível com <span className="text-primary">Inteligência Artificial</span>
+          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
+            Sua Clínica no Próximo Nível com <span className="text-gradient-reflect">Inteligência Artificial</span>
           </h1>
           
           <p className="text-xl text-foreground/70 mb-8 leading-relaxed">
@@ -123,7 +123,10 @@ export default function Login() {
             <span className="text-3xl font-bold text-foreground tracking-tight">Zeal</span>
           </div>
 
-          <div className="bg-card/90 backdrop-blur-2xl rounded-3xl p-8 sm:p-10 border border-border shadow-2xl">
+          <div className="surface-glass rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
+            {/* Opcional: um brilho interno sutil no topo */}
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
+            
             <h2 className="text-2xl font-bold text-foreground mb-2">Bem-vindo de volta</h2>
             <p className="text-muted-foreground mb-8">Entre na sua conta para continuar</p>
 
@@ -146,7 +149,7 @@ export default function Login() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-secondary border border-border/60 rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base transition-all disabled:opacity-50"
+                  className="w-full h-12 bg-white/5 border border-white/5 rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base transition-all focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-white/10 disabled:opacity-50"
                 />
               </div>
 
@@ -168,7 +171,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-secondary border border-border/60 rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base transition-all disabled:opacity-50"
+                  className="w-full h-12 bg-white/5 border border-white/5 rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base transition-all focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-white/10 disabled:opacity-50"
                 />
                 <button
                   type="button"

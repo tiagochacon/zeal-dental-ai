@@ -108,7 +108,7 @@ export default function Dashboard() {
           : kpiCards.map((card) => {
               const Icon = card.icon;
               return (
-                <Card key={card.label} className="relative overflow-hidden">
+                <Card key={card.label} className="relative overflow-hidden surface-glass border-white/5 bg-transparent">
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between mb-4">
                       <div className={`p-2.5 rounded-xl ${colorMap[card.color]}`}>
@@ -156,7 +156,7 @@ export default function Dashboard() {
             ))}
           </div>
         ) : recentConsultations.length === 0 ? (
-          <Card className="border-dashed">
+          <Card className="border-dashed surface-glass border-white/5 bg-transparent">
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <div className="p-4 rounded-full bg-muted mb-4">
                 <Mic className="h-8 w-8 text-muted-foreground" />
@@ -176,7 +176,7 @@ export default function Dashboard() {
             {recentConsultations.map((consultation) => (
               <Card
                 key={consultation.id}
-                className="hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
+                className="surface-glass border-white/5 bg-transparent hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
                 onClick={() => setLocation(`/consultation/${consultation.id}`)}
               >
                 <CardContent className="p-4 flex items-center justify-between gap-3">

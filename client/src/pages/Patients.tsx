@@ -779,7 +779,7 @@ export default function Patients() {
           placeholder="Buscar paciente por nome, email ou telefone..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-10"
+          className="pl-10 h-11 surface-glass border-white/5 text-foreground placeholder:text-muted-foreground transition-all focus-visible:ring-1 focus-visible:ring-primary/50"
         />
       </div>
 
@@ -807,10 +807,10 @@ export default function Patients() {
           {filteredPatients.map((patient) => (
             <Card 
               key={patient.id} 
-              className="hover:shadow-md hover:border-primary/30 transition-all duration-200 cursor-pointer"
+              className="surface-glass border-white/5 hover:shadow-md hover:bg-white/5 hover:border-primary/30 transition-all duration-200 cursor-pointer"
               onClick={() => setViewingPatient(patient as Patient)}
             >
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-3 border-none">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
@@ -886,8 +886,8 @@ export default function Patients() {
           ))}
         </div>
       ) : (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+        <div className="surface-glass border border-white/5 border-dashed rounded-xl p-8">
+          <div className="flex flex-col items-center justify-center py-12 text-center">
             <div className="p-4 rounded-full bg-muted mb-4">
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
@@ -905,8 +905,8 @@ export default function Patients() {
                 Adicionar Paciente
               </Button>
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
 
       {/* Patient Detail Sheet */}

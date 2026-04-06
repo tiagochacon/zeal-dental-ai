@@ -68,7 +68,7 @@ export default function DashboardCRC() {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="surface-glass border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 hover:shadow-md cursor-pointer">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-blue-600/20 flex items-center justify-center">
                 <Users className="w-5 h-5 text-blue-400" />
@@ -78,7 +78,7 @@ export default function DashboardCRC() {
             <p className="text-2xl font-bold text-foreground">{totalLeads}</p>
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="surface-glass border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 hover:shadow-md cursor-pointer">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center">
                 <Phone className="w-5 h-5 text-green-400" />
@@ -88,7 +88,7 @@ export default function DashboardCRC() {
             <p className="text-2xl font-bold text-foreground">{totalCalls}</p>
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="surface-glass border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 hover:shadow-md cursor-pointer">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-amber-600/20 flex items-center justify-center">
                 <CalendarCheck className="w-5 h-5 text-amber-400" />
@@ -98,7 +98,7 @@ export default function DashboardCRC() {
             <p className="text-2xl font-bold text-foreground">{scheduledCalls}</p>
           </div>
 
-          <div className="bg-card border border-border rounded-xl p-4">
+          <div className="surface-glass border-white/5 rounded-xl p-4 transition-all hover:bg-white/5 hover:shadow-md cursor-pointer">
             <div className="flex items-center gap-3 mb-2">
               <div className="w-10 h-10 rounded-lg bg-purple-600/20 flex items-center justify-center">
                 <TrendingUp className="w-5 h-5 text-purple-400" />
@@ -113,7 +113,7 @@ export default function DashboardCRC() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <button
-            className="group relative h-auto p-4 bg-card border border-border rounded-xl flex items-center gap-4 transition-all duration-200 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/5 cursor-pointer text-left"
+            className="group relative h-auto p-4 surface-glass border border-white/5 rounded-xl flex items-center gap-4 transition-all duration-200 hover:border-blue-500/40 hover:shadow-lg hover:shadow-blue-500/5 hover:bg-white/5 cursor-pointer text-left"
             onClick={() => setLocation("/calls/new")}
           >
             <div className="w-11 h-11 rounded-xl bg-blue-500/15 flex items-center justify-center shrink-0 transition-colors group-hover:bg-blue-500/25">
@@ -129,7 +129,7 @@ export default function DashboardCRC() {
           </button>
 
           <button
-            className="group relative h-auto p-4 bg-card border border-border rounded-xl flex items-center gap-4 transition-all duration-200 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5 cursor-pointer text-left"
+            className="group relative h-auto p-4 surface-glass border border-white/5 rounded-xl flex items-center gap-4 transition-all duration-200 hover:border-purple-500/40 hover:shadow-lg hover:shadow-purple-500/5 hover:bg-white/5 cursor-pointer text-left"
             onClick={() => setLocation("/leads")}
           >
             <div className="w-11 h-11 rounded-xl bg-purple-500/15 flex items-center justify-center shrink-0 transition-colors group-hover:bg-purple-500/25">
@@ -148,7 +148,7 @@ export default function DashboardCRC() {
       {/* Recent Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Leads */}
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="surface-glass border-white/5 rounded-xl p-5 hover:bg-white/5 transition-all cursor-pointer">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Leads Recentes</h3>
               <Link href="/leads" className="text-sm text-blue-400 hover:text-blue-300">Ver todos</Link>
@@ -179,7 +179,7 @@ export default function DashboardCRC() {
           </div>
 
           {/* Recent Calls */}
-          <div className="bg-card border border-border rounded-xl p-5">
+          <div className="surface-glass border-white/5 rounded-xl p-5 hover:bg-white/5 transition-all cursor-pointer">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-foreground">Ligações Recentes</h3>
               <Link href="/calls" className="text-sm text-blue-400 hover:text-blue-300">Ver todas</Link>

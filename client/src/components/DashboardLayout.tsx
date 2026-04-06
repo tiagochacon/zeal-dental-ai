@@ -274,7 +274,7 @@ function DashboardLayoutContent({
       <div className="relative" ref={sidebarRef}>
         <Sidebar
           collapsible="icon"
-          className="border-r-0"
+          className="border-r border-white/5 transition-all"
           disableTransition={isResizing}
         >
           <SidebarHeader className="h-16 justify-center">
@@ -330,11 +330,8 @@ function DashboardLayoutContent({
                   onClick={() => setLocation("/subscription")}
                   className={`
                     w-full flex items-center gap-3 px-3 py-3 rounded-xl
-                    bg-gradient-to-r from-primary/90 via-primary to-accent/80
-                    hover:from-primary/75 hover:via-primary/85 hover:to-accent/65
-                    shadow-lg shadow-primary/25 hover:shadow-primary/40
+                    surface-glass border border-white/10 hover:bg-white/5
                     transition-all duration-300 transform hover:scale-[1.02]
-                    border border-primary/30
                     group
                     ${isCollapsed ? 'justify-center' : ''}
                   `}
@@ -353,7 +350,7 @@ function DashboardLayoutContent({
                     </div>
                   )}
                   {!isCollapsed && (
-                    <Crown className="h-4 w-4 text-warning ml-auto shrink-0 animate-pulse" />
+                    <Crown className="h-4 w-4 text-primary ml-auto shrink-0 group-hover:scale-110 transition-transform" />
                   )}
                 </button>
               </div>
