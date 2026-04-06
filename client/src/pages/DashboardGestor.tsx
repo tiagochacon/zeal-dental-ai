@@ -78,48 +78,64 @@ export default function DashboardGestor() {
         </Link>
       </div>
         {/* Funnel de Conversão */}
-        <div className="surface-glass rounded-xl p-6 mb-6">
-          <h2 className="text-xl font-bold text-foreground mb-6 flex items-center gap-2">
-            <TrendingUp className="h-5 w-5 text-blue-400" />
-            Funil de Conversão
-          </h2>
+        <div className="surface-glass rounded-3xl p-8 sm:p-10 mb-8 border border-white/5 shadow-2xl">
+          <div className="flex items-center gap-3 mb-8">
+            <TrendingUp className="h-5 w-5 text-foreground/70" />
+            <h2 className="text-lg font-medium text-foreground tracking-tight">
+              Funil de Conversão
+            </h2>
+          </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8 mb-12">
             {/* Ligações */}
-            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
-              <PhoneCall className="h-8 w-8 text-blue-400 mx-auto mb-2" />
-              <p className="text-3xl font-bold text-foreground">{stats.totalCalls}</p>
-              <p className="text-xs text-muted-foreground">Ligações</p>
+            <div className="flex flex-col gap-2 pl-6 border-l border-white/10">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <PhoneCall className="h-3.5 w-3.5" />
+                <span className="text-xs font-semibold uppercase tracking-wider">Ligações</span>
+              </div>
+              <p className="text-4xl lg:text-5xl font-black text-foreground tracking-tighter">{stats.totalCalls}</p>
             </div>
 
             {/* Agendamentos */}
-            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
-              <CalendarCheck className="h-8 w-8 text-amber-400 mx-auto mb-2" />
-              <p className="text-3xl font-bold text-foreground">{stats.scheduledCalls}</p>
-              <p className="text-xs text-muted-foreground">Agendamentos</p>
-              {stats.totalCalls > 0 && (
-                <p className="text-xs text-amber-400 mt-1">{leadToScheduled}% das ligações</p>
-              )}
+            <div className="flex flex-col gap-2 pl-6 border-l border-white/10">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <CalendarCheck className="h-3.5 w-3.5" />
+                <span className="text-xs font-semibold uppercase tracking-wider">Agendamentos</span>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <p className="text-4xl lg:text-5xl font-black text-foreground tracking-tighter">{stats.scheduledCalls}</p>
+                {stats.totalCalls > 0 && (
+                  <span className="text-sm font-medium text-emerald-400">+{leadToScheduled}%</span>
+                )}
+              </div>
             </div>
 
             {/* Comparecimento */}
-            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
-              <Users className="h-8 w-8 text-purple-400 mx-auto mb-2" />
-              <p className="text-3xl font-bold text-foreground">{stats.totalConsultations}</p>
-              <p className="text-xs text-muted-foreground">Comparecimentos</p>
-              {stats.scheduledCalls > 0 && (
-                <p className="text-xs text-purple-400 mt-1">{scheduledToConsultation}% dos agendamentos</p>
-              )}
+            <div className="flex flex-col gap-2 pl-6 border-l border-white/10">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Users className="h-3.5 w-3.5" />
+                <span className="text-xs font-semibold uppercase tracking-wider">Comparecimentos</span>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <p className="text-4xl lg:text-5xl font-black text-foreground tracking-tighter">{stats.totalConsultations}</p>
+                {stats.scheduledCalls > 0 && (
+                  <span className="text-sm font-medium text-emerald-400">+{scheduledToConsultation}%</span>
+                )}
+              </div>
             </div>
 
             {/* Fechamentos */}
-            <div className="bg-white/5 border border-white/5 rounded-xl p-4 text-center hover:bg-white/10 transition-colors">
-              <TrendingUp className="h-8 w-8 text-green-400 mx-auto mb-2" />
-              <p className="text-3xl font-bold text-foreground">{stats.closedTreatments}</p>
-              <p className="text-xs text-muted-foreground">Fechamentos</p>
-              {stats.totalConsultations > 0 && (
-                <p className="text-xs text-green-400 mt-1">{consultationToClosed}% das consultas</p>
-              )}
+            <div className="flex flex-col gap-2 pl-6 border-l border-white/10">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <TrendingUp className="h-3.5 w-3.5" />
+                <span className="text-xs font-semibold uppercase tracking-wider">Fechamentos</span>
+              </div>
+              <div className="flex items-baseline gap-3">
+                <p className="text-4xl lg:text-5xl font-black text-foreground tracking-tighter">{stats.closedTreatments}</p>
+                {stats.totalConsultations > 0 && (
+                  <span className="text-sm font-medium text-emerald-400">+{consultationToClosed}%</span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -129,34 +145,34 @@ export default function DashboardGestor() {
             const maxVal = Math.max(stats.totalCalls, stats.scheduledCalls, stats.totalConsultations, stats.closedTreatments, 1);
             const pct = (val: number) => maxVal > 0 ? `${Math.round((val / maxVal) * 100)}%` : "0%";
             return (
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-24">Ligações</span>
-                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-blue-600 to-blue-400 rounded-full transition-all" style={{ width: pct(stats.totalCalls) }} />
+              <div className="space-y-4 max-w-2xl">
+                <div className="flex items-center gap-4 group">
+                  <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Ligações</span>
+                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.totalCalls) }} />
                   </div>
-                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.totalCalls}</span>
+                  <span className="text-sm font-medium text-foreground w-12 text-right">{stats.totalCalls}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-24">Agendados</span>
-                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-amber-600 to-amber-400 rounded-full transition-all" style={{ width: pct(stats.scheduledCalls) }} />
+                <div className="flex items-center gap-4 group">
+                  <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Agendados</span>
+                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.scheduledCalls) }} />
                   </div>
-                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.scheduledCalls}</span>
+                  <span className="text-sm font-medium text-foreground w-12 text-right">{stats.scheduledCalls}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-24">Comparecim.</span>
-                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-purple-600 to-purple-400 rounded-full transition-all" style={{ width: pct(stats.totalConsultations) }} />
+                <div className="flex items-center gap-4 group">
+                  <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Comparecim.</span>
+                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.totalConsultations) }} />
                   </div>
-                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.totalConsultations}</span>
+                  <span className="text-sm font-medium text-foreground w-12 text-right">{stats.totalConsultations}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-muted-foreground w-24">Fechamentos</span>
-                  <div className="flex-1 h-3 bg-secondary rounded-full overflow-hidden">
-                    <div className="h-full bg-gradient-to-r from-green-600 to-green-400 rounded-full transition-all" style={{ width: pct(stats.closedTreatments) }} />
+                <div className="flex items-center gap-4 group">
+                  <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Fechamentos</span>
+                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.closedTreatments) }} />
                   </div>
-                  <span className="text-xs font-mono font-bold text-foreground w-10 text-right">{stats.closedTreatments}</span>
+                  <span className="text-sm font-medium text-foreground w-12 text-right">{stats.closedTreatments}</span>
                 </div>
               </div>
             );
@@ -164,24 +180,23 @@ export default function DashboardGestor() {
         </div>
 
         {/* Rankings */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 mb-10">
           {/* CRC Ranking */}
-          <div className="surface-glass rounded-xl p-6">
-            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-              <Phone className="h-5 w-5 text-blue-400" />
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground mb-4 uppercase tracking-widest flex items-center gap-2">
               Ranking CRCs
             </h2>
             {crcs.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhum CRC cadastrado</p>
+              <p className="text-sm text-muted-foreground/50 py-4">Nenhum CRC cadastrado</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {crcs.map((crc: any, i: number) => (
-                  <div key={crc.id} className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-                    <span className={`text-lg font-bold ${i === 0 ? "text-amber-400" : i === 1 ? "text-gray-400" : i === 2 ? "text-amber-700" : "text-muted-foreground"}`}>
-                      #{i + 1}
+                  <div key={crc.id} className="flex items-center gap-4 py-3 px-2 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors rounded-lg">
+                    <span className={`text-base font-medium w-6 text-center ${i === 0 ? "text-foreground" : "text-muted-foreground"}`}>
+                      {i + 1}
                     </span>
                     <div className="flex-1">
-                      <p className="font-medium text-foreground text-sm">{crc.name}</p>
+                      <p className="font-medium text-foreground text-sm tracking-tight">{crc.name}</p>
                       <p className="text-xs text-muted-foreground">{crc.email}</p>
                     </div>
                   </div>
@@ -191,22 +206,21 @@ export default function DashboardGestor() {
           </div>
 
           {/* Dentist Ranking */}
-          <div className="surface-glass rounded-xl p-6">
-            <h2 className="text-lg font-bold text-foreground mb-4 flex items-center gap-2">
-              <Users className="h-5 w-5 text-purple-400" />
+          <div>
+            <h2 className="text-xs font-semibold text-muted-foreground mb-4 uppercase tracking-widest flex items-center gap-2">
               Ranking Dentistas
             </h2>
             {dentists.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">Nenhum dentista cadastrado</p>
+              <p className="text-sm text-muted-foreground/50 py-4">Nenhum dentista cadastrado</p>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-1">
                 {dentists.map((d: any, i: number) => (
-                  <div key={d.id} className="flex items-center gap-3 p-3 bg-secondary/50 rounded-lg">
-                    <span className={`text-lg font-bold ${i === 0 ? "text-amber-400" : i === 1 ? "text-gray-400" : i === 2 ? "text-amber-700" : "text-muted-foreground"}`}>
-                      #{i + 1}
+                  <div key={d.id} className="flex items-center gap-4 py-3 px-2 border-b border-white/5 last:border-0 hover:bg-white/[0.02] transition-colors rounded-lg">
+                    <span className={`text-base font-medium w-6 text-center ${i === 0 ? "text-foreground" : "text-muted-foreground"}`}>
+                      {i + 1}
                     </span>
                     <div className="flex-1">
-                      <p className="font-medium text-foreground text-sm">{d.name}</p>
+                      <p className="font-medium text-foreground text-sm tracking-tight">{d.name}</p>
                       <p className="text-xs text-muted-foreground">{d.email}</p>
                     </div>
                   </div>
@@ -219,24 +233,36 @@ export default function DashboardGestor() {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link href="/team">
-            <div className="surface-glass border border-white/5 rounded-xl p-6 hover:bg-white/5 transition-all cursor-pointer group">
-              <UserPlus className="h-8 w-8 text-blue-400 mb-3 group-hover:drop-shadow-[0_0_8px_rgba(96,165,250,0.5)] transition-all" />
-              <h3 className="font-semibold text-foreground">Gerenciar Time</h3>
-              <p className="text-xs text-muted-foreground mt-1">Adicionar CRCs e Dentistas</p>
+            <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <UserPlus className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+              </div>
+              <div>
+                <h3 className="font-medium text-sm text-foreground tracking-tight">Gerenciar Time</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Adicionar CRCs e Dentistas</p>
+              </div>
             </div>
           </Link>
           <Link href="/leads">
-            <div className="surface-glass border border-white/5 rounded-xl p-6 hover:bg-white/5 transition-all cursor-pointer group">
-              <Phone className="h-8 w-8 text-amber-400 mb-3 group-hover:drop-shadow-[0_0_8px_rgba(251,191,36,0.5)] transition-all" />
-              <h3 className="font-semibold text-foreground">Ver Leads</h3>
-              <p className="text-xs text-muted-foreground mt-1">Acompanhar leads e ligações</p>
+            <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Phone className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+              </div>
+              <div>
+                <h3 className="font-medium text-sm text-foreground tracking-tight">Ver Leads</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Acompanhar leads e ligações</p>
+              </div>
             </div>
           </Link>
           <Link href="/patients">
-            <div className="surface-glass border border-white/5 rounded-xl p-6 hover:bg-white/5 transition-all cursor-pointer group">
-              <Users className="h-8 w-8 text-green-400 mb-3 group-hover:drop-shadow-[0_0_8px_rgba(74,222,128,0.5)] transition-all" />
-              <h3 className="font-semibold text-foreground">Ver Pacientes</h3>
-              <p className="text-xs text-muted-foreground mt-1">Acompanhar consultas e tratamentos</p>
+            <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer">
+              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Users className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+              </div>
+              <div>
+                <h3 className="font-medium text-sm text-foreground tracking-tight">Ver Pacientes</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Acompanhar tratamentos</p>
+              </div>
             </div>
           </Link>
         </div>

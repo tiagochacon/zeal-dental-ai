@@ -87,57 +87,56 @@ export default function Consultations() {
       </div>
 
       {/* Consultation List */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <FileText className="h-5 w-5 text-primary" />
-            Lista de Consultas
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="flex items-center justify-between p-3 rounded-lg border border-border">
-                  <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-48" />
-                    <Skeleton className="h-3 w-24" />
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Skeleton className="h-6 w-20 rounded-full" />
-                    <Skeleton className="h-8 w-16 rounded-md" />
-                  </div>
+      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+        <div className="flex items-center gap-2 mb-6">
+          <FileText className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-medium text-foreground tracking-tight">Lista de Consultas</h2>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between py-4 px-2 border-b border-white/5 last:border-0">
+                <div className="space-y-2 flex-1">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
-              ))}
-            </div>
-          ) : filteredConsultations.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="p-4 rounded-full bg-muted mb-4">
-                <FileText className="h-8 w-8 text-muted-foreground" />
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-8 w-16 rounded-md" />
+                </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2">
-                {searchQuery ? "Nenhuma consulta encontrada" : "Nenhuma consulta ainda"}
-              </h3>
-              <p className="text-muted-foreground text-sm max-w-sm mb-6">
-                {searchQuery
-                  ? `Nenhuma consulta corresponde a "${searchQuery}".`
-                  : "Grave sua primeira consulta para começar a usar o sistema."}
-              </p>
-              {!searchQuery && (
-                <Button onClick={() => setLocation("/new-consultation")}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Nova Consulta
-                </Button>
-              )}
+            ))}
+          </div>
+        ) : filteredConsultations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10">
+              <FileText className="h-8 w-8 text-muted-foreground" />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {filteredConsultations.map(consultation => (
-                <div
-                  key={consultation.id}
-                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl surface-glass border border-white/5 hover:bg-white/5 hover:border-primary/30 transition-all duration-200 cursor-pointer group"
-                  onClick={() => setLocation(`/consultation/${consultation.id}`)}
-                >
+            <h3 className="text-lg font-semibold mb-2">
+              {searchQuery ? "Nenhuma consulta encontrada" : "Nenhuma consulta ainda"}
+            </h3>
+            <p className="text-muted-foreground text-sm max-w-sm mb-6">
+              {searchQuery
+                ? `Nenhuma consulta corresponde a "${searchQuery}".`
+                : "Grave sua primeira consulta para começar a usar o sistema."}
+            </p>
+            {!searchQuery && (
+              <Button onClick={() => setLocation("/new-consultation")}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Consulta
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {filteredConsultations.map(consultation => (
+              <div
+                key={consultation.id}
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors rounded-xl cursor-pointer group"
+                onClick={() => setLocation(`/consultation/${consultation.id}`)}
+              >
                   <div className="min-w-0">
                     <p className="font-medium text-sm lg:text-base truncate">
                       {consultation.patientName}
@@ -158,14 +157,12 @@ export default function Consultations() {
 
                     {/* Treatment Closed Badge */}
                     {consultation.status === "finalized" && (consultation as any).treatmentClosed === true && (
-                      <Badge className="bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-none font-medium gap-1 shadow-inner shadow-emerald-500/10">
-                        <CheckCircle2 className="h-3 w-3" />
+                      <Badge className="bg-transparent border border-white/10 text-foreground/80 hover:bg-white/5 shadow-sm gap-2 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-emerald-400 before:shadow-[0_0_8px_rgba(52,211,153,0.8)]">
                         Fechado
                       </Badge>
                     )}
                     {consultation.status === "finalized" && (consultation as any).treatmentClosed === false && (
-                      <Badge className="bg-destructive/10 text-destructive border-none font-medium gap-1 shadow-inner shadow-destructive/10">
-                        <XCircle className="h-3 w-3" />
+                      <Badge className="bg-transparent border border-white/10 text-foreground/80 hover:bg-white/5 shadow-sm gap-2 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-destructive before:shadow-[0_0_8px_rgba(239,68,68,0.8)]">
                         Não Fechado
                       </Badge>
                     )}
@@ -208,8 +205,7 @@ export default function Consultations() {
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </div>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteId !== null} onOpenChange={(open) => !open && setDeleteId(null)}>

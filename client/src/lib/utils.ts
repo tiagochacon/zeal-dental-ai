@@ -9,22 +9,22 @@ export const consultationStatusConfig = {
   draft: {
     label: "Rascunho",
     className:
-      "bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/20",
+      "bg-transparent border border-white/10 text-foreground/80 hover:bg-white/5 shadow-sm gap-2 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-yellow-400 before:shadow-[0_0_8px_rgba(250,204,21,0.8)]",
   },
   transcribed: {
     label: "Transcrito",
     className:
-      "bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/20",
+      "bg-transparent border border-white/10 text-foreground/80 hover:bg-white/5 shadow-sm gap-2 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-blue-400 before:shadow-[0_0_8px_rgba(96,165,250,0.8)]",
   },
   reviewed: {
     label: "Revisado",
     className:
-      "bg-violet-500/15 text-violet-600 dark:text-violet-400 border-violet-500/20",
+      "bg-transparent border border-white/10 text-foreground/80 hover:bg-white/5 shadow-sm gap-2 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-violet-400 before:shadow-[0_0_8px_rgba(167,139,250,0.8)]",
   },
   finalized: {
     label: "Finalizado",
     className:
-      "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+      "bg-transparent border border-white/10 text-foreground/80 hover:bg-white/5 shadow-sm gap-2 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-emerald-400 before:shadow-[0_0_8px_rgba(52,211,153,0.8)]",
   },
 } as const;
 

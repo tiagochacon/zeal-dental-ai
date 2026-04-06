@@ -31,9 +31,9 @@ export default function Calls() {
   }
 
   const statusConfig: Record<string, { label: string; className: string }> = {
-    analyzed: { label: "Analisada", className: "bg-green-600/20 text-green-400" },
-    transcribed: { label: "Transcrita", className: "bg-blue-600/20 text-blue-400" },
-    finalized: { label: "Finalizada", className: "bg-purple-600/20 text-purple-400" },
+    analyzed: { label: "Analisada", className: "bg-transparent border border-white/10 text-foreground/80 gap-1.5 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-green-400 before:shadow-[0_0_8px_rgba(74,222,128,0.8)]" },
+    transcribed: { label: "Transcrita", className: "bg-transparent border border-white/10 text-foreground/80 gap-1.5 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-blue-400 before:shadow-[0_0_8px_rgba(96,165,250,0.8)]" },
+    finalized: { label: "Finalizada", className: "bg-transparent border border-white/10 text-foreground/80 gap-1.5 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-purple-400 before:shadow-[0_0_8px_rgba(192,132,252,0.8)]" },
   };
 
   return (
@@ -72,81 +72,93 @@ export default function Calls() {
       </div>
 
       {/* List */}
-      {callsQuery.isLoading ? (
-        <div className="space-y-3">
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-16 w-full rounded-xl" />
-          ))}
+      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+        <div className="flex items-center gap-2 mb-6">
+          <Phone className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-medium text-foreground tracking-tight">Histórico de Ligações</h2>
         </div>
-      ) : filtered.length === 0 ? (
-        <div className="text-center py-16">
-          <Phone className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-foreground mb-2">
-            {search ? "Nenhuma ligação encontrada" : "Nenhuma ligação registrada"}
-          </h3>
-          <p className="text-muted-foreground mb-4">
-            {search ? "Tente outro termo de busca" : "Comece registrando sua primeira ligação"}
-          </p>
-          {!search && (
-            <Button
-              className="bg-blue-600 hover:bg-blue-700"
-              onClick={() => setLocation("/calls/new")}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Nova Ligação
-            </Button>
-          )}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {filtered.map((call: any) => {
-            const config = statusConfig[call.status] ?? { label: "Pendente", className: "bg-gray-600/20 text-gray-400" };
-            const duration = formatDuration(call.audioDurationSeconds);
-            return (
-              <Link key={call.id} href={`/calls/${call.id}`}>
-                <div className="surface-glass rounded-xl p-4 border border-white/5 transition-all hover:bg-white/5 hover:shadow-md hover:border-primary/30 cursor-pointer">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                        {call.schedulingResult === "scheduled" ? (
-                          <CalendarCheck className="w-5 h-5 text-green-400" />
-                        ) : call.schedulingResult === "not_scheduled" ? (
-                          <PhoneOff className="w-5 h-5 text-red-400" />
-                        ) : (
-                          <Phone className="w-5 h-5 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-foreground">{call.leadName}</p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          {call.createdAt && (
-                            <span>
-                              {new Date(call.createdAt).toLocaleDateString("pt-BR", {
-                                day: "2-digit",
-                                month: "short",
-                                year: "numeric",
-                              })}
-                            </span>
-                          )}
-                          {duration && (
-                            <>
-                              <span>·</span>
-                              <span>{duration}</span>
-                            </>
+
+        {callsQuery.isLoading ? (
+          <div className="flex flex-col">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="py-4 border-b border-white/5 last:border-0">
+                <Skeleton className="h-12 w-full rounded-xl" />
+              </div>
+            ))}
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10 w-fit mx-auto">
+              <Phone className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <h3 className="text-lg font-semibold text-foreground mb-2">
+              {search ? "Nenhuma ligação encontrada" : "Nenhuma ligação registrada"}
+            </h3>
+            <p className="text-muted-foreground mb-4">
+              {search ? "Tente outro termo de busca" : "Comece registrando sua primeira ligação"}
+            </p>
+            {!search && (
+              <Button
+                className="bg-blue-600 hover:bg-blue-700"
+                onClick={() => setLocation("/calls/new")}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Nova Ligação
+              </Button>
+            )}
+          </div>
+        ) : (
+          <div className="flex flex-col">
+            {filtered.map((call: any) => {
+              const config = statusConfig[call.status] ?? { label: "Pendente", className: "bg-transparent border border-white/10 text-foreground/80 gap-1.5 before:content-[''] before:block before:w-1.5 before:h-1.5 before:rounded-full before:bg-gray-400 before:shadow-[0_0_8px_rgba(156,163,175,0.8)]" };
+              const duration = formatDuration(call.audioDurationSeconds);
+              return (
+                <Link key={call.id} href={`/calls/${call.id}`}>
+                  <div className="py-4 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors rounded-xl cursor-pointer group">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                          {call.schedulingResult === "scheduled" ? (
+                            <CalendarCheck className="w-4 h-4 text-emerald-400" />
+                          ) : call.schedulingResult === "not_scheduled" ? (
+                            <PhoneOff className="w-4 h-4 text-destructive" />
+                          ) : (
+                            <Phone className="w-4 h-4 text-muted-foreground" />
                           )}
                         </div>
+                        <div>
+                          <p className="font-medium text-sm text-foreground tracking-tight">{call.leadName}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            {call.createdAt && (
+                              <span>
+                                {new Date(call.createdAt).toLocaleDateString("pt-BR", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  year: "numeric",
+                                })}
+                              </span>
+                            )}
+                            {duration && (
+                              <>
+                                <span>·</span>
+                                <span>{duration}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
                       </div>
+                      <span className={`inline-flex items-center text-[10px] font-medium uppercase tracking-wider px-2.5 py-1 rounded-full ${config.className}`}>
+                        {config.label}
+                      </span>
                     </div>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${config.className}`}>
-                      {config.label}
-                    </span>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      )}
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }

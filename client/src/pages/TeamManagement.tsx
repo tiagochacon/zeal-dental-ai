@@ -107,74 +107,85 @@ export default function TeamManagement() {
         </Button>
       </div>
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="bg-card border border-border rounded-xl p-4 text-center">
-            <Shield className="h-6 w-6 text-amber-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-foreground">{gestores.length}</p>
-            <p className="text-xs text-muted-foreground">Gestores</p>
+        <div className="flex flex-wrap gap-8 lg:gap-16 mb-10 px-4">
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <Shield className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold uppercase tracking-wider">Gestores</span>
+            </div>
+            <p className="text-4xl font-black text-foreground tracking-tighter">{gestores.length}</p>
           </div>
-          <div className="bg-card border border-border rounded-xl p-4 text-center">
-            <Phone className="h-6 w-6 text-blue-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-foreground">{crcs.length}</p>
-            <p className="text-xs text-muted-foreground">CRCs</p>
+          <div className="flex flex-col gap-1 border-l border-white/10 pl-8 lg:pl-16">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <Phone className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold uppercase tracking-wider">CRCs</span>
+            </div>
+            <p className="text-4xl font-black text-foreground tracking-tighter">{crcs.length}</p>
           </div>
-          <div className="bg-card border border-border rounded-xl p-4 text-center">
-            <Stethoscope className="h-6 w-6 text-green-400 mx-auto mb-1" />
-            <p className="text-2xl font-bold text-foreground">{dentists.length}</p>
-            <p className="text-xs text-muted-foreground">Dentistas</p>
+          <div className="flex flex-col gap-1 border-l border-white/10 pl-8 lg:pl-16">
+            <div className="flex items-center gap-2 text-muted-foreground mb-1">
+              <Stethoscope className="h-3.5 w-3.5" />
+              <span className="text-xs font-semibold uppercase tracking-wider">Dentistas</span>
+            </div>
+            <p className="text-4xl font-black text-foreground tracking-tighter">{dentists.length}</p>
           </div>
         </div>
 
         {/* Members List */}
-        <div className="bg-card border border-border rounded-xl p-6">
-          <h2 className="text-lg font-semibold text-foreground mb-4">Membros da Clínica</h2>
+        <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          <h2 className="text-lg font-medium text-foreground mb-6 tracking-tight">Membros da Clínica</h2>
           
           {members.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-8">
-              Nenhum membro cadastrado ainda. Clique em "Adicionar Membro" para começar.
+              Nenhum membro cadastrado ainda. Clique em "Adicionar" para começar.
             </p>
           ) : (
-            <div className="space-y-3">
+            <div className="flex flex-col">
               {members.map((member: any) => (
-                <div key={member.id} className="flex items-center gap-3 p-4 bg-secondary/50 rounded-lg">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-sm">
+                <div key={member.id} className="flex flex-col sm:flex-row sm:items-center gap-4 py-4 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors rounded-xl group">
+                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-foreground font-semibold text-sm shadow-sm group-hover:scale-105 transition-transform">
                     {member.name?.charAt(0)?.toUpperCase() || "?"}
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-foreground text-sm">{member.name || "Sem nome"}</p>
+                    <p className="font-medium text-foreground text-sm tracking-tight">{member.name || "Sem nome"}</p>
                     <p className="text-xs text-muted-foreground">{member.email}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {getRoleIcon(member.clinicRole)}
-                    <span className="text-xs font-medium text-muted-foreground">{getRoleLabel(member.clinicRole)}</span>
-                  </div>
-                  {member.clinicRole !== "gestor" && member.id !== user?.id && (
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          const newRole = member.clinicRole === "crc" ? "dentista" : "crc";
-                          updateMember.mutate({ memberId: member.id, clinicRole: newRole });
-                        }}
-                        className="text-xs"
-                      >
-                        Trocar para {member.clinicRole === "crc" ? "Dentista" : "CRC"}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          if (confirm(`Remover ${member.name || member.email} da clínica?`)) {
-                            removeMember.mutate({ memberId: member.id });
-                          }
-                        }}
-                        className="text-red-400 hover:text-red-300"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                  <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-4 mt-2 sm:mt-0 w-full sm:w-auto">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
+                        {getRoleIcon(member.clinicRole)}
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground">{getRoleLabel(member.clinicRole)}</span>
                     </div>
-                  )}
+                    {member.clinicRole !== "gestor" && member.id !== user?.id && (
+                      <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            const newRole = member.clinicRole === "crc" ? "dentista" : "crc";
+                            updateMember.mutate({ memberId: member.id, clinicRole: newRole });
+                          }}
+                          className="text-xs h-8 hover:bg-white/5"
+                        >
+                          Tornar {member.clinicRole === "crc" ? "Dentista" : "CRC"}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            if (confirm(`Remover ${member.name || member.email} da clínica?`)) {
+                              removeMember.mutate({ memberId: member.id });
+                            }
+                          }}
+                          className="h-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>

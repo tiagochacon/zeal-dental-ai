@@ -784,111 +784,100 @@ export default function Patients() {
       </div>
 
       {/* Patient List */}
-      {isLoading ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-5">
-                <div className="flex items-center gap-3 mb-3">
+      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+        <div className="flex items-center gap-2 mb-6">
+          <Users className="h-5 w-5 text-primary" />
+          <h2 className="text-lg font-medium text-foreground tracking-tight">Lista de Pacientes</h2>
+        </div>
+
+        {isLoading ? (
+          <div className="flex flex-col">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="flex items-center justify-between py-4 px-2 border-b border-white/5 last:border-0">
+                <div className="flex items-center gap-3">
                   <Skeleton className="h-10 w-10 rounded-full shrink-0" />
                   <div className="space-y-2 flex-1">
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-4 w-48" />
+                    <Skeleton className="h-3 w-24" />
                   </div>
                 </div>
-                <Skeleton className="h-3 w-full mb-2" />
-                <Skeleton className="h-3 w-2/3" />
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : filteredPatients && filteredPatients.length > 0 ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
-          {filteredPatients.map((patient) => (
-            <Card 
-              key={patient.id} 
-              className="surface-glass border-white/5 hover:shadow-md hover:bg-white/5 hover:border-primary/30 transition-all duration-200 cursor-pointer"
-              onClick={() => setViewingPatient(patient as Patient)}
-            >
-              <CardHeader className="pb-3 border-none">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-primary font-semibold text-sm">
-                        {patient.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="min-w-0">
-                      <CardTitle className="text-sm font-semibold truncate">{patient.name}</CardTitle>
-                      {patient.cpf && (
-                        <p className="text-xs text-muted-foreground truncate">{patient.cpf}</p>
+              </div>
+            ))}
+          </div>
+        ) : filteredPatients && filteredPatients.length > 0 ? (
+          <div className="flex flex-col">
+            {filteredPatients.map((patient) => (
+              <div 
+                key={patient.id} 
+                className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 py-4 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors rounded-xl cursor-pointer group"
+                onClick={() => setViewingPatient(patient as Patient)}
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <span className="text-foreground font-semibold text-sm">
+                      {patient.name.charAt(0).toUpperCase()}
+                    </span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium tracking-tight text-foreground truncate">{patient.name}</p>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
+                      {patient.cpf && <span>CPF: {patient.cpf}</span>}
+                      {patient.phone && (
+                        <span className="flex items-center gap-1">
+                          <Phone className="h-3 w-3" />
+                          {patient.phone}
+                        </span>
+                      )}
+                      {patient.email && (
+                        <span className="flex items-center gap-1">
+                          <Mail className="h-3 w-3" />
+                          {patient.email}
+                        </span>
                       )}
                     </div>
                   </div>
-                  <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8"
-                          onClick={(e) => handleEdit(patient, e)}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Editar</TooltipContent>
-                    </Tooltip>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={(e) => handleDelete(patient.id, e)}
-                          disabled={deleteMutation.isPending}
-                        >
-                          {deleteMutation.isPending ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>Remover</TooltipContent>
-                    </Tooltip>
-                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                <div className="space-y-1.5 text-sm">
-                  {patient.phone && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Phone className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{patient.phone}</span>
-                    </div>
-                  )}
-                  {patient.email && (
-                    <div className="flex items-center gap-2 text-muted-foreground">
-                      <Mail className="h-3.5 w-3.5 shrink-0" />
-                      <span className="truncate">{patient.email}</span>
-                    </div>
-                  )}
-                  {(patient as Patient).createdAt && (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2 pt-2 border-t border-border">
-                      <Calendar className="h-3 w-3 shrink-0" />
-                      <span>Cadastrado em {new Date((patient as Patient).createdAt!).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                  )}
+                
+                <div className="flex gap-1 shrink-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => e.stopPropagation()}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 hover:bg-white/5"
+                        onClick={(e) => handleEdit(patient, e)}
+                      >
+                        <Edit className="h-4 w-4 text-foreground/70" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Editar</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={(e) => handleDelete(patient.id, e)}
+                        disabled={deleteMutation.isPending}
+                      >
+                        {deleteMutation.isPending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Remover</TooltipContent>
+                  </Tooltip>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="surface-glass border border-white/5 border-dashed rounded-xl p-8">
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <div className="p-4 rounded-full bg-muted mb-4">
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10 w-fit mx-auto">
               <Users className="h-8 w-8 text-muted-foreground" />
             </div>
             <h3 className="text-lg font-semibold mb-2">
@@ -906,8 +895,8 @@ export default function Patients() {
               </Button>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Patient Detail Sheet */}
       <PatientDetailSheet

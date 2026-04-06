@@ -60,123 +60,78 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex bg-background relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-background relative overflow-hidden">
       {/* DS token: Reflect DS radial glow background effects */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-primary/10 rounded-full blur-[180px] -translate-x-1/2 -translate-y-1/2 animate-pulse" />
-        <div className="absolute bottom-0 right-0 w-[700px] h-[700px] bg-accent/8 rounded-full blur-[160px] translate-x-1/2 translate-y-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/3 w-[500px] h-[500px] bg-primary/6 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }} />
+        <div className="absolute top-1/4 left-1/4 w-[800px] h-[800px] bg-primary/15 rounded-full blur-[180px] -translate-x-1/2 -translate-y-1/2 animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-[700px] h-[700px] bg-accent/15 rounded-full blur-[160px] translate-x-1/2 translate-y-1/2 animate-pulse" style={{ animationDelay: '1s' }} />
+        <div className="absolute top-1/2 left-1/2 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -translate-x-1/2 -translate-y-1/2 animate-pulse" style={{ animationDelay: '2s' }} />
       </div>
 
-      {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 relative z-10 flex-col justify-center px-16">
-        <div className="max-w-lg">
-          <div className="flex items-center gap-4 mb-8">
-            <img src="/logo.png" alt="ZEAL" className="h-16 w-auto drop-shadow-2xl" />
-            <span className="text-5xl font-bold text-foreground tracking-tight">Zeal</span>
-          </div>
-          
-          <h1 className="text-4xl lg:text-5xl font-bold text-white mb-6 leading-tight">
-            Sua Clínica no Próximo Nível com <span className="text-gradient-reflect">Inteligência Artificial</span>
-          </h1>
-          
-          <p className="text-xl text-foreground/70 mb-8 leading-relaxed">
-            Recupere seu tempo e eleve o faturamento do seu consultório. 
-            A ZEAL automatiza sua burocracia clínica e utiliza Neurovendas para aumentar a aceitação dos seus tratamentos.
-          </p>
-          
-          <div className="space-y-5">
-            <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="text-muted-foreground leading-relaxed">Foco Total no Paciente: Transcrição inteligente que elimina anotações manuais durante a consulta.</span>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-full bg-primary/15 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="text-muted-foreground leading-relaxed">Diagnósticos e Tratamentos Precisos: Documentação clínica gerada automaticamente a partir do áudio da sua consulta.</span>
-            </div>
-            <div className="flex items-start gap-4">
-              <div className="w-11 h-11 rounded-full bg-accent/15 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-accent" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                </svg>
-              </div>
-              <span className="text-accent font-medium leading-relaxed">Estratégia de Neurovendas: Scripts e gatilhos personalizados para aumentar o fechamento de tratamentos.</span>
-            </div>
-          </div>
+      {/* Main Content */}
+      <div className="w-full max-w-[440px] relative z-10 px-4 sm:px-8 flex flex-col items-center">
+        {/* Logo */}
+        <div className="flex items-center justify-center gap-3 mb-10">
+          <img src="/logo.png" alt="ZEAL" className="h-14 w-auto drop-shadow-2xl" />
+          <span className="text-4xl font-bold text-foreground tracking-tight">Zeal</span>
         </div>
-      </div>
 
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 relative z-10 flex items-center justify-center px-4 sm:px-8">
-        <div className="w-full max-w-md">
-          {/* Mobile Logo */}
-          <div className="lg:hidden flex items-center justify-center gap-3 mb-12">
-            <img src="/logo.png" alt="ZEAL" className="h-12 w-auto" />
-            <span className="text-3xl font-bold text-foreground tracking-tight">Zeal</span>
+        <div className="w-full surface-glass rounded-[32px] p-8 sm:p-10 shadow-[0_8px_40px_-12px_rgba(0,0,0,0.5)] border border-white/5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          
+          <div className="text-center mb-8">
+            <h2 className="text-2xl font-bold text-foreground mb-2">Bem-vindo de volta</h2>
+            <p className="text-muted-foreground">Entre na sua conta para continuar</p>
           </div>
 
-          <div className="surface-glass rounded-3xl p-8 sm:p-10 shadow-2xl relative overflow-hidden">
-            {/* Opcional: um brilho interno sutil no topo */}
-            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-            
-            <h2 className="text-2xl font-bold text-foreground mb-2">Bem-vindo de volta</h2>
-            <p className="text-muted-foreground mb-8">Entre na sua conta para continuar</p>
+          {/* Error Message */}
+          {error && (
+            <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-xl flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
+              <p className="text-destructive text-sm">{error}</p>
+            </div>
+          )}
 
-            {/* Error Message */}
-            {error && (
-              <div className="mb-6 p-4 bg-destructive/10 border border-destructive/30 rounded-xl flex items-center gap-3">
-                <AlertCircle className="h-5 w-5 text-destructive flex-shrink-0" />
-                <p className="text-destructive text-sm">{error}</p>
+          {/* Form */}
+          <form onSubmit={handleLogin} className="space-y-5">
+            {/* Email Field */}
+            <div className="relative">
+              <label className="text-sm font-medium text-foreground/80 mb-2 block">E-mail</label>
+              <Input
+                type="email"
+                placeholder="seu@email.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={loginMutation.isPending}
+                className="w-full h-12 bg-black/20 border border-white/5 rounded-xl text-foreground placeholder:text-muted-foreground/50 px-4 text-base transition-all duration-300 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-black/40 disabled:opacity-50"
+              />
+            </div>
+
+            {/* Password Field */}
+            <div className="relative">
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-sm font-medium text-foreground/80">Senha</label>
+                <button
+                  type="button"
+                  onClick={() => toast.info("Recuperação de senha em breve!")}
+                  className="text-xs text-primary hover:text-primary/80 transition-colors"
+                >
+                  Esqueci minha senha
+                </button>
               </div>
-            )}
-
-            {/* Form */}
-            <form onSubmit={handleLogin} className="space-y-5">
-              {/* Email Field */}
               <div className="relative">
-                <label className="text-sm font-medium text-muted-foreground mb-2 block">E-mail</label>
-                <Input
-                  type="email"
-                  placeholder="seu@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-white/5 border border-white/5 rounded-xl text-foreground placeholder:text-muted-foreground px-4 text-base transition-all focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-white/10 disabled:opacity-50"
-                />
-              </div>
-
-              {/* Password Field */}
-              <div className="relative">
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-sm font-medium text-muted-foreground">Senha</label>
-                  <button
-                    type="button"
-                    onClick={() => toast.info("Recuperação de senha em breve!")}
-                    className="text-xs text-primary hover:text-primary/70 transition-colors"
-                  >
-                    Esqueci minha senha
-                  </button>
-                </div>
                 <Input
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={loginMutation.isPending}
-                  className="w-full h-12 bg-white/5 border border-white/5 rounded-xl text-foreground placeholder:text-muted-foreground px-4 pr-12 text-base transition-all focus-visible:ring-1 focus-visible:ring-primary focus-visible:bg-white/10 disabled:opacity-50"
+                  className="w-full h-12 bg-black/20 border border-white/5 rounded-xl text-foreground placeholder:text-muted-foreground/50 px-4 pr-12 text-base transition-all duration-300 focus-visible:ring-1 focus-visible:ring-primary focus-visible:border-primary focus-visible:bg-black/40 disabled:opacity-50"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-[50px] text-muted-foreground hover:text-foreground transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="h-5 w-5" />
@@ -185,48 +140,48 @@ export default function Login() {
                   )}
                 </button>
               </div>
+            </div>
 
-              {/* Login Button */}
-              <Button 
-                type="submit"
-                disabled={loginMutation.isPending}
-                className="w-full h-12 font-semibold text-base mt-6 hover:scale-[1.02] disabled:hover:scale-100 transition-all duration-200"
-              >
-                {loginMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                    Entrando...
-                  </>
-                ) : (
-                  "Entrar"
-                )}
-              </Button>
+            {/* Login Button */}
+            <Button 
+              type="submit"
+              disabled={loginMutation.isPending}
+              className="w-full h-12 font-medium text-base mt-4 bg-primary text-primary-foreground hover:bg-primary/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_4px_14px_rgba(147,130,255,0.25)] rounded-xl transition-all duration-300"
+            >
+              {loginMutation.isPending ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                  Entrando...
+                </>
+              ) : (
+                "Entrar"
+              )}
+            </Button>
 
-              {/* Divider */}
-              <div className="relative my-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t border-border"></div>
-                </div>
-                <div className="relative flex justify-center text-sm">
-                  <span className="px-4 text-muted-foreground bg-card">ou</span>
-                </div>
+            {/* Divider */}
+            <div className="relative my-6">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-white/5"></div>
               </div>
-
-              {/* Register Link */}
-              <div className="text-center">
-                <span className="text-muted-foreground">Não tem conta? </span>
-                <Link href="/pricing" className="text-primary hover:text-primary/70 font-medium transition-colors">
-                  Veja nossos planos
-                </Link>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-4 text-muted-foreground/70 bg-transparent" style={{ textShadow: '0 0 10px rgba(0,0,0,0.5)' }}>ou</span>
               </div>
-            </form>
-          </div>
+            </div>
 
-          {/* Footer Info */}
-          <p className="text-center text-muted-foreground text-sm mt-8">
-            Sistema seguro e em conformidade com LGPD
-          </p>
+            {/* Register Link */}
+            <div className="text-center">
+              <span className="text-muted-foreground">Não tem conta? </span>
+              <Link href="/pricing" className="text-primary hover:text-primary/80 font-medium transition-colors">
+                Veja nossos planos
+              </Link>
+            </div>
+          </form>
         </div>
+
+        {/* Footer Info */}
+        <p className="text-center text-muted-foreground/50 text-sm mt-8">
+          Sistema seguro e em conformidade com LGPD
+        </p>
       </div>
     </div>
   );

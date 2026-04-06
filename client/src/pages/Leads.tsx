@@ -72,33 +72,43 @@ export default function Leads() {
         </div>
 
         {/* Leads List */}
-        {leadsQuery.isLoading ? (
-          <div className="flex justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
+          
+          <div className="flex items-center gap-2 mb-6">
+            <Users className="h-5 w-5 text-primary" />
+            <h2 className="text-lg font-medium text-foreground tracking-tight">Lista de Leads</h2>
           </div>
-        ) : filtered.length === 0 ? (
-          <div className="text-center py-16">
-            <Users className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-foreground mb-2">
-              {search ? "Nenhum lead encontrado" : "Nenhum lead cadastrado"}
-            </h3>
-            <p className="text-muted-foreground mb-4">
-              {search ? "Tente outro termo de busca" : "Comece cadastrando seu primeiro lead"}
-            </p>
-            {!search && (
-              <Button onClick={() => setShowNewLead(true)} className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-1" />
-                Cadastrar Lead
-              </Button>
-            )}
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filtered.map((lead: any) => (
-              <div
-                key={lead.id}
-                className="surface-glass rounded-xl p-4 border border-white/5 transition-all hover:bg-white/5 hover:shadow-md hover:border-primary/30"
-              >
+
+          {leadsQuery.isLoading ? (
+            <div className="flex justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16">
+              <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10 w-fit mx-auto">
+                <Users className="h-8 w-8 text-muted-foreground" />
+              </div>
+              <h3 className="text-lg font-semibold text-foreground mb-2">
+                {search ? "Nenhum lead encontrado" : "Nenhum lead cadastrado"}
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                {search ? "Tente outro termo de busca" : "Comece cadastrando seu primeiro lead"}
+              </p>
+              {!search && (
+                <Button onClick={() => setShowNewLead(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="h-4 w-4 mr-1" />
+                  Cadastrar Lead
+                </Button>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              {filtered.map((lead: any) => (
+                <div
+                  key={lead.id}
+                  className="py-4 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors rounded-xl group"
+                >
                 <div className="flex items-center justify-between">
                   <Link href={`/leads/${lead.id}`}>
                     <div className="cursor-pointer flex-1">
@@ -144,10 +154,11 @@ export default function Leads() {
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       {/* New Lead Dialog */}
       <Dialog open={showNewLead} onOpenChange={setShowNewLead}>
         <DialogContent className="surface-glass border-white/5 shadow-2xl max-w-md">
