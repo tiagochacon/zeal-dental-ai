@@ -88,6 +88,17 @@ function toJsonText(val: unknown): string | null {
   return JSON.stringify(val);
 }
 
+// Helper: normalize User object — Supabase returns numeric columns as strings
+function normalizeUser(row: unknown): User {
+  if (!row || typeof row !== "object") return row as User;
+  const r = row as Record<string, unknown>;
+  return {
+    ...r,
+    id: Number(r.id),
+    clinicId: r.clinicId != null ? Number(r.clinicId) : null,
+  } as User;
+}
+
 // Helper: get next available ID for tables without auto-increment
 async function getNextId(tableName: string): Promise<number> {
   const { data } = await supabase
@@ -169,7 +180,7 @@ export async function getUserByOpenId(openId: string): Promise<User | undefined>
     return undefined;
   }
   if (!data || data.length === 0) return undefined;
-  return data[0] as User;
+  return normalizeUser(data[0]);
 }
 
 export async function updateUserCRO(userId: number, croNumber: string): Promise<void> {
@@ -565,7 +576,7 @@ export async function getUserByEmail(email: string): Promise<User | undefined> {
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as User | undefined ?? undefined;
+  return data ? normalizeUser(data) : undefined;
 }
 
 export async function getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined> {
@@ -576,7 +587,7 @@ export async function getUserByStripeCustomerId(stripeCustomerId: string): Promi
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data as User | undefined ?? undefined;
+  return data ? normalizeUser(data) : undefined;
 }
 
 export async function updateUserByStripeCustomerId(
@@ -676,7 +687,7 @@ export async function resetUserAccount(email: string) {
   if (userError) throw new Error(userError.message);
   if (!userRows) throw new Error(`Usuário com email ${email} não encontrado`);
 
-  const user = userRows as User;
+  const user = normalizeUser(userRows);
 
   const { data: userConsultations } = await supabase
     .from("Consultations")
