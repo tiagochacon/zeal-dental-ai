@@ -1130,3 +1130,9 @@
 ## Correção de Bugs - Notas Clínicas e Ligações CRC (v35)
 - [ ] Corrigir erro queixa_principal undefined na geração de notas clínicas
 - [ ] Corrigir coluna status ausente na tabela Calls (erro schema cache Supabase)
+
+## Fix Race Condition Gravação de Áudio (v-audio-fix)
+- [x] Fix race condition: último chunk perdido ao parar gravação (stop() retorna Promise + isLastChunkQueued)
+- [x] Fix assembleTranscript: aguardar stop promise + chunks em voo antes de montar transcrição final
+- [x] Fix UI: desabilitar botão "Usar transcrição" enquanto último chunk não enfileirado + indicadores de progresso
+- [x] Fix edge case: flushSegment + stop() quase simultâneos

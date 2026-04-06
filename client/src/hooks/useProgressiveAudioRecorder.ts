@@ -151,6 +151,8 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
   const [chunks, setChunks] = useState<ChunkTranscription[]>([]);
   const [finalTranscript, setFinalTranscript] = useState<string | null>(null);
   const [isAssembling, setIsAssembling] = useState(false);
+  // Fix 1+4: Track whether the last chunk from stop() has been queued
+  const [isLastChunkQueued, setIsLastChunkQueued] = useState(true);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -164,6 +166,9 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
   // Serial queue: transcriptions go in order
   const transcriptionQueueRef = useRef<Promise<void>>(Promise.resolve());
   const stateRef = useRef<RecordingState>("idle");
+  // Fix 1: Promise that resolves when stop()'s onstop handler has finished dispatching the last chunk
+  const stopCompleteResolveRef = useRef<(() => void) | null>(null);
+  const stopCompletePromiseRef = useRef<Promise<void>>(Promise.resolve());
 
   const setStateSync = (s: RecordingState) => {
     stateRef.current = s;
@@ -258,12 +263,15 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
       chunkIndexRef.current = 0;
       sessionIdRef.current = generateSessionId();
       transcriptionQueueRef.current = Promise.resolve();
+      stopCompletePromiseRef.current = Promise.resolve();
+      stopCompleteResolveRef.current = null;
 
       setChunks([]);
       setFinalTranscript(null);
       setAudioBlob(null);
       setAudioUrl(null);
       setDuration(0);
+      setIsLastChunkQueued(true); // No pending stop yet
 
       mimeTypeRef.current = MediaRecorder.isTypeSupported("audio/webm;codecs=opus")
         ? "audio/webm;codecs=opus"
@@ -286,14 +294,18 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     }
   }, [chunkDurationMs, startSegment, flushSegment]);
 
-  // ─── stop() ─────────────────────────────────────────────────────────────────
-  const stop = useCallback(() => {
+  // ─── stop() — Fix 1: returns Promise<void> that resolves after onstop dispatches last chunk ───
+  const stop = useCallback((): Promise<void> => {
     if (timerRef.current) clearInterval(timerRef.current);
     if (chunkTimerRef.current) clearInterval(chunkTimerRef.current);
 
     setStateSync("stopped");
+    // Fix 4: Mark that the last chunk is NOT yet queued
+    setIsLastChunkQueued(false);
 
     const recorder = mediaRecorderRef.current;
+
+    // Edge case: recorder already inactive (e.g. very short recording)
     if (!recorder || recorder.state === "inactive") {
       if (allRawBlobsRef.current.length > 0) {
         const full = new Blob(allRawBlobsRef.current, { type: mimeTypeRef.current });
@@ -301,10 +313,19 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
         setAudioUrl(URL.createObjectURL(full));
       }
       streamRef.current?.getTracks().forEach((t) => t.stop());
-      return;
+      // No last chunk to dispatch, mark as queued immediately
+      setIsLastChunkQueued(true);
+      stopCompletePromiseRef.current = Promise.resolve();
+      return Promise.resolve();
     }
 
-    // Capture last segment
+    // Create a new Promise that will resolve when onstop finishes
+    const stopPromise = new Promise<void>((resolve) => {
+      stopCompleteResolveRef.current = resolve;
+    });
+    stopCompletePromiseRef.current = stopPromise;
+
+    // Override onstop to handle the final chunk and resolve the promise
     const lastBlobs: Blob[] = [];
     recorder.ondataavailable = (e) => {
       if (e.data.size > 0) {
@@ -325,8 +346,14 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
       setAudioBlob(full);
       setAudioUrl(URL.createObjectURL(full));
       streamRef.current?.getTracks().forEach((t) => t.stop());
+
+      // Fix 1+4: Last chunk has been dispatched to the queue
+      setIsLastChunkQueued(true);
+      stopCompleteResolveRef.current?.();
     };
     recorder.stop();
+
+    return stopPromise;
   }, [dispatchChunkBlob]);
 
   // ─── pause() / resume() ──────────────────────────────────────────────────────
@@ -348,14 +375,61 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     }
   }, [chunkDurationMs, flushSegment]);
 
-  // ─── assembleTranscript() — waits for all chunks, returns joined text ────────
+  // ─── assembleTranscript() — Fix 2+3: waits for stop + in-flight chunks ──────
   const assembleTranscript = useCallback(async (): Promise<string> => {
     setIsAssembling(true);
+
+    // Fix 2: Wait for stop()'s onstop to finish dispatching the last chunk
+    if (stateRef.current === "stopped") {
+      await stopCompletePromiseRef.current;
+    }
+
+    // Fix 3: Now capture and await the transcription queue (includes the last chunk)
     await transcriptionQueueRef.current;
 
+    // Fix 3: Poll for in-flight chunks that may still be processing
+    const MAX_WAIT_MS = 30_000;
+    const POLL_INTERVAL_MS = 200;
+    const startWait = Date.now();
+
+    await new Promise<void>((resolve) => {
+      const checkChunks = () => {
+        setChunks((currentChunks) => {
+          const hasInFlight = currentChunks.some(
+            (c) => c.status === "uploading" || c.status === "transcribing"
+          );
+
+          if (!hasInFlight || Date.now() - startWait > MAX_WAIT_MS) {
+            if (hasInFlight) {
+              console.warn("[assembleTranscript] Timeout waiting for in-flight chunks after 30s");
+            }
+            resolve();
+          } else {
+            // Re-await the queue (it may have grown) and poll again
+            transcriptionQueueRef.current.then(() => {
+              setTimeout(checkChunks, POLL_INTERVAL_MS);
+            });
+          }
+          return currentChunks; // Don't mutate state
+        });
+      };
+      checkChunks();
+    });
+
+    // Build final transcript from completed chunks only
     return new Promise((resolve) => {
       setChunks((currentChunks) => {
         const sorted = [...currentChunks].sort((a, b) => a.index - b.index);
+
+        // Log warning for error chunks
+        const errorChunks = sorted.filter((c) => c.status === "error");
+        if (errorChunks.length > 0) {
+          console.warn(
+            `[assembleTranscript] ${errorChunks.length} chunk(s) com erro, excluídos da transcrição:`,
+            errorChunks.map((c) => `Seg.${c.index + 1}: ${c.error}`)
+          );
+        }
+
         const text = sorted
           .filter((c) => c.status === "done")
           .map((c) => c.text.trim())
@@ -386,9 +460,12 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     setChunks([]);
     setFinalTranscript(null);
     setIsAssembling(false);
+    setIsLastChunkQueued(true); // Fix: reset to true (idle state has no pending stop)
     allRawBlobsRef.current = [];
     chunkIndexRef.current = 0;
     sessionIdRef.current = "";
+    stopCompletePromiseRef.current = Promise.resolve(); // Fix: reset stop promise
+    stopCompleteResolveRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     if (chunkTimerRef.current) clearInterval(chunkTimerRef.current);
   }, []);
@@ -414,6 +491,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     chunks,
     finalTranscript,
     isAssembling,
+    isLastChunkQueued, // Fix 4: exposed for UI to disable button
     recordingSessionId: sessionIdRef.current,
     start,
     stop,

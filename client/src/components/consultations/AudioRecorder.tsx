@@ -69,6 +69,26 @@ export function AudioRecorder({
     onTranscriptReady(transcript);
   }, [recorder, onTranscriptReady, onError]);
 
+  // Fix 4: Compute button disabled state and label
+  const isFinishDisabled =
+    recorder.isAssembling ||
+    recorder.totalChunks === 0 ||
+    !recorder.isLastChunkQueued;
+
+  const getFinishButtonLabel = (): string => {
+    if (recorder.isAssembling) return "Finalizando...";
+    if (!recorder.isLastChunkQueued) return "Aguardando último segmento...";
+    if (recorder.isLastChunkQueued && !recorder.allChunksDone && recorder.totalChunks > 0) {
+      return `Transcrevendo ${recorder.completedChunks}/${recorder.totalChunks}...`;
+    }
+    return "Usar transcrição";
+  };
+
+  const showFinishSpinner =
+    recorder.isAssembling ||
+    !recorder.isLastChunkQueued ||
+    (!recorder.allChunksDone && recorder.totalChunks > 0);
+
   return (
     <div className="flex flex-col gap-4">
       {/* Main recording card */}
@@ -176,15 +196,15 @@ export function AudioRecorder({
               </button>
               <button
                 onClick={handleFinish}
-                disabled={recorder.isAssembling || recorder.totalChunks === 0}
+                disabled={isFinishDisabled}
                 className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                {recorder.isAssembling ? (
+                {showFinishSpinner ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   <CheckCircle2 className="w-4 h-4" />
                 )}
-                {recorder.isAssembling ? "Finalizando..." : "Usar transcrição"}
+                {getFinishButtonLabel()}
               </button>
             </>
           )}
