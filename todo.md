@@ -1144,3 +1144,8 @@
 - [x] Superfícies Master: Gradiente sutil from-white/[0.03] to-transparent nos containers .surface-glass
 - [x] Hover States: Ícones ganham cor e scale no hover das linhas de listagem
 - [x] Validar TypeScript sem erros após alterações
+
+## Bug Fix: null value in column 'id' ao criar conta (v39)
+- [x] Diagnosticar causa raiz: ler schema e função createUser
+- [x] Corrigir geração do ID na criação de usuário (getNextUserId + lastSignedIn + consultationCountResetAt)
+- [x] Validar TypeScript sem erros e testar (450 testes passando)

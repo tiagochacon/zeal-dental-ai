@@ -2,6 +2,18 @@ import bcrypt from "bcrypt";
 import { supabase } from "./lib/supabaseClient";
 import type { User } from "../drizzle/schema";
 
+// Helper: get next available ID for tables without auto-increment (same logic as db.ts)
+async function getNextUserId(): Promise<number> {
+  const { data } = await supabase
+    .from("Users")
+    .select("id")
+    .order("id", { ascending: false })
+    .limit(1);
+  const rawId = data && data.length > 0 ? (data[0] as { id: unknown }).id : 0;
+  const maxId = Number(rawId) || 0;
+  return maxId + Math.floor(Math.random() * 10) + 1;
+}
+
 // NOTE: Existing admin users created before this change may not have clinicRole='gestor'.
 // Run the following SQL manually to fix them:
 // UPDATE users SET clinicRole='gestor' WHERE role='admin' AND clinicRole IS NULL;
@@ -44,10 +56,12 @@ export async function createUser(data: {
   const passwordHash = await hashPassword(data.password);
   const isAdmin = isAdminEmail(data.email);
   const openId = `email_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+  const newId = await getNextUserId();
 
   const { data: row, error } = await supabase
     .from("Users")
     .insert({
+      id: newId,
       email: data.email.toLowerCase(),
       passwordHash,
       name: data.name,
@@ -55,6 +69,8 @@ export async function createUser(data: {
       loginMethod: "email",
       role: isAdmin ? "admin" : "user",
       subscriptionStatus: isAdmin ? "active" : "inactive",
+      lastSignedIn: new Date().toISOString(),
+      consultationCountResetAt: new Date().toISOString(),
     })
     .select("id")
     .single();
