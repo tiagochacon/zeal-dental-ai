@@ -87,7 +87,7 @@ export default function Consultations() {
       </div>
 
       {/* Consultation List */}
-      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
         <div className="flex items-center gap-2 mb-6">
           <FileText className="h-5 w-5 text-primary" />
@@ -111,8 +111,8 @@ export default function Consultations() {
           </div>
         ) : filteredConsultations.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10">
-              <FileText className="h-8 w-8 text-muted-foreground" />
+            <div className="p-4 rounded-full bg-primary/10 mb-4 border border-primary/20">
+              <FileText className="h-8 w-8 text-primary/70" />
             </div>
             <h3 className="text-lg font-semibold mb-2">
               {searchQuery ? "Nenhuma consulta encontrada" : "Nenhuma consulta ainda"}

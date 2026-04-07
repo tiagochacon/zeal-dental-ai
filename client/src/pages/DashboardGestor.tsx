@@ -78,7 +78,7 @@ export default function DashboardGestor() {
         </Link>
       </div>
         {/* Funnel de Conversão */}
-        <div className="surface-glass rounded-3xl p-8 sm:p-10 mb-8 border border-white/5 shadow-2xl">
+        <div className="surface-glass rounded-3xl p-8 sm:p-10 mb-8 border border-white/5 shadow-2xl bg-gradient-to-b from-white/[0.03] to-transparent">
           <div className="flex items-center gap-3 mb-8">
             <TrendingUp className="h-5 w-5 text-foreground/70" />
             <h2 className="text-lg font-medium text-foreground tracking-tight">
@@ -148,29 +148,29 @@ export default function DashboardGestor() {
               <div className="space-y-4 max-w-2xl">
                 <div className="flex items-center gap-4 group">
                   <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Ligações</span>
-                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.totalCalls) }} />
+                  <div className="flex-1 h-[3px] bg-white/5 rounded-full relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)] transition-all duration-700 ease-out" style={{ width: pct(stats.totalCalls) }} />
                   </div>
                   <span className="text-sm font-medium text-foreground w-12 text-right">{stats.totalCalls}</span>
                 </div>
                 <div className="flex items-center gap-4 group">
                   <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Agendados</span>
-                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.scheduledCalls) }} />
+                  <div className="flex-1 h-[3px] bg-white/5 rounded-full relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-amber-600 to-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.4)] transition-all duration-700 ease-out" style={{ width: pct(stats.scheduledCalls) }} />
                   </div>
                   <span className="text-sm font-medium text-foreground w-12 text-right">{stats.scheduledCalls}</span>
                 </div>
                 <div className="flex items-center gap-4 group">
                   <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Comparecim.</span>
-                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.totalConsultations) }} />
+                  <div className="flex-1 h-[3px] bg-white/5 rounded-full relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-indigo-600 to-purple-400 shadow-[0_0_10px_rgba(192,132,252,0.4)] transition-all duration-700 ease-out" style={{ width: pct(stats.totalConsultations) }} />
                   </div>
                   <span className="text-sm font-medium text-foreground w-12 text-right">{stats.totalConsultations}</span>
                 </div>
                 <div className="flex items-center gap-4 group">
                   <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Fechamentos</span>
-                  <div className="flex-1 h-[2px] bg-white/5 relative overflow-hidden">
-                    <div className="absolute top-0 left-0 h-full bg-foreground transition-all duration-700 ease-out" style={{ width: pct(stats.closedTreatments) }} />
+                  <div className="flex-1 h-[3px] bg-white/5 rounded-full relative overflow-hidden">
+                    <div className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-emerald-600 to-teal-400 shadow-[0_0_10px_rgba(45,212,191,0.4)] transition-all duration-700 ease-out" style={{ width: pct(stats.closedTreatments) }} />
                   </div>
                   <span className="text-sm font-medium text-foreground w-12 text-right">{stats.closedTreatments}</span>
                 </div>
@@ -234,8 +234,8 @@ export default function DashboardGestor() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Link href="/team">
             <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <UserPlus className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+              <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <UserPlus className="h-4 w-4 text-blue-400 group-hover:text-blue-300 transition-colors" />
               </div>
               <div>
                 <h3 className="font-medium text-sm text-foreground tracking-tight">Gerenciar Time</h3>
@@ -245,8 +245,8 @@ export default function DashboardGestor() {
           </Link>
           <Link href="/leads">
             <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Phone className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Phone className="h-4 w-4 text-amber-400 group-hover:text-amber-300 transition-colors" />
               </div>
               <div>
                 <h3 className="font-medium text-sm text-foreground tracking-tight">Ver Leads</h3>
@@ -256,8 +256,8 @@ export default function DashboardGestor() {
           </Link>
           <Link href="/patients">
             <div className="group flex items-center gap-4 p-5 rounded-2xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.04] transition-all cursor-pointer">
-              <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:scale-110 transition-transform">
-                <Users className="h-4 w-4 text-foreground/70 group-hover:text-foreground transition-colors" />
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:scale-110 transition-transform">
+                <Users className="h-4 w-4 text-emerald-400 group-hover:text-emerald-300 transition-colors" />
               </div>
               <div>
                 <h3 className="font-medium text-sm text-foreground tracking-tight">Ver Pacientes</h3>

@@ -1136,3 +1136,11 @@
 - [x] Fix assembleTranscript: aguardar stop promise + chunks em voo antes de montar transcrição final
 - [x] Fix UI: desabilitar botão "Usar transcrição" enquanto último chunk não enfileirado + indicadores de progresso
 - [x] Fix edge case: flushSegment + stop() quase simultâneos
+
+## Visual Refactoring Parte 2 - Injeção de Cor e Glow (v38)
+- [x] Funil DashboardGestor: Substituir barras brancas por gradientes com glow (azul-cyan, âmbar-amarelo, índigo-roxo, esmeralda-teal)
+- [x] Quick Actions DashboardGestor: Ícones dentro de boxes coloridos translúcidos
+- [x] Avatares Tinted Glass: TeamManagement (por role: âmbar/azul/verde), Patients, Calls, Consultations, Leads
+- [x] Superfícies Master: Gradiente sutil from-white/[0.03] to-transparent nos containers .surface-glass
+- [x] Hover States: Ícones ganham cor e scale no hover das linhas de listagem
+- [x] Validar TypeScript sem erros após alterações

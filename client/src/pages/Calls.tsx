@@ -72,7 +72,7 @@ export default function Calls() {
       </div>
 
       {/* List */}
-      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
         <div className="flex items-center gap-2 mb-6">
           <Phone className="h-5 w-5 text-primary" />
@@ -89,8 +89,8 @@ export default function Calls() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16">
-            <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10 w-fit mx-auto">
-              <Phone className="h-8 w-8 text-muted-foreground" />
+            <div className="p-4 rounded-full bg-primary/10 mb-4 border border-primary/20 w-fit mx-auto">
+              <Phone className="h-8 w-8 text-primary/70" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
               {search ? "Nenhuma ligação encontrada" : "Nenhuma ligação registrada"}
@@ -118,13 +118,17 @@ export default function Calls() {
                   <div className="py-4 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors rounded-xl cursor-pointer group">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform ${
+                          call.schedulingResult === "scheduled" ? 'bg-emerald-500/10 border border-emerald-500/20' :
+                          call.schedulingResult === "not_scheduled" ? 'bg-red-500/10 border border-red-500/20' :
+                          'bg-blue-500/10 border border-blue-500/20'
+                        }`}>
                           {call.schedulingResult === "scheduled" ? (
                             <CalendarCheck className="w-4 h-4 text-emerald-400" />
                           ) : call.schedulingResult === "not_scheduled" ? (
                             <PhoneOff className="w-4 h-4 text-destructive" />
                           ) : (
-                            <Phone className="w-4 h-4 text-muted-foreground" />
+                            <Phone className="w-4 h-4 text-blue-400" />
                           )}
                         </div>
                         <div>

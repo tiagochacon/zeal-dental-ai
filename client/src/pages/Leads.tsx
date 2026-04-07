@@ -72,7 +72,7 @@ export default function Leads() {
         </div>
 
         {/* Leads List */}
-        <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
           
           <div className="flex items-center gap-2 mb-6">
@@ -86,8 +86,8 @@ export default function Leads() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center py-16">
-              <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10 w-fit mx-auto">
-                <Users className="h-8 w-8 text-muted-foreground" />
+              <div className="p-4 rounded-full bg-primary/10 mb-4 border border-primary/20 w-fit mx-auto">
+                <Users className="h-8 w-8 text-primary/70" />
               </div>
               <h3 className="text-lg font-semibold text-foreground mb-2">
                 {search ? "Nenhum lead encontrado" : "Nenhum lead cadastrado"}

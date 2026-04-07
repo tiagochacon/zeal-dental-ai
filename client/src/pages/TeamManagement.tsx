@@ -132,7 +132,7 @@ export default function TeamManagement() {
         </div>
 
         {/* Members List */}
-        <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
           <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
           <h2 className="text-lg font-medium text-foreground mb-6 tracking-tight">Membros da Clínica</h2>
           
@@ -144,7 +144,12 @@ export default function TeamManagement() {
             <div className="flex flex-col">
               {members.map((member: any) => (
                 <div key={member.id} className="flex flex-col sm:flex-row sm:items-center gap-4 py-4 px-3 border-b border-white/5 last:border-0 hover:bg-white/[0.03] transition-colors rounded-xl group">
-                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-foreground font-semibold text-sm shadow-sm group-hover:scale-105 transition-transform">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center font-semibold text-sm shadow-sm group-hover:scale-105 transition-transform ${
+                    member.clinicRole === 'gestor' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
+                    member.clinicRole === 'crc' ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20' :
+                    member.clinicRole === 'dentista' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
+                    'bg-primary/10 text-primary border border-primary/20'
+                  }`}>
                     {member.name?.charAt(0)?.toUpperCase() || "?"}
                   </div>
                   <div className="flex-1">
@@ -153,7 +158,12 @@ export default function TeamManagement() {
                   </div>
                   <div className="flex items-center justify-between sm:justify-end gap-6 sm:gap-4 mt-2 sm:mt-0 w-full sm:w-auto">
                     <div className="flex items-center gap-2">
-                      <div className="w-6 h-6 rounded-full bg-white/5 flex items-center justify-center">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                        member.clinicRole === 'gestor' ? 'bg-amber-500/10' :
+                        member.clinicRole === 'crc' ? 'bg-blue-500/10' :
+                        member.clinicRole === 'dentista' ? 'bg-emerald-500/10' :
+                        'bg-white/5'
+                      }`}>
                         {getRoleIcon(member.clinicRole)}
                       </div>
                       <span className="text-xs font-medium text-muted-foreground">{getRoleLabel(member.clinicRole)}</span>

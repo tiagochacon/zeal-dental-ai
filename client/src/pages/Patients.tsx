@@ -784,7 +784,7 @@ export default function Patients() {
       </div>
 
       {/* Patient List */}
-      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+      <div className="surface-glass border border-white/5 rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden bg-gradient-to-b from-white/[0.03] to-transparent">
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
         <div className="flex items-center gap-2 mb-6">
           <Users className="h-5 w-5 text-primary" />
@@ -814,8 +814,8 @@ export default function Patients() {
                 onClick={() => setViewingPatient(patient as Patient)}
               >
                 <div className="flex items-center gap-4 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
-                    <span className="text-foreground font-semibold text-sm">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                    <span className="text-primary font-semibold text-sm">
                       {patient.name.charAt(0).toUpperCase()}
                     </span>
                   </div>
@@ -877,8 +877,8 @@ export default function Patients() {
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="p-4 rounded-full bg-white/5 mb-4 border border-white/10 w-fit mx-auto">
-              <Users className="h-8 w-8 text-muted-foreground" />
+            <div className="p-4 rounded-full bg-primary/10 mb-4 border border-primary/20 w-fit mx-auto">
+              <Users className="h-8 w-8 text-primary/70" />
             </div>
             <h3 className="text-lg font-semibold mb-2">
               {searchQuery ? "Nenhum paciente encontrado" : "Nenhum paciente ainda"}
