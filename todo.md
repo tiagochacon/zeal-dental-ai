@@ -1149,3 +1149,15 @@
 - [x] Diagnosticar causa raiz: ler schema e função createUser
 - [x] Corrigir geração do ID na criação de usuário (getNextUserId + lastSignedIn + consultationCountResetAt)
 - [x] Validar TypeScript sem erros e testar (450 testes passando)
+
+## Bug Fix: Failed to fetch na página /consultation/:id (v40)
+- [ ] Diagnosticar causa raiz: verificar logs do servidor e query da consulta
+- [ ] Corrigir o problema identificado
+- [ ] Validar e testar
+
+## Bug Fix: removeChild intermitente - crash na página (v40)
+- [x] Diagnosticar causa raiz: extensões de navegador (Google Translate) modificam DOM fora do React
+- [x] Corrigir ErrorBoundary: auto-retry 2x para erros DOM + textos em PT-BR
+- [x] Monkey-patch Node.removeChild e Node.insertBefore para capturar erros silenciosamente
+- [x] Adicionar translate=no, notranslate e lang=pt-BR no HTML
+- [x] 450 testes passando, zero erros TypeScript

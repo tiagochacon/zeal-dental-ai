@@ -11,17 +11,22 @@ interface State {
   hasError: boolean;
   error: Error | null;
   errorInfo: React.ErrorInfo | null;
+  retryCount: number;
 }
 
 /**
  * Global Error Boundary component that catches JavaScript errors anywhere in the child component tree.
  * Specifically designed to handle DOM-related errors like "removeChild" issues that can occur
- * due to race conditions or timing issues in React's reconciliation process.
+ * due to browser extensions (e.g., Google Translate) or race conditions in React's reconciliation.
+ * 
+ * For DOM-related errors, it will auto-retry up to 2 times before showing the error UI.
  */
 class ErrorBoundary extends Component<Props, State> {
+  private retryTimeout: ReturnType<typeof setTimeout> | null = null;
+
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null, errorInfo: null };
+    this.state = { hasError: false, error: null, errorInfo: null, retryCount: 0 };
   }
 
   static getDerivedStateFromError(error: Error): Partial<State> {
@@ -29,15 +34,30 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
-    // Log error details for debugging
     this.setState({ errorInfo });
     
-    // Log to console in development
     console.error("ErrorBoundary caught an error:", error);
     console.error("Component stack:", errorInfo.componentStack);
     
-    // Production-safe error logging with context
     this.logError(error, errorInfo);
+
+    // Auto-retry for DOM-related errors (caused by browser extensions)
+    if (this.isDOMRelatedError(error) && this.state.retryCount < 2) {
+      this.retryTimeout = setTimeout(() => {
+        this.setState((prev) => ({
+          hasError: false,
+          error: null,
+          errorInfo: null,
+          retryCount: prev.retryCount + 1,
+        }));
+      }, 300);
+    }
+  }
+
+  componentWillUnmount(): void {
+    if (this.retryTimeout) {
+      clearTimeout(this.retryTimeout);
+    }
   }
 
   private logError(error: Error, errorInfo: React.ErrorInfo): void {
@@ -49,18 +69,15 @@ class ErrorBoundary extends Component<Props, State> {
         timestamp: new Date().toISOString(),
         url: window.location.href,
         userAgent: navigator.userAgent,
-        // Check if this is a DOM-related error
         isDOMError: this.isDOMRelatedError(error),
+        retryCount: this.state.retryCount,
       };
 
-      // Log to console for now - in production, this could be sent to a logging service
       console.error("[ErrorBoundary] Error Report:", errorReport);
       
-      // Store in sessionStorage for debugging
       try {
         const existingErrors = JSON.parse(sessionStorage.getItem("errorBoundaryLogs") || "[]");
         existingErrors.push(errorReport);
-        // Keep only last 10 errors
         if (existingErrors.length > 10) {
           existingErrors.shift();
         }
@@ -82,7 +99,6 @@ class ErrorBoundary extends Component<Props, State> {
       "NotFoundError",
       "The node to be removed is not a child of this node",
       "Failed to execute",
-      "Cannot read properties of null",
     ];
     
     const errorString = `${error.message} ${error.stack || ""}`;
@@ -90,9 +106,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   private handleReload = (): void => {
-    // Clear any cached state that might cause the error to persist
     try {
-      // Clear React Query cache if available
       if (typeof window !== "undefined" && (window as any).__REACT_QUERY_DEVTOOLS_GLOBAL_HOOK__) {
         (window as any).__REACT_QUERY_DEVTOOLS_GLOBAL_HOOK__.clear?.();
       }
@@ -104,12 +118,11 @@ class ErrorBoundary extends Component<Props, State> {
   };
 
   private handleReset = (): void => {
-    this.setState({ hasError: false, error: null, errorInfo: null });
+    this.setState({ hasError: false, error: null, errorInfo: null, retryCount: 0 });
   };
 
   render() {
     if (this.state.hasError) {
-      // Allow custom fallback UI
       if (this.props.fallback) {
         return this.props.fallback;
       }
@@ -124,22 +137,23 @@ class ErrorBoundary extends Component<Props, State> {
               className="text-destructive mb-6 flex-shrink-0"
             />
 
-            <h2 className="text-xl mb-4">
+            <h2 className="text-xl mb-4 text-foreground">
               {isDOMError 
-                ? "A display error occurred. Please reload the page."
-                : "An unexpected error occurred."
+                ? "Ocorreu um erro de exibição. Recarregue a página."
+                : "Ocorreu um erro inesperado."
               }
             </h2>
 
             {isDOMError && (
               <p className="text-sm text-muted-foreground mb-4 text-center">
-                This error is typically caused by a timing issue and can be resolved by reloading.
+                Esse erro geralmente é causado por um problema de sincronização e pode ser resolvido
+                recarregando a página.
               </p>
             )}
 
             <div className="p-4 w-full rounded bg-muted overflow-auto mb-6 max-h-48">
               <pre className="text-sm text-muted-foreground whitespace-break-spaces">
-                {this.state.error?.message || "Unknown error"}
+                {this.state.error?.message || "Erro desconhecido"}
               </pre>
             </div>
 
@@ -153,7 +167,7 @@ class ErrorBoundary extends Component<Props, State> {
                 )}
               >
                 <RotateCcw size={16} />
-                Reload Page
+                Recarregar página
               </button>
               
               {!isDOMError && (
@@ -165,7 +179,7 @@ class ErrorBoundary extends Component<Props, State> {
                     "hover:opacity-90 cursor-pointer"
                   )}
                 >
-                  Try Again
+                  Tentar novamente
                 </button>
               )}
             </div>
