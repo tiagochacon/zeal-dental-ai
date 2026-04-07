@@ -1,4 +1,3 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
@@ -50,14 +49,22 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
     if (user.priceId === "unlimited" || user.subscriptionTier === "unlimited") return "unlimited";
     
     const status = subscriptionInfo?.subscriptionStatus || user.subscriptionStatus;
+    const tier = user.subscriptionTier;
     const priceId = subscriptionInfo?.priceId || user.priceId;
     
+    // Check subscription tier first (most reliable)
     if (status === "active" || status === "trialing") {
-      if (priceId?.includes("price_1SqJOTJRQSBgWkb1BFgs9QoP")) {
-        return "pro";
-      }
-      if (priceId?.includes("price_1SqJOSJRQSBgWkb1XDS4DBaw")) {
-        return "basic";
+      if (tier === "pro") return "pro";
+      if (tier === "basic") return "basic";
+      
+      // Fallback to priceId matching (for legacy data)
+      if (priceId) {
+        // Current production IDs
+        if (priceId.includes("price_1SuYhvJBQOFbtGZhu5hcAhqH")) return "pro";
+        if (priceId.includes("price_1SuYhvJBQOFbtGZhL4AVyGqb")) return "basic";
+        // Legacy IDs (if any)
+        if (priceId.includes("price_1SqJOTJRQSBgWkb1BFgs9QoP")) return "pro";
+        if (priceId.includes("price_1SqJOSJRQSBgWkb1XDS4DBaw")) return "basic";
       }
     }
     
@@ -98,43 +105,59 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
   if (currentPlan === "admin" || currentPlan === "unlimited") {
     return (
       <Card className={`bg-gradient-to-r from-primary/15 to-accent/10 border-primary/30 ${className}`}>
-        <CardContent className="p-4 flex items-center gap-3">
-          <Crown className="h-5 w-5 text-warning" />
-          <div>
-            <p className="text-sm font-medium text-foreground">
-              {currentPlan === "admin" ? "Acesso Administrativo" : "ZEAL Unlimited"}
-            </p>
-            <p className="text-xs text-muted-foreground">Consultas ilimitadas</p>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Crown className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-semibold text-foreground">Plano Unlimited</p>
+                <p className="text-sm text-muted-foreground">Acesso completo a todos os recursos</p>
+              </div>
+            </div>
+            <Badge variant="secondary">Ativo</Badge>
           </div>
-          <CheckCircle2 className="h-5 w-5 text-chart-5 ml-auto" />
         </CardContent>
       </Card>
     );
   }
 
-  // Pro users - best plan
+  // Pro users
   if (currentPlan === "pro") {
     return (
-      <Card className={`bg-gradient-to-r from-chart-5/15 to-chart-4/10 border-chart-5/30 ${className}`}>
-        <CardContent className="p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <Sparkles className="h-5 w-5 text-chart-5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">ZEAL Pro</p>
-              <p className="text-xs text-muted-foreground">Você está no melhor plano!</p>
+      <Card className={`bg-gradient-to-r from-primary/15 to-accent/10 border-primary/30 ${className}`}>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Zap className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-semibold text-foreground">Plano PRO Ativo</p>
+                <p className="text-sm text-muted-foreground">Acesso completo com Neurovendas</p>
+              </div>
             </div>
-            <Badge variant="secondary" className="bg-chart-5/20 text-chart-5 border-chart-5/30">
-              {remaining}/{limit} restantes
-            </Badge>
+            <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">Ativo</Badge>
           </div>
+          
           {showUsage && (
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${usagePercent}%` }}
-                transition={{ duration: 0.5 }}
-                className="h-full bg-gradient-to-r from-chart-5 to-chart-4 rounded-full"
-              />
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Consultas usadas este mês</span>
+                <span className="font-semibold">{consultationCount} / {limit}</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full transition-colors ${
+                    isAtLimit ? "bg-destructive" : isNearLimit ? "bg-warning" : "bg-primary"
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${usagePercent}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+              {remaining !== Infinity && (
+                <p className="text-xs text-muted-foreground">
+                  {remaining > 0 ? `${remaining} consultas restantes` : "Limite atingido"}
+                </p>
+              )}
             </div>
           )}
         </CardContent>
@@ -142,138 +165,154 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
     );
   }
 
-  // Basic users - show upgrade to Pro
+  // Basic users
   if (currentPlan === "basic") {
     return (
       <Card className={`bg-gradient-to-r from-primary/15 to-accent/10 border-primary/30 ${className}`}>
-        <CardContent className={variant === "compact" ? "p-3" : "p-4"}>
-          <div className="flex items-center gap-3 mb-3">
-            <Zap className="h-5 w-5 text-primary" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">ZEAL Básico</p>
-              <p className="text-xs text-muted-foreground">
-                {isAtLimit 
-                  ? "Limite atingido! Faça upgrade para continuar" 
-                  : isNearLimit 
-                    ? `Apenas ${remaining} consultas restantes`
-                    : `${remaining}/${limit} consultas restantes`}
-              </p>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <Sparkles className="h-5 w-5 text-primary" />
+              <div>
+                <p className="font-semibold text-foreground">Plano Basic Ativo</p>
+                <p className="text-sm text-muted-foreground">Plano essencial para dentistas</p>
+              </div>
             </div>
-            <Button
-              size="sm"
-              onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
-            >
-              <Sparkles className="h-4 w-4 mr-1" />
-              Upgrade Pro
-            </Button>
+            <Badge variant="secondary" className="bg-primary/20 text-primary border-primary/30">Ativo</Badge>
           </div>
+          
           {showUsage && (
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${usagePercent}%` }}
-                transition={{ duration: 0.5 }}
-                className={`h-full rounded-full ${
-                  isAtLimit 
-                    ? "bg-destructive" 
-                    : isNearLimit 
-                      ? "bg-warning"
-                      : "bg-gradient-to-r from-primary to-accent"
-                }`}
-              />
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Consultas usadas este mês</span>
+                <span className="font-semibold">{consultationCount} / {limit}</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full transition-colors ${
+                    isAtLimit ? "bg-destructive" : isNearLimit ? "bg-warning" : "bg-primary"
+                  }`}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${usagePercent}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
+              {remaining !== Infinity && (
+                <p className="text-xs text-muted-foreground">
+                  {remaining > 0 ? `${remaining} consultas restantes` : "Limite atingido"}
+                </p>
+              )}
             </div>
           )}
+
+          <motion.button
+            onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
+            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Zap className="h-4 w-4" />
+            Fazer Upgrade para PRO
+            <ArrowRight className="h-4 w-4" />
+          </motion.button>
         </CardContent>
       </Card>
     );
   }
 
-  // Trial or no plan - show both options
-  return (
-    <Card className={`${
-      isAtLimit 
-        ? "bg-gradient-to-r from-destructive/15 to-destructive/8 border-destructive/30"
-        : isNearLimit
-          ? "bg-gradient-to-r from-warning/15 to-warning/8 border-warning/30"
-          : "bg-gradient-to-r from-warning/15 to-warning/8 border-warning/30"
-    } ${className}`}>
-      <CardContent className={variant === "compact" ? "p-3" : "p-4"}>
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            {isAtLimit ? (
-              <AlertCircle className="h-5 w-5 text-destructive" />
-            ) : isNearLimit ? (
-              <AlertCircle className="h-5 w-5 text-warning" />
-            ) : (
-              <Zap className="h-5 w-5 text-warning" />
-            )}
-            <p className="text-sm font-medium text-white">
-              {isAtLimit 
-                ? "Limite de Trial Atingido!"
-                : currentPlan === "trial" 
-                  ? "Trial Gratuito" 
-                  : "Escolha seu plano"}
-            </p>
-            {currentPlan === "trial" && !isAtLimit && (
-              <Badge variant="outline" className={`${
-                isNearLimit ? "border-warning/50 text-warning" : "border-warning/50 text-warning"
-              } text-xs`}>
-                {remaining}/{limit} consultas
-              </Badge>
-            )}
+  // Trial users
+  if (currentPlan === "trial") {
+    const daysLeft = user.trialEndsAt ? Math.ceil((new Date(user.trialEndsAt).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    
+    return (
+      <Card className={`bg-gradient-to-r from-accent/15 to-primary/10 border-accent/30 ${className}`}>
+        <CardContent className="pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="h-5 w-5 text-accent" />
+              <div>
+                <p className="font-semibold text-foreground">Trial Gratuito</p>
+                <p className="text-sm text-muted-foreground">{daysLeft} dias restantes</p>
+              </div>
+            </div>
+            <Badge variant="secondary" className="bg-accent/20 text-accent border-accent/30">Trial</Badge>
           </div>
           
-          {showUsage && currentPlan === "trial" && (
-            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${usagePercent}%` }}
-                transition={{ duration: 0.5 }}
-                className={`h-full rounded-full ${
-                  isAtLimit 
-                    ? "bg-destructive" 
-                    : isNearLimit 
-                      ? "bg-warning"
-                      : "bg-gradient-to-r from-warning to-warning/70"
-                }`}
-              />
+          {showUsage && (
+            <div className="space-y-2 mb-4">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Consultas usadas</span>
+                <span className="font-semibold">{consultationCount} / 7</span>
+              </div>
+              <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-accent"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${Math.min(100, (consultationCount / 7) * 100)}%` }}
+                  transition={{ duration: 0.5 }}
+                />
+              </div>
             </div>
           )}
-          
-          {variant === "full" && (
-            <p className="text-xs text-gray-400">
-              {isAtLimit
-                ? "Assine agora para continuar usando o ZEAL."
-                : currentPlan === "trial" 
-                  ? "Seu trial expira em breve. Assine para continuar usando."
-                  : "Assine para desbloquear transcrição e Notas Clínicas automáticas."
-              }
-            </p>
-          )}
-          
-          <div className="flex gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 border-primary/50 text-primary hover:bg-primary/15"
+
+          <div className="grid grid-cols-2 gap-2">
+            <motion.button
               onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
+              className="px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              Básico R$ 179,90
-              <ExternalLink className="h-3 w-3 ml-1" />
-            </Button>
-            <Button
-              size="sm"
-              className="flex-1"
+              Basic
+            </motion.button>
+            <motion.button
               onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              <Sparkles className="h-4 w-4 mr-1" />
-              Pro R$ 349,90
-            </Button>
+              PRO
+            </motion.button>
           </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // No plan - show upgrade options
+  return (
+    <Card className={`bg-gradient-to-r from-destructive/15 to-accent/10 border-destructive/30 ${className}`}>
+      <CardContent className="pt-6">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <div>
+              <p className="font-semibold text-foreground">Sem plano ativo</p>
+              <p className="text-sm text-muted-foreground">Escolha um plano para continuar</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-2">
+          <motion.button
+            onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
+            className="px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-1"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Sparkles className="h-4 w-4" />
+            Basic
+          </motion.button>
+          <motion.button
+            onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+          >
+            <Zap className="h-4 w-4" />
+            PRO
+          </motion.button>
         </div>
       </CardContent>
     </Card>
   );
 }
-
-export default UpgradeBanner;
