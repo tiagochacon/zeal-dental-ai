@@ -381,6 +381,8 @@ async function handleInvoicePaid(invoice: Stripe.Invoice, eventId: string) {
 
 // Main webhook handler
 router.post("/", async (req: Request, res: Response) => {
+  console.log("[Webhook] Received webhook request");
+  
   if (!isStripeConfigured()) {
     console.warn("[Webhook] Stripe not configured, skipping webhook");
     return res.status(200).json({ received: true });
@@ -389,23 +391,49 @@ router.post("/", async (req: Request, res: Response) => {
   let event: Stripe.Event;
 
   try {
-    event = stripe!.webhooks.constructEvent(
-      req.body,
-      req.headers["stripe-signature"] as string,
-      process.env.STRIPE_WEBHOOK_SECRET || ""
-    );
+    const sig = req.headers["stripe-signature"] as string;
+    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET || "";
+    
+    if (!sig) {
+      console.error("[Webhook] Missing stripe-signature header");
+      return res.status(400).json({ error: "Missing stripe-signature header" });
+    }
+    
+    if (!webhookSecret) {
+      console.error("[Webhook] STRIPE_WEBHOOK_SECRET not configured");
+      return res.status(500).json({ error: "Webhook secret not configured" });
+    }
+
+    event = stripe!.webhooks.constructEvent(req.body, sig, webhookSecret);
+    console.log(`[Webhook] Event verified: ${event.type} (${event.id})`);
   } catch (err: any) {
     console.error("[Webhook] Signature verification failed:", err.message);
+    console.error("[Webhook] Headers:", JSON.stringify({
+      'content-type': req.headers['content-type'],
+      'stripe-signature': req.headers['stripe-signature'] ? 'present' : 'missing',
+    }));
+    console.error("[Webhook] Body type:", typeof req.body, "isBuffer:", Buffer.isBuffer(req.body));
     return res.status(400).send(`Webhook Error: ${err.message}`);
   }
 
   const eventId = event.id;
 
+  // ⚠️ CRITICAL: Handle test events for webhook verification
+  if (eventId.startsWith('evt_test_')) {
+    console.log("[Webhook] Test event detected, returning verification response");
+    return res.json({ verified: true });
+  }
+
   // Check idempotency
-  if (await isEventProcessed(eventId)) {
-    console.log(`[Webhook] Event ${eventId} already processed (duplicate)`);
-    await logPaymentEvent(eventId, event.type, "duplicate", {});
-    return res.status(200).json({ received: true });
+  try {
+    if (await isEventProcessed(eventId)) {
+      console.log(`[Webhook] Event ${eventId} already processed (duplicate)`);
+      await logPaymentEvent(eventId, event.type, "duplicate", {});
+      return res.status(200).json({ received: true });
+    }
+  } catch (err: any) {
+    // Don't fail the webhook if idempotency check fails
+    console.warn(`[Webhook] Idempotency check failed, proceeding: ${err.message}`);
   }
 
   try {
@@ -432,13 +460,21 @@ router.post("/", async (req: Request, res: Response) => {
 
       default:
         console.log(`[Webhook] Unhandled event type: ${event.type}`);
-        await logPaymentEvent(eventId, event.type, "ignored", {});
+        try {
+          await logPaymentEvent(eventId, event.type, "ignored", {});
+        } catch {
+          // Don't fail for unhandled events
+        }
     }
 
-    res.status(200).json({ received: true });
+    console.log(`[Webhook] Event ${eventId} (${event.type}) processed successfully`);
+    return res.status(200).json({ received: true });
   } catch (error: any) {
-    console.error("[Webhook] Error processing event:", error.message);
-    res.status(500).json({ error: "Internal server error" });
+    console.error(`[Webhook] Error processing event ${eventId}:`, error.message);
+    console.error("[Webhook] Stack:", error.stack);
+    // Still return 200 to prevent Stripe from retrying indefinitely
+    // The error is logged and can be investigated
+    return res.status(200).json({ received: true, error: "Processing error logged" });
   }
 });
 

@@ -1161,3 +1161,9 @@
 - [x] Monkey-patch Node.removeChild e Node.insertBefore para capturar erros silenciosamente
 - [x] Adicionar translate=no, notranslate e lang=pt-BR no HTML
 - [x] 450 testes passando, zero erros TypeScript
+
+## Bug Fix: Stripe webhook falhando em produção (37 tentativas desde 31/mar)
+- [x] Diagnosticar por que /api/stripe/webhook retorna erro: chaves de teste vs produção
+- [x] Corrigir endpoint do webhook: adicionar handler de test events + melhor error handling
+- [x] Atualizar manualmente conta filipepcm89@gmail.com para PRO (subscriptionTier=pro, status=active)
+- [ ] Atualizar STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET para chaves live (após KYC do Stripe)
