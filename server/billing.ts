@@ -126,7 +126,8 @@ export function isTrialActive(user: User): boolean {
   }
   
   // Check if trial has expired by time
-  if (new Date() >= user.trialEndsAt) {
+  const trialEnd = user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt);
+  if (new Date() >= trialEnd) {
     return false;
   }
   
@@ -147,7 +148,8 @@ export function isTrialExpired(user: User): boolean {
   }
   
   // Expired by time
-  if (new Date() >= user.trialEndsAt) {
+  const trialEnd = user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt);
+  if (new Date() >= trialEnd) {
     return true;
   }
   
@@ -269,7 +271,8 @@ export function getUserPlanInfo(user: User) {
   let trialDaysRemaining: number | undefined;
   if (tier === 'trial' && user.trialEndsAt) {
     const now = new Date();
-    const diff = user.trialEndsAt.getTime() - now.getTime();
+    const trialEnd = user.trialEndsAt instanceof Date ? user.trialEndsAt : new Date(user.trialEndsAt);
+    const diff = trialEnd.getTime() - now.getTime();
     trialDaysRemaining = Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
   }
   

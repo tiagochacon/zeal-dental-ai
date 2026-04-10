@@ -1199,3 +1199,8 @@
 - [x] Melhorar logging com identificação de qual secret funcionou
 - [x] Handler de test events para verificação do Stripe
 - [ ] Pendente: Usuário precisa completar KYC do Stripe para obter chaves live
+
+## Bug Fix: trialEndsAt.getTime is not a function
+- [x] Encontrar todas as chamadas .getTime() em trialEndsAt/trialStartedAt (3 ocorrências em billing.ts)
+- [x] Converter string para Date antes de chamar .getTime() (instanceof Date check + fallback)
+- [x] 450 testes passando, zero erros TypeScript
