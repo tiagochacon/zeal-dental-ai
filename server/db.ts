@@ -568,15 +568,15 @@ export async function updateUserSubscription(
   assertNoError(error, "updateUserSubscription");
 }
 
-export async function getUserByEmail(email: string): Promise<User | undefined> {
+export async function getUserByEmail(email: string): Promise<User | null> {
   const { data, error } = await supabase
     .from("Users")
     .select("*")
-    .eq("email", email)
+    .eq("email", email.toLowerCase())
     .limit(1)
     .maybeSingle();
   if (error) throw new Error(error.message);
-  return data ? normalizeUser(data) : undefined;
+  return data ? normalizeUser(data) : null;
 }
 
 export async function getUserByStripeCustomerId(stripeCustomerId: string): Promise<User | undefined> {

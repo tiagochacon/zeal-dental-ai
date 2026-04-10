@@ -56,14 +56,14 @@ export default function ForgotPassword() {
               <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
                 <CheckCircle2 className="h-8 w-8 text-emerald-400" />
               </div>
-              <h2 className="text-2xl font-bold text-foreground mb-3">Solicitação enviada</h2>
+              <h2 className="text-2xl font-bold text-foreground mb-3">E-mail enviado!</h2>
               <p className="text-muted-foreground mb-2">
-                Se o e-mail <span className="text-foreground font-medium">{email}</span> estiver cadastrado, 
-                o administrador receberá uma notificação com o link de recuperação.
+                Se o e-mail <span className="text-foreground font-medium">{email}</span> estiver
+                cadastrado, você receberá um link de recuperação em instantes.
               </p>
               <p className="text-muted-foreground text-sm mb-8">
-                O link de recuperação será enviado a você pelo administrador do sistema. 
-                Verifique seu WhatsApp ou e-mail em breve.
+                Verifique sua caixa de entrada e a pasta de spam. O link expira em{" "}
+                <strong className="text-foreground">1 hora</strong>.
               </p>
               <Link href="/login">
                 <Button className="w-full h-12 font-medium text-base bg-primary text-primary-foreground hover:bg-primary/90 shadow-[inset_0_1px_1px_rgba(255,255,255,0.2),0_4px_14px_rgba(147,130,255,0.25)] rounded-xl transition-all duration-300">
