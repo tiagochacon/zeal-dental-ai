@@ -250,7 +250,7 @@ export const appRouter = router({
         const user = await getUserByEmail(input.email);
         // Always return success to prevent email enumeration
         if (!user) {
-          return { success: true, message: "Se o email estiver cadastrado, você receberá instruções para redefinir sua senha." };
+          return { success: true, message: "Se o email estiver cadastrado, você receberá um link para redefinir sua senha." };
         }
 
         // Generate a secure token
@@ -263,14 +263,37 @@ export const appRouter = router({
         const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || "https://zealtecnologia.com";
         const resetUrl = `${origin}/reset-password?token=${token}`;
 
-        // Notify the owner with the reset link
-        await notifyOwner({
-          title: `🔑 Recuperação de Senha - ${user.name || user.email}`,
-          content: `O usuário ${user.name || ""} (${user.email}) solicitou recuperação de senha.\n\nLink de recuperação (válido por 1 hora):\n${resetUrl}\n\nEnvie este link ao usuário para que ele possa redefinir sua senha.`,
-        });
+        // Send email directly to the user via Resend
+        const { sendPasswordResetEmail, isEmailConfigured } = await import('./email');
+        
+        if (isEmailConfigured()) {
+          const emailSent = await sendPasswordResetEmail(
+            user.email || input.email,
+            user.name || "Usuário",
+            resetUrl
+          );
+          
+          if (emailSent) {
+            console.log(`[Auth] Password reset email sent to ${user.email}`);
+          } else {
+            console.warn(`[Auth] Failed to send email to ${user.email}, falling back to owner notification`);
+            // Fallback: notify owner if email fails
+            await notifyOwner({
+              title: `🔑 Recuperação de Senha - ${user.name || user.email}`,
+              content: `O usuário ${user.name || ""} (${user.email}) solicitou recuperação de senha.\n\nO envio de e-mail falhou. Envie este link manualmente:\n${resetUrl}\n\nVálido por 1 hora.`,
+            });
+          }
+        } else {
+          // No email configured, notify owner as fallback
+          console.warn(`[Auth] Email not configured, notifying owner for ${user.email}`);
+          await notifyOwner({
+            title: `🔑 Recuperação de Senha - ${user.name || user.email}`,
+            content: `O usuário ${user.name || ""} (${user.email}) solicitou recuperação de senha.\n\nLink de recuperação (válido por 1 hora):\n${resetUrl}\n\nEnvie este link ao usuário para que ele possa redefinir sua senha.`,
+          });
+        }
 
         console.log(`[Auth] Password reset requested for ${user.email}, token created`);
-        return { success: true, message: "Se o email estiver cadastrado, você receberá instruções para redefinir sua senha." };
+        return { success: true, message: "Se o email estiver cadastrado, você receberá um link para redefinir sua senha." };
       }),
 
     resetPassword: publicProcedure

@@ -1230,3 +1230,13 @@
 - [x] Adicionar fallback por amount para determinar tier
 - [x] Teste end-to-end: checkout session criada com sucesso, webhook OK, Price IDs OK
 - [x] 27 testes vitest passando, zero erros TypeScript
+
+## Redefinição de Senha
+- [x] Investigar sistema de autenticação atual (endpoints e páginas já existiam)
+- [x] Integrar Resend para envio de e-mail direto ao usuário (server/email.ts)
+- [x] Atualizar requestPasswordReset para enviar e-mail via Resend com fallback para notifyOwner
+- [x] Endpoints backend já existiam: requestPasswordReset e resetPassword
+- [x] Páginas frontend já existiam: ForgotPassword.tsx e ResetPassword.tsx
+- [x] Link "Esqueci minha senha" já existia na tela de login
+- [x] Teste de envio de e-mail: enviado com sucesso via fallback (domínio ainda não verificado)
+- [x] 5 testes vitest passando (email.test.ts) + 2 testes (resend.test.ts)
