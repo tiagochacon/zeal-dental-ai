@@ -1219,3 +1219,14 @@
 - [x] Atualizar Price IDs em server/stripe/products.ts, client/src/hooks/useStripeCheckout.ts, billing.ts
 - [x] Manter IDs legados como fallback para dados existentes
 - [x] 27 testes passando, zero erros TypeScript
+
+## Auditoria Completa Stripe (v44)
+- [x] Verificar produtos e preços existentes na conta Stripe (2 produtos, 2 preços ativos)
+- [x] Corrigir webhook URL (apontava para sandbox antigo, atualizado para zealdental-kz68s2pw.manus.space)
+- [x] Adicionar eventos invoice.paid e invoice.payment_failed ao webhook
+- [x] Corrigir Price IDs antigos na Subscription.tsx
+- [x] Refatorar webhook handler: busca price via subscription API quando line_items não disponível
+- [x] Adicionar fallback por metadata/client_reference_id para encontrar usuário
+- [x] Adicionar fallback por amount para determinar tier
+- [x] Teste end-to-end: checkout session criada com sucesso, webhook OK, Price IDs OK
+- [x] 27 testes vitest passando, zero erros TypeScript

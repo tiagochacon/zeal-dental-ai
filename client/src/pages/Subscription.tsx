@@ -38,8 +38,8 @@ import { toast } from "sonner";
 
 // Stripe Price IDs (must match server/stripe/products.ts)
 const STRIPE_PRICE_IDS = {
-  BASIC: "price_1SuYhvJBQOFbtGZhL4AVyGqb",
-  PRO: "price_1SuYhvJBQOFbtGZhu5hcAhqH",
+  BASIC: "price_1TKk3bGcWmNsasLQ5dqRQRLt",
+  PRO: "price_1TKk3eGcWmNsasLQmDIHOlrL",
 };
 
 const PLAN_DETAILS = {

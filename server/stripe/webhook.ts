@@ -93,20 +93,31 @@ async function logPaymentEvent(
 // Handle checkout.session.completed
 async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, eventId: string) {
   const stripeCustomerId = session.customer as string;
-  const priceId = (session.line_items?.data[0]?.price?.id || session.metadata?.priceId) as string;
-  const productId = session.line_items?.data[0]?.price?.product as string;
+  const subscriptionId = session.subscription as string;
 
-  if (!stripeCustomerId || !priceId) {
-    console.error("[Webhook] Missing customer or price in checkout session");
+  if (!stripeCustomerId) {
+    console.error("[Webhook] Missing customer in checkout session");
     await logPaymentEvent(eventId, "checkout.session.completed", "failed", {
-      errorMessage: "Missing customer or price",
+      errorMessage: "Missing customer",
     });
     return;
   }
 
   try {
+    // STEP 1: Find the user
     const user = await getUserByStripeCustomerId(stripeCustomerId);
     if (!user) {
+      // Fallback: try to find user by metadata.user_id
+      const userId = session.metadata?.user_id || session.client_reference_id;
+      if (userId) {
+        const userById = await getUserById(parseInt(userId));
+        if (userById) {
+          console.log(`[Webhook] Found user ${userId} via metadata/client_reference_id`);
+          // Link stripe customer to user
+          await updateUserSubscription(userById.id, { stripeCustomerId });
+          return await processCheckoutForUser(userById, session, subscriptionId, stripeCustomerId, eventId);
+        }
+      }
       console.error(`[Webhook] User not found for customer ${stripeCustomerId}`);
       await logPaymentEvent(eventId, "checkout.session.completed", "failed", {
         stripeCustomerId,
@@ -115,44 +126,148 @@ async function handleCheckoutSessionCompleted(session: Stripe.Checkout.Session, 
       return;
     }
 
-    const tier = getTierFromPriceId(priceId);
-    if (!tier) {
-      console.error(`[Webhook] Unknown price ID: ${priceId}`);
-      await logPaymentEvent(eventId, "checkout.session.completed", "failed", {
-        stripeCustomerId,
-        priceId,
-        errorMessage: "Unknown price ID",
-      });
-      return;
-    }
-
-    // Update user subscription
-    await updateUserSubscription(user.id, {
-      stripeCustomerId,
-      subscriptionStatus: "active",
-      priceId,
-      subscriptionTier: tier,
-      consultationCount: 0, // Reset count on new subscription
-    });
-
-    console.log(`[Webhook] User ${user.id} subscription updated to ${tier}`);
-    await logPaymentEvent(eventId, "checkout.session.completed", "success", {
-      userId: user.id,
-      stripeCustomerId,
-      priceId,
-      productId,
-      planType: tier,
-      amount: session.amount_total ? session.amount_total / 100 : undefined,
-      currency: session.currency ?? undefined,
-    });
+    await processCheckoutForUser(user, session, subscriptionId, stripeCustomerId, eventId);
   } catch (error: any) {
     console.error("[Webhook] Error processing checkout session:", error.message);
     await logPaymentEvent(eventId, "checkout.session.completed", "failed", {
       stripeCustomerId,
-      priceId,
       errorMessage: error.message,
     });
   }
+}
+
+async function processCheckoutForUser(
+  user: any, 
+  session: Stripe.Checkout.Session, 
+  subscriptionId: string,
+  stripeCustomerId: string,
+  eventId: string
+) {
+  // STEP 2: Determine the price ID
+  // line_items is NOT included in webhook payload by default, so we need fallbacks
+  let priceId: string | undefined;
+  let productId: string | undefined;
+
+  // Try 1: line_items (only available if expanded)
+  if (session.line_items?.data?.[0]?.price?.id) {
+    priceId = session.line_items.data[0].price.id;
+    productId = session.line_items.data[0].price.product as string;
+    console.log(`[Webhook] Got priceId from line_items: ${priceId}`);
+  }
+
+  // Try 2: Retrieve the subscription from Stripe API to get the price
+  if (!priceId && subscriptionId && stripe) {
+    try {
+      const sub = await stripe.subscriptions.retrieve(subscriptionId);
+      priceId = sub.items.data[0]?.price?.id;
+      productId = sub.items.data[0]?.price?.product as string;
+      console.log(`[Webhook] Got priceId from subscription: ${priceId}`);
+    } catch (e: any) {
+      console.warn(`[Webhook] Failed to retrieve subscription ${subscriptionId}: ${e.message}`);
+    }
+  }
+
+  // Try 3: Retrieve checkout session with line_items expanded
+  if (!priceId && stripe) {
+    try {
+      const expandedSession = await stripe.checkout.sessions.retrieve(session.id, {
+        expand: ['line_items'],
+      });
+      priceId = expandedSession.line_items?.data?.[0]?.price?.id;
+      productId = expandedSession.line_items?.data?.[0]?.price?.product as string;
+      console.log(`[Webhook] Got priceId from expanded session: ${priceId}`);
+    } catch (e: any) {
+      console.warn(`[Webhook] Failed to expand session: ${e.message}`);
+    }
+  }
+
+  // Try 4: Use amount-based fallback
+  if (!priceId && session.amount_total) {
+    const tier = getTierFromAmount(session.amount_total);
+    console.log(`[Webhook] Using amount-based fallback: ${session.amount_total} cents -> ${tier}`);
+    
+    await updateUserSubscription(user.id, {
+      stripeCustomerId,
+      stripeSubscriptionId: subscriptionId || undefined,
+      subscriptionStatus: "active",
+      subscriptionTier: tier,
+      consultationCount: 0,
+    });
+
+    console.log(`[Webhook] User ${user.id} subscription updated to ${tier} (amount fallback)`);
+    await logPaymentEvent(eventId, "checkout.session.completed", "success", {
+      userId: user.id,
+      stripeCustomerId,
+      planType: tier,
+      amount: session.amount_total / 100,
+      currency: session.currency ?? undefined,
+    });
+    return;
+  }
+
+  if (!priceId) {
+    console.error("[Webhook] Could not determine price ID from any source");
+    await logPaymentEvent(eventId, "checkout.session.completed", "failed", {
+      stripeCustomerId,
+      errorMessage: "Could not determine price ID",
+    });
+    return;
+  }
+
+  // STEP 3: Determine tier from price ID
+  const tier = getTierFromPriceId(priceId);
+  if (!tier) {
+    // Last resort: try amount-based detection
+    if (session.amount_total) {
+      const amountTier = getTierFromAmount(session.amount_total);
+      console.log(`[Webhook] Unknown price ${priceId}, using amount fallback: ${amountTier}`);
+      await updateUserSubscription(user.id, {
+        stripeCustomerId,
+        stripeSubscriptionId: subscriptionId || undefined,
+        subscriptionStatus: "active",
+        priceId,
+        subscriptionTier: amountTier,
+        consultationCount: 0,
+      });
+      await logPaymentEvent(eventId, "checkout.session.completed", "success", {
+        userId: user.id,
+        stripeCustomerId,
+        priceId,
+        planType: amountTier,
+        amount: session.amount_total / 100,
+        currency: session.currency ?? undefined,
+      });
+      return;
+    }
+    console.error(`[Webhook] Unknown price ID: ${priceId}`);
+    await logPaymentEvent(eventId, "checkout.session.completed", "failed", {
+      stripeCustomerId,
+      priceId,
+      errorMessage: "Unknown price ID",
+    });
+    return;
+  }
+
+  // STEP 4: Update user subscription
+  await updateUserSubscription(user.id, {
+    stripeCustomerId,
+    stripeSubscriptionId: subscriptionId || undefined,
+    subscriptionStatus: "active",
+    priceId,
+    subscriptionTier: tier,
+    consultationCount: 0,
+  });
+
+  console.log(`[Webhook] User ${user.id} subscription updated to ${tier}`);
+  await logPaymentEvent(eventId, "checkout.session.completed", "success", {
+    userId: user.id,
+    stripeCustomerId,
+    priceId,
+    productId,
+    planType: tier,
+    amount: session.amount_total ? session.amount_total / 100 : undefined,
+    currency: session.currency ?? undefined,
+  });
 }
 
 // Handle customer.subscription.created
