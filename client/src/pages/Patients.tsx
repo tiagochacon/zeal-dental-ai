@@ -260,10 +260,12 @@ function PatientDetailSheet({
   const neurovendas = lastAnalyzedConsultation?.neurovendasAnalysis as any;
 
   // Buscar perfil do CRC via lead de origem (quando paciente veio do CRC)
+  // Convert originLeadId from string to number (Supabase returns it as string)
+  const leadId = patient?.originLeadId ? Number(patient.originLeadId) : 0;
   const leadQuery = trpc.leads.getById.useQuery(
-    { id: patient?.originLeadId ?? 0 },
+    { id: leadId },
     {
-      enabled: open && !!patient?.originLeadId,
+      enabled: open && !!leadId,
       refetchOnWindowFocus: false,
     }
   );

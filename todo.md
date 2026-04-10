@@ -1240,3 +1240,9 @@
 - [x] Link "Esqueci minha senha" já existia na tela de login
 - [x] Teste de envio de e-mail: enviado com sucesso via fallback (domínio ainda não verificado)
 - [x] 5 testes vitest passando (email.test.ts) + 2 testes (resend.test.ts)
+
+## Bug Fix: Análise de Neurovendas não aparece na ficha do paciente
+- [x] Investigar componente da ficha do paciente (Patients.tsx) que exibe a análise de neurovendas
+- [x] Identificar problema: originLeadId retornado como string pelo Supabase, query esperava number
+- [x] Corrigir: converter originLeadId de string para number antes de enviar query (Number() cast)
+- [x] Testar: 6 testes vitest passando, sem erros TypeScript, análise agora aparece corretamente
