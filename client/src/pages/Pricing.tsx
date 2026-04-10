@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -7,12 +7,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, Check, Crown, CreditCard, Loader2, UserPlus, Zap, X } from "lucide-react";
 import { Link } from "wouter";
 import { toast } from "sonner";
-
-// Stripe Payment Links
-const PAYMENT_LINKS = {
-  BASIC: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
-  PRO: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
-};
+import { useStripeCheckout, type StripePlan } from "@/hooks/useStripeCheckout";
 
 const PLANS = [
   {
@@ -82,14 +77,14 @@ export default function Pricing() {
   const { user, refresh } = useAuth();
   const [location, setLocation] = useLocation();
   const logoutMutation = trpc.auth.logout.useMutation();
+  const { startCheckout, checkoutPlan, isLoading: isCheckoutLoading } = useStripeCheckout();
 
   // Check for successful payment return
   useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const paymentSuccess = urlParams.get("success");
-    const sessionId = urlParams.get("session_id");
 
-    if (paymentSuccess === "true" && sessionId) {
+    if (paymentSuccess === "true") {
       toast.success("Pagamento realizado com sucesso! Ativando sua assinatura...");
       refresh().then(() => {
         window.history.replaceState({}, "", "/pricing");
@@ -112,24 +107,13 @@ export default function Pricing() {
     },
   });
 
-  const getPaymentLinkWithEmail = (baseUrl: string) => {
-    if (!user?.email) return baseUrl;
-    const url = new URL(baseUrl);
-    url.searchParams.set('prefilled_email', user.email);
-    return url.toString();
-  };
-
   const handlePlanAction = (planKey: string) => {
     // If user is already logged in, handle directly
     if (user) {
       if (planKey === "TRIAL") {
         startTrial.mutate();
-      } else if (planKey === "BASIC") {
-        window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.BASIC), "_blank");
-        toast.info("Você será redirecionado para a página de pagamento.");
-      } else if (planKey === "PRO") {
-        window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.PRO), "_blank");
-        toast.info("Você será redirecionado para a página de pagamento.");
+      } else if (planKey === "BASIC" || planKey === "PRO") {
+        startCheckout(planKey.toLowerCase() as StripePlan);
       }
       return;
     }
@@ -194,85 +178,89 @@ export default function Pricing() {
 
         {/* Plans Grid */}
         <div className={`grid gap-6 max-w-5xl mx-auto ${visiblePlans.length === 1 ? 'md:grid-cols-1 max-w-md' : visiblePlans.length === 2 ? 'md:grid-cols-2 max-w-3xl' : 'md:grid-cols-3'}`}>
-          {visiblePlans.map((plan) => (
-            <Card
-              key={plan.key}
-              className={`relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${
-                plan.highlighted
-                  ? "bg-gradient-to-b from-purple-500/10 to-indigo-500/10 border-purple-500/50 shadow-lg shadow-purple-500/10"
-                  : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
-              }`}
-            >
-              {plan.highlighted && (
-                <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-center text-xs font-semibold py-1.5">
-                  MAIS POPULAR
-                </div>
-              )}
+          {visiblePlans.map((plan) => {
+            const isPlanLoading = isCheckoutLoading && checkoutPlan === plan.key.toLowerCase();
+            
+            return (
+              <Card
+                key={plan.key}
+                className={`relative overflow-hidden transition-all duration-300 hover:scale-[1.02] ${
+                  plan.highlighted
+                    ? "bg-gradient-to-b from-purple-500/10 to-indigo-500/10 border-purple-500/50 shadow-lg shadow-purple-500/10"
+                    : "bg-slate-900/50 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                {plan.highlighted && (
+                  <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-center text-xs font-semibold py-1.5">
+                    MAIS POPULAR
+                  </div>
+                )}
 
-              <CardHeader className={plan.highlighted ? "pt-10" : ""}>
-                <CardTitle className="text-xl text-white flex items-center gap-2">
-                  {plan.key === "PRO" && <Crown className="h-5 w-5 text-purple-400" />}
-                  {plan.key === "TRIAL" && <Zap className="h-5 w-5 text-emerald-400" />}
-                  {plan.name}
-                </CardTitle>
-                <CardDescription className="text-slate-400">
-                  {plan.description}
-                </CardDescription>
-                <div className="mt-4">
-                  <span className="text-3xl font-bold text-white">{plan.price}</span>
-                  <span className="text-slate-400 ml-2">/{plan.interval}</span>
-                </div>
-              </CardHeader>
+                <CardHeader className={plan.highlighted ? "pt-10" : ""}>
+                  <CardTitle className="text-xl text-white flex items-center gap-2">
+                    {plan.key === "PRO" && <Crown className="h-5 w-5 text-purple-400" />}
+                    {plan.key === "TRIAL" && <Zap className="h-5 w-5 text-emerald-400" />}
+                    {plan.name}
+                  </CardTitle>
+                  <CardDescription className="text-slate-400">
+                    {plan.description}
+                  </CardDescription>
+                  <div className="mt-4">
+                    <span className="text-3xl font-bold text-white">{plan.price}</span>
+                    <span className="text-slate-400 ml-2">/{plan.interval}</span>
+                  </div>
+                </CardHeader>
 
-              <CardContent>
-                <ul className="space-y-3">
-                  {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      {feature.included ? (
-                        <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
-                      ) : (
-                        <X className="h-4 w-4 text-slate-600 mt-0.5 shrink-0" />
-                      )}
-                      <span className={`text-sm ${feature.included ? 'text-slate-300' : 'text-slate-600'}`}>
-                        {feature.text}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
+                <CardContent>
+                  <ul className="space-y-3">
+                    {plan.features.map((feature, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        {feature.included ? (
+                          <Check className="h-4 w-4 text-emerald-400 mt-0.5 shrink-0" />
+                        ) : (
+                          <X className="h-4 w-4 text-slate-600 mt-0.5 shrink-0" />
+                        )}
+                        <span className={`text-sm ${feature.included ? 'text-slate-300' : 'text-slate-600'}`}>
+                          {feature.text}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
 
-              <CardFooter>
-                <Button
-                  className={`w-full ${
-                    plan.highlighted
-                      ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-                      : plan.key === "TRIAL"
-                        ? "bg-emerald-600 hover:bg-emerald-700 text-white"
-                        : "bg-blue-600 hover:bg-blue-700 text-white"
-                  }`}
-                  onClick={() => handlePlanAction(plan.key)}
-                  disabled={startTrial.isPending}
-                >
-                  {startTrial.isPending && plan.key === "TRIAL" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Ativando...
-                    </>
-                  ) : plan.key === "TRIAL" ? (
-                    <>
-                      <UserPlus className="mr-2 h-4 w-4" />
-                      {plan.cta}
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      {plan.cta}
-                    </>
-                  )}
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+                <CardFooter>
+                  <Button
+                    className={`w-full ${
+                      plan.highlighted
+                        ? "bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
+                        : plan.key === "TRIAL"
+                          ? "bg-emerald-600 hover:bg-emerald-700 text-white"
+                          : "bg-blue-600 hover:bg-blue-700 text-white"
+                    }`}
+                    onClick={() => handlePlanAction(plan.key)}
+                    disabled={startTrial.isPending || isPlanLoading}
+                  >
+                    {(startTrial.isPending && plan.key === "TRIAL") || isPlanLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        {isPlanLoading ? "Preparando checkout..." : "Ativando..."}
+                      </>
+                    ) : plan.key === "TRIAL" ? (
+                      <>
+                        <UserPlus className="mr-2 h-4 w-4" />
+                        {plan.cta}
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard className="mr-2 h-4 w-4" />
+                        {plan.cta}
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            );
+          })}
         </div>
 
         {/* Footer note */}

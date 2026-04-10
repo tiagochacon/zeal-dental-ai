@@ -1204,3 +1204,11 @@
 - [x] Encontrar todas as chamadas .getTime() em trialEndsAt/trialStartedAt (3 ocorrências em billing.ts)
 - [x] Converter string para Date antes de chamar .getTime() (instanceof Date check + fallback)
 - [x] 450 testes passando, zero erros TypeScript
+
+## Bug Fix: Checkout Stripe não redireciona ao mudar de trial para PRO
+- [x] Diagnosticar por que o redirecionamento não funciona (window.open bloqueado por popup blocker)
+- [x] Criar hook centralizado useStripeCheckout com createCheckoutSession via tRPC
+- [x] Substituir Payment Links estáticos em 6 componentes: UpgradeBanner, UpgradeModal, LimitReachedModal, UsageCounterModal, Pricing, Register
+- [x] Usar window.location.href em vez de window.open para evitar popup blocker
+- [x] Verificar integração completa: pagamento → webhook → atualização do plano
+- [x] 10 testes vitest passando, zero erros TypeScript

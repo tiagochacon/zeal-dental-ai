@@ -9,34 +9,18 @@ import { Button } from "@/components/ui/button";
 import { 
   Sparkles, 
   Zap, 
-  ExternalLink, 
   Check, 
   Crown,
   TrendingUp,
   Brain,
-  FileText,
-  Mic,
   Lock,
   Rocket,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useLocation } from "wouter";
-import { useAuth } from "@/_core/hooks/useAuth";
-
-// Stripe Payment Links
-const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
-  pro: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
-};
-
-// Helper to add email to Stripe payment link
-function getPaymentLinkWithEmail(baseUrl: string, email?: string | null): string {
-  if (!email) return baseUrl;
-  const url = new URL(baseUrl);
-  url.searchParams.set('prefilled_email', email);
-  return url.toString();
-}
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 export type UpgradeModalTrigger = 
   | "trial_limit"      // Trial atingiu 7 consultas ou 7 dias
@@ -139,7 +123,7 @@ export function UpgradeModal({
   consultationsLimit = 7,
 }: UpgradeModalProps) {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { startCheckout, checkoutPlan, isLoading } = useStripeCheckout();
   const copy = COPY_BY_TRIGGER[trigger];
   const IconComponent = copy.icon;
   
@@ -237,10 +221,14 @@ export function UpgradeModal({
                       size="sm"
                       variant="outline"
                       className="w-full text-xs border-primary/50 hover:bg-primary/15"
-                      onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
+                      onClick={() => startCheckout("basic")}
+                      disabled={isLoading}
                     >
-                      Começar com Básico
-                      <ArrowRight className="h-3 w-3 ml-1" />
+                      {isLoading && checkoutPlan === "basic" ? (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      ) : null}
+                      {isLoading && checkoutPlan === "basic" ? "Checkout..." : "Começar com Básico"}
+                      {!isLoading && <ArrowRight className="h-3 w-3 ml-1" />}
                     </Button>
                   </motion.div>
                 )}
@@ -256,7 +244,7 @@ export function UpgradeModal({
                     {/* Popular badge */}
                     <div className="absolute -top-2.5 left-1/2 -translate-x-1/2">
                       <span className="px-2 py-0.5 text-[10px] font-semibold bg-gradient-to-r from-primary to-accent text-primary-foreground rounded-full">
-                        ⭐ MAIS POPULAR
+                        MAIS POPULAR
                       </span>
                     </div>
 
@@ -296,11 +284,15 @@ export function UpgradeModal({
                     <Button
                       size="sm"
                       className="w-full text-xs"
-                      onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
+                      onClick={() => startCheckout("pro")}
+                      disabled={isLoading}
                     >
-                      <Crown className="h-3 w-3 mr-1" />
-                      Upgrade para Pro
-                      <ExternalLink className="h-3 w-3 ml-1" />
+                      {isLoading && checkoutPlan === "pro" ? (
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      ) : (
+                        <Crown className="h-3 w-3 mr-1" />
+                      )}
+                      {isLoading && checkoutPlan === "pro" ? "Preparando checkout..." : "Upgrade para Pro"}
                     </Button>
                   </motion.div>
                 )}

@@ -10,30 +10,16 @@ import {
   AlertTriangle, 
   Sparkles, 
   Zap, 
-  ExternalLink, 
   Check, 
   Crown,
   TrendingUp,
   Brain,
   FileText,
-  Mic
+  Mic,
+  Loader2
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { useAuth } from "@/_core/hooks/useAuth";
-
-// Stripe Payment Links
-const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
-  pro: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
-};
-
-// Helper to add email to Stripe payment link
-function getPaymentLinkWithEmail(baseUrl: string, email?: string | null): string {
-  if (!email) return baseUrl;
-  const url = new URL(baseUrl);
-  url.searchParams.set('prefilled_email', email);
-  return url.toString();
-}
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 interface LimitReachedModalProps {
   open: boolean;
@@ -48,7 +34,7 @@ export function LimitReachedModal({
   currentPlan = "trial",
   consultationsUsed = 0,
 }: LimitReachedModalProps) {
-  const { user } = useAuth();
+  const { startCheckout, checkoutPlan, isLoading } = useStripeCheckout();
   
   const getPlanLimit = () => {
     switch (currentPlan) {
@@ -161,10 +147,13 @@ export function LimitReachedModal({
 
                   <Button
                     className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-                    onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
+                    onClick={() => startCheckout("basic")}
+                    disabled={isLoading}
                   >
-                    Assinar Básico
-                    <ExternalLink className="h-4 w-4 ml-2" />
+                    {isLoading && checkoutPlan === "basic" ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : null}
+                    {isLoading && checkoutPlan === "basic" ? "Preparando..." : "Assinar Básico"}
                   </Button>
                 </motion.div>
               )}
@@ -179,7 +168,7 @@ export function LimitReachedModal({
                 {/* Recommended badge */}
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="px-3 py-1 text-xs font-semibold bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-full shadow-lg">
-                    ⭐ MAIS POPULAR
+                    MAIS POPULAR
                   </span>
                 </div>
 
@@ -216,11 +205,15 @@ export function LimitReachedModal({
 
                 <Button
                   className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white shadow-lg shadow-purple-500/25"
-                  onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
+                  onClick={() => startCheckout("pro")}
+                  disabled={isLoading}
                 >
-                  <Crown className="h-4 w-4 mr-2" />
-                  Assinar Pro
-                  <ExternalLink className="h-4 w-4 ml-2" />
+                  {isLoading && checkoutPlan === "pro" ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Crown className="h-4 w-4 mr-2" />
+                  )}
+                  {isLoading && checkoutPlan === "pro" ? "Preparando checkout..." : "Assinar Pro"}
                 </Button>
               </motion.div>
             </div>
@@ -234,7 +227,7 @@ export function LimitReachedModal({
               className="p-4 rounded-lg border border-emerald-500/30 bg-emerald-500/10 mt-4"
             >
               <p className="text-sm text-emerald-300 text-center">
-                ✨ Você está no plano Pro. Seu limite será renovado no próximo ciclo de cobrança.
+                Você está no plano Pro. Seu limite será renovado no próximo ciclo de cobrança.
               </p>
             </motion.div>
           )}

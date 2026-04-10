@@ -4,28 +4,14 @@ import {
   Sparkles, 
   Zap, 
   Crown, 
-  ExternalLink,
   AlertCircle,
-  CheckCircle2,
-  ArrowRight
+  ArrowRight,
+  Loader2
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-
-// Stripe Payment Links
-const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
-  pro: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
-};
-
-// Helper to add email to Stripe payment link
-function getPaymentLinkWithEmail(baseUrl: string, email?: string | null): string {
-  if (!email) return baseUrl;
-  const url = new URL(baseUrl);
-  url.searchParams.set('prefilled_email', email);
-  return url.toString();
-}
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 type UserPlan = "none" | "trial" | "basic" | "pro" | "unlimited" | "admin";
 
@@ -37,6 +23,7 @@ interface UpgradeBannerProps {
 
 export function UpgradeBanner({ variant = "full", className = "", showUsage = true }: UpgradeBannerProps) {
   const { user } = useAuth();
+  const { startCheckout, checkoutPlan, isLoading } = useStripeCheckout();
   const { data: subscriptionInfo } = trpc.stripe.getSubscriptionInfo.useQuery(undefined, {
     enabled: !!user,
   });
@@ -206,14 +193,19 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
           )}
 
           <motion.button
-            onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
-            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            onClick={() => startCheckout("pro")}
+            disabled={isLoading}
+            className="w-full px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
           >
-            <Zap className="h-4 w-4" />
-            Fazer Upgrade para PRO
-            <ArrowRight className="h-4 w-4" />
+            {isLoading && checkoutPlan === "pro" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4" />
+            )}
+            {isLoading && checkoutPlan === "pro" ? "Preparando checkout..." : "Fazer Upgrade para PRO"}
+            {!isLoading && <ArrowRight className="h-4 w-4" />}
           </motion.button>
         </CardContent>
       </Card>
@@ -257,20 +249,30 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
 
           <div className="grid grid-cols-2 gap-2">
             <motion.button
-              onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
-              className="px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              onClick={() => startCheckout("basic")}
+              disabled={isLoading}
+              className="px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-1 disabled:opacity-60"
+              whileHover={{ scale: isLoading ? 1 : 1.02 }}
+              whileTap={{ scale: isLoading ? 1 : 0.98 }}
             >
-              Basic
+              {isLoading && checkoutPlan === "basic" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Basic"
+              )}
             </motion.button>
             <motion.button
-              onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              onClick={() => startCheckout("pro")}
+              disabled={isLoading}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-1 disabled:opacity-60"
+              whileHover={{ scale: isLoading ? 1 : 1.02 }}
+              whileTap={{ scale: isLoading ? 1 : 0.98 }}
             >
-              PRO
+              {isLoading && checkoutPlan === "pro" ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "PRO"
+              )}
             </motion.button>
           </div>
         </CardContent>
@@ -294,22 +296,36 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
 
         <div className="grid grid-cols-2 gap-2">
           <motion.button
-            onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic, user?.email), "_blank")}
-            className="px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-1"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            onClick={() => startCheckout("basic")}
+            disabled={isLoading}
+            className="px-4 py-2 bg-muted text-foreground rounded-lg font-medium hover:bg-muted/80 transition-colors flex items-center justify-center gap-1 disabled:opacity-60"
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
           >
-            <Sparkles className="h-4 w-4" />
-            Basic
+            {isLoading && checkoutPlan === "basic" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Sparkles className="h-4 w-4" />
+                Basic
+              </>
+            )}
           </motion.button>
           <motion.button
-            onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro, user?.email), "_blank")}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-1"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            onClick={() => startCheckout("pro")}
+            disabled={isLoading}
+            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-1 disabled:opacity-60"
+            whileHover={{ scale: isLoading ? 1 : 1.02 }}
+            whileTap={{ scale: isLoading ? 1 : 0.98 }}
           >
-            <Zap className="h-4 w-4" />
-            PRO
+            {isLoading && checkoutPlan === "pro" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <>
+                <Zap className="h-4 w-4" />
+                PRO
+              </>
+            )}
           </motion.button>
         </div>
       </CardContent>

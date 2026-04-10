@@ -7,12 +7,7 @@ import { useLocation, Link } from "wouter";
 import { useEffect, useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-
-// Stripe Payment Links
-const PAYMENT_LINKS: Record<string, string> = {
-  BASIC: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
-  PRO: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
-};
+import { useStripeCheckout, type StripePlan } from "@/hooks/useStripeCheckout";
 
 const PLAN_INFO: Record<string, { name: string; price: string; icon: React.ReactNode; color: string }> = {
   TRIAL: {
@@ -46,6 +41,7 @@ export default function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [isProcessingPlan, setIsProcessingPlan] = useState(false);
+  const { startCheckout } = useStripeCheckout();
 
   // Get selected plan from URL query params
   const selectedPlan = useMemo(() => {
@@ -70,12 +66,6 @@ export default function Register() {
     },
   });
 
-  const getPaymentLinkWithEmail = (baseUrl: string, userEmail: string) => {
-    const url = new URL(baseUrl);
-    url.searchParams.set('prefilled_email', userEmail);
-    return url.toString();
-  };
-
   const registerMutation = trpc.auth.register.useMutation({
     onSuccess: async (data) => {
       toast.success("Conta criada com sucesso!");
@@ -86,15 +76,10 @@ export default function Register() {
         setIsProcessingPlan(true);
         startTrial.mutate();
       } else if (selectedPlan === "BASIC" || selectedPlan === "PRO") {
-        // Redirect to Stripe payment
-        const paymentUrl = getPaymentLinkWithEmail(
-          PAYMENT_LINKS[selectedPlan],
-          email
-        );
+        // Use createCheckoutSession via tRPC (reliable redirect, no popup blocker)
+        setIsProcessingPlan(true);
         toast.info("Redirecionando para a página de pagamento...");
-        window.open(paymentUrl, "_blank");
-        // Send user to pricing page to wait for payment confirmation
-        setLocation("/pricing");
+        startCheckout(selectedPlan.toLowerCase() as StripePlan);
       } else {
         setLocation("/");
       }

@@ -6,16 +6,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Zap, TrendingUp, ArrowRight, ExternalLink } from "lucide-react";
+import { Crown, Zap, TrendingUp, ArrowRight, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLocation } from "wouter";
-import { useAuth } from "@/_core/hooks/useAuth";
-
-// Stripe Payment Links
-const PAYMENT_LINKS = {
-  basic: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
-  pro: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
-};
+import { useStripeCheckout } from "@/hooks/useStripeCheckout";
 
 interface UsageCounterModalProps {
   open: boolean;
@@ -35,7 +29,7 @@ export function UsageCounterModal({
   daysRemaining,
 }: UsageCounterModalProps) {
   const [, setLocation] = useLocation();
-  const { user } = useAuth();
+  const { startCheckout, checkoutPlan, isLoading } = useStripeCheckout();
   
   const percentage = Math.min(100, (consultationsUsed / consultationsLimit) * 100);
   const isNearLimit = percentage >= 80;
@@ -86,18 +80,6 @@ export function UsageCounterModal({
 
   const config = tierConfig[tier] || tierConfig.trial;
   const IconComponent = config.icon;
-
-  const handleUpgrade = () => {
-    onOpenChange(false);
-    setLocation("/pricing");
-  };
-
-  const getPaymentLinkWithEmail = (baseUrl: string) => {
-    if (!user?.email) return baseUrl;
-    const url = new URL(baseUrl);
-    url.searchParams.set('prefilled_email', user.email);
-    return url.toString();
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -168,7 +150,7 @@ export function UsageCounterModal({
                   {consultationsUsed}
                 </span>
                 <span className="text-slate-400 text-sm">
-                  de {tier === 'unlimited' || tier === 'admin' ? '∞' : consultationsLimit}
+                  de {tier === 'unlimited' || tier === 'admin' ? '\u221E' : consultationsLimit}
                 </span>
               </div>
             </div>
@@ -214,19 +196,32 @@ export function UsageCounterModal({
                   <Button
                     size="sm"
                     className="flex items-center justify-center gap-1 bg-blue-600 hover:bg-blue-700 text-white text-xs"
-                    onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.basic), "_blank")}
+                    onClick={() => startCheckout("basic")}
+                    disabled={isLoading}
                   >
-                    <span>Básico</span>
-                    <ArrowRight className="h-3 w-3 shrink-0" />
+                    {isLoading && checkoutPlan === "basic" ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <span>Básico</span>
+                        <ArrowRight className="h-3 w-3 shrink-0" />
+                      </>
+                    )}
                   </Button>
                   <Button
                     size="sm"
                     className="flex items-center justify-center gap-1 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white text-xs"
-                    onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro), "_blank")}
+                    onClick={() => startCheckout("pro")}
+                    disabled={isLoading}
                   >
-                    <Crown className="h-3 w-3 shrink-0" />
-                    <span>PRO</span>
-                    <ExternalLink className="h-3 w-3 shrink-0" />
+                    {isLoading && checkoutPlan === "pro" ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : (
+                      <>
+                        <Crown className="h-3 w-3 shrink-0" />
+                        <span>PRO</span>
+                      </>
+                    )}
                   </Button>
                 </div>
               )}
@@ -234,11 +229,17 @@ export function UsageCounterModal({
               {tier === 'basic' && (
                 <Button
                   className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white"
-                  onClick={() => window.open(getPaymentLinkWithEmail(PAYMENT_LINKS.pro), "_blank")}
+                  onClick={() => startCheckout("pro")}
+                  disabled={isLoading}
                 >
-                  <Crown className="h-4 w-4 shrink-0" />
-                  <span>Upgrade para PRO</span>
-                  <ExternalLink className="h-4 w-4 shrink-0" />
+                  {isLoading && checkoutPlan === "pro" ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <>
+                      <Crown className="h-4 w-4 shrink-0" />
+                      <span>Upgrade para PRO</span>
+                    </>
+                  )}
                 </Button>
               )}
             </div>

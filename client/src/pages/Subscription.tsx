@@ -36,10 +36,10 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
-// Stripe Payment Links
-const PAYMENT_LINKS = {
-  BASIC: "https://buy.stripe.com/7sYdRad130ICbUA7vmb7y03",
-  PRO: "https://buy.stripe.com/bJeaEY7GJ9f82k09Dub7y02",
+// Stripe Price IDs (must match server/stripe/products.ts)
+const STRIPE_PRICE_IDS = {
+  BASIC: "price_1SuYhvJBQOFbtGZhL4AVyGqb",
+  PRO: "price_1SuYhvJBQOFbtGZhu5hcAhqH",
 };
 
 const PLAN_DETAILS = {
@@ -107,12 +107,29 @@ export default function Subscription() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null);
   
   const { data: subscriptionInfo, isLoading, refetch } = trpc.stripe.getSubscriptionInfo.useQuery();
-  const { data: planInfo } = trpc.billing.getPlanInfo.useQuery();
+  const { data: planInfo, refetch: refetchPlan } = trpc.billing.getPlanInfo.useQuery();
   
   const isGestor = user?.clinicRole === 'gestor';
   
+  const createCheckout = trpc.stripe.createCheckoutSession.useMutation({
+    onSuccess: (data) => {
+      if (data.checkoutUrl) {
+        // Use window.location.href for reliable redirect (no popup blocker issues)
+        window.location.href = data.checkoutUrl;
+      } else {
+        toast.error("Erro ao criar sessão de checkout. Tente novamente.");
+        setUpgradingPlan(null);
+      }
+    },
+    onError: (error) => {
+      toast.error(error.message || "Erro ao iniciar checkout. Tente novamente.");
+      setUpgradingPlan(null);
+    },
+  });
+
   const createPortal = trpc.stripe.createPortalSession.useMutation({
     onSuccess: (data) => {
       if (data.portalUrl) {
@@ -129,12 +146,17 @@ export default function Subscription() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("success") === "true") {
-      toast.success("Assinatura realizada com sucesso! Bem-vindo ao ZEAL.");
+      toast.success("Assinatura realizada com sucesso! Bem-vindo ao ZEAL PRO.");
       refetch();
+      refetchPlan();
+      // Clean URL params
+      window.history.replaceState({}, '', '/subscription');
     } else if (params.get("canceled") === "true") {
       toast.info("Checkout cancelado. Você pode tentar novamente quando quiser.");
+      // Clean URL params
+      window.history.replaceState({}, '', '/subscription');
     }
-  }, [refetch]);
+  }, [refetch, refetchPlan]);
 
   const isAdmin = user?.role === "admin";
   const currentTier = planInfo?.tier || "trial";
@@ -149,11 +171,10 @@ export default function Subscription() {
   };
 
   const handleUpgrade = (plan: "basic" | "pro") => {
-    const email = user?.email || "";
-    const link = plan === "basic" ? PAYMENT_LINKS.BASIC : PAYMENT_LINKS.PRO;
-    const url = email ? `${link}?prefilled_email=${encodeURIComponent(email)}` : link;
-    window.open(url, "_blank");
-    toast.info("Redirecionando para o checkout...");
+    const priceId = plan === "basic" ? STRIPE_PRICE_IDS.BASIC : STRIPE_PRICE_IDS.PRO;
+    setUpgradingPlan(plan);
+    toast.info("Preparando checkout seguro...");
+    createCheckout.mutate({ priceId });
   };
 
   if (isLoading) {
@@ -205,7 +226,8 @@ export default function Subscription() {
               >
                 {subscriptionInfo?.subscriptionStatus === "active" ? "Ativo" : 
                  subscriptionInfo?.subscriptionStatus === "trialing" ? "Trial" :
-                 isAdmin ? "Admin" : "Inativo"}
+                 isAdmin ? "Admin" : 
+                 planInfo?.isTrialActive ? "Trial Ativo" : "Inativo"}
               </Badge>
             </div>
           </CardHeader>
@@ -239,6 +261,19 @@ export default function Subscription() {
                     </p>
                   )}
                 </div>
+              </div>
+            )}
+
+            {/* Trial Days Remaining */}
+            {currentTier === "trial" && planInfo?.trialDaysRemaining !== undefined && (
+              <div className="flex items-center gap-2 text-sm text-amber-400">
+                <Clock className="h-4 w-4" />
+                <span>
+                  {planInfo.trialDaysRemaining > 0
+                    ? `${planInfo.trialDaysRemaining} dia${planInfo.trialDaysRemaining !== 1 ? 's' : ''} restante${planInfo.trialDaysRemaining !== 1 ? 's' : ''} no trial`
+                    : "Trial expirado"
+                  }
+                </span>
               </div>
             )}
 
@@ -351,9 +386,19 @@ export default function Subscription() {
                       <Button 
                         className="w-full bg-blue-600 hover:bg-blue-700"
                         onClick={() => handleUpgrade("basic")}
+                        disabled={upgradingPlan === "basic"}
                       >
-                        Assinar Básico
-                        <ArrowUpRight className="h-4 w-4 ml-2" />
+                        {upgradingPlan === "basic" ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Preparando checkout...
+                          </>
+                        ) : (
+                          <>
+                            Assinar Básico
+                            <ArrowUpRight className="h-4 w-4 ml-2" />
+                          </>
+                        )}
                       </Button>
                     </CardFooter>
                   </Card>
@@ -412,9 +457,19 @@ export default function Subscription() {
                     <Button 
                       className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
                       onClick={() => handleUpgrade("pro")}
+                      disabled={upgradingPlan === "pro"}
                     >
-                      Assinar Pro
-                      <Crown className="h-4 w-4 ml-2" />
+                      {upgradingPlan === "pro" ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Preparando checkout...
+                        </>
+                      ) : (
+                        <>
+                          Assinar Pro
+                          <Crown className="h-4 w-4 ml-2" />
+                        </>
+                      )}
                     </Button>
                   </CardFooter>
                 </Card>
