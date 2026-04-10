@@ -49,10 +49,8 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/forgot-password" component={ForgotPassword} />
-        <Route path="/reset-password/:token" component={ResetPassword} />
-        <Route path="/pricing" component={Pricing} />
-        <Route path="/forgot-password" component={ForgotPassword} />
         <Route path="/reset-password" component={ResetPassword} />
+        <Route path="/pricing" component={Pricing} />
 
         {/* All authenticated pages wrapped in DashboardLayout */}
         <Route>
