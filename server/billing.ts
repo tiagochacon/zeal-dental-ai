@@ -88,17 +88,13 @@ export function getUserTier(user: User): SubscriptionTier {
     if (priceId === "unlimited") {
       return "unlimited";
     }
-    // Check for Pro price ID
-    if (priceId === "price_1SuYhvJBQOFbtGZhu5hcAhqH") {
+    // Check for Pro price ID (current + legacy)
+    if (priceId === "price_1TKk3eGcWmNsasLQmDIHOlrL" || priceId === "price_1SuYhvJBQOFbtGZhu5hcAhqH" || priceId?.includes("price_1SqJOTJRQSBgWkb1BFgs9QoP")) {
       return "pro";
     }
-    // Check for Basic price ID
-    if (priceId === "price_1SuYhvJBQOFbtGZhL4AVyGqb") {
+    // Check for Basic price ID (current + legacy)
+    if (priceId === "price_1TKk3bGcWmNsasLQ5dqRQRLt" || priceId === "price_1SuYhvJBQOFbtGZhL4AVyGqb" || priceId?.includes("price_1SqJOSJRQSBgWkb1XDS4DBaw")) {
       return "basic";
-    }
-    // Legacy price ID check
-    if (priceId?.includes("price_1SqJOTJRQSBgWkb1BFgs9QoP")) {
-      return "pro";
     }
     // Default to basic for any other active subscription
     return "basic";

@@ -10,13 +10,13 @@
 // ============================================
 
 export const STRIPE_PRICE_IDS = {
-  BASIC: "price_1SuYhvJBQOFbtGZhL4AVyGqb",
-  PRO: "price_1SuYhvJBQOFbtGZhu5hcAhqH",
+  BASIC: "price_1TKk3bGcWmNsasLQ5dqRQRLt",
+  PRO: "price_1TKk3eGcWmNsasLQmDIHOlrL",
 } as const;
 
 export const STRIPE_PRODUCT_IDS = {
-  BASIC: "prod_TsJKWnhkerrtD3",
-  PRO: "prod_TsJKKhldI5j5h6",
+  BASIC: "prod_UJMnoxyeoHOpN8",
+  PRO: "prod_UJMn8G0NGOjR3b",
 } as const;
 
 // ============================================

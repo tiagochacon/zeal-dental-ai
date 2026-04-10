@@ -51,19 +51,19 @@ import {
 
 describe("Stripe Products Configuration", () => {
   it("should have correct Basic price ID", () => {
-    expect(STRIPE_PRICE_IDS.BASIC).toBe("price_1SuYhvJBQOFbtGZhL4AVyGqb");
+    expect(STRIPE_PRICE_IDS.BASIC).toBe("price_1TKk3bGcWmNsasLQ5dqRQRLt");
   });
 
   it("should have correct Pro price ID", () => {
-    expect(STRIPE_PRICE_IDS.PRO).toBe("price_1SuYhvJBQOFbtGZhu5hcAhqH");
+    expect(STRIPE_PRICE_IDS.PRO).toBe("price_1TKk3eGcWmNsasLQmDIHOlrL");
   });
 
   it("should have correct Basic product ID", () => {
-    expect(STRIPE_PRODUCT_IDS.BASIC).toBe("prod_TsJKWnhkerrtD3");
+    expect(STRIPE_PRODUCT_IDS.BASIC).toBe("prod_UJMnoxyeoHOpN8");
   });
 
   it("should have correct Pro product ID", () => {
-    expect(STRIPE_PRODUCT_IDS.PRO).toBe("prod_TsJKKhldI5j5h6");
+    expect(STRIPE_PRODUCT_IDS.PRO).toBe("prod_UJMn8G0NGOjR3b");
   });
 
   it("should have basic plan with 20 consultations at R$ 179.90", () => {

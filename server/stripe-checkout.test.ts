@@ -15,11 +15,11 @@ import { STRIPE_PRICE_IDS as BACKEND_PRICE_IDS } from "./stripe/products";
 describe("Stripe Checkout Integration", () => {
   describe("Price ID consistency", () => {
     it("should have BASIC price ID defined in backend", () => {
-      expect(BACKEND_PRICE_IDS.BASIC).toBe("price_1SuYhvJBQOFbtGZhL4AVyGqb");
+      expect(BACKEND_PRICE_IDS.BASIC).toBe("price_1TKk3bGcWmNsasLQ5dqRQRLt");
     });
 
     it("should have PRO price ID defined in backend", () => {
-      expect(BACKEND_PRICE_IDS.PRO).toBe("price_1SuYhvJBQOFbtGZhu5hcAhqH");
+      expect(BACKEND_PRICE_IDS.PRO).toBe("price_1TKk3eGcWmNsasLQmDIHOlrL");
     });
 
     it("should have both BASIC and PRO price IDs as non-empty strings", () => {

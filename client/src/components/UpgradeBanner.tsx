@@ -47,9 +47,11 @@ export function UpgradeBanner({ variant = "full", className = "", showUsage = tr
       // Fallback to priceId matching (for legacy data)
       if (priceId) {
         // Current production IDs
+        if (priceId.includes("price_1TKk3eGcWmNsasLQmDIHOlrL")) return "pro";
+        if (priceId.includes("price_1TKk3bGcWmNsasLQ5dqRQRLt")) return "basic";
+        // Legacy IDs
         if (priceId.includes("price_1SuYhvJBQOFbtGZhu5hcAhqH")) return "pro";
         if (priceId.includes("price_1SuYhvJBQOFbtGZhL4AVyGqb")) return "basic";
-        // Legacy IDs (if any)
         if (priceId.includes("price_1SqJOTJRQSBgWkb1BFgs9QoP")) return "pro";
         if (priceId.includes("price_1SqJOSJRQSBgWkb1XDS4DBaw")) return "basic";
       }

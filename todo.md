@@ -1212,3 +1212,10 @@
 - [x] Usar window.location.href em vez de window.open para evitar popup blocker
 - [x] Verificar integração completa: pagamento → webhook → atualização do plano
 - [x] 10 testes vitest passando, zero erros TypeScript
+
+## Bug Fix: Price ID inválido no Stripe (v43)
+- [x] Investigar quais Price IDs existem na conta Stripe do usuário (nenhum produto existia)
+- [x] Criar produtos e preços via API Stripe (Basic R$179.90, Pro R$349.90)
+- [x] Atualizar Price IDs em server/stripe/products.ts, client/src/hooks/useStripeCheckout.ts, billing.ts
+- [x] Manter IDs legados como fallback para dados existentes
+- [x] 27 testes passando, zero erros TypeScript
