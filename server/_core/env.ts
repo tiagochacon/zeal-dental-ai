@@ -35,4 +35,5 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: getEnvVar("BUILT_IN_FORGE_API_URL"),
   forgeApiKey: getEnvVar("BUILT_IN_FORGE_API_KEY"),
+  resendApiKey: getEnvVar("RESEND_API_KEY", ""),
 } as const;
