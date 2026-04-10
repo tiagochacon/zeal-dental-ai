@@ -1167,3 +1167,35 @@
 - [x] Corrigir endpoint do webhook: adicionar handler de test events + melhor error handling
 - [x] Atualizar manualmente conta filipepcm89@gmail.com para PRO (subscriptionTier=pro, status=active)
 - [ ] Atualizar STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET para chaves live (após KYC do Stripe)
+
+## QA Completo - 13 Módulos
+- [ ] QA Módulo 1: Auth (AUTH-01 a AUTH-12)
+- [ ] QA Módulo 2: Clinic Setup (CLINIC-01 a CLINIC-02)
+- [ ] QA Módulo 3: Dashboards (DASH-01 a DASH-05)
+- [ ] QA Módulo 4: Team Management (TEAM-01 a TEAM-07)
+- [ ] QA Módulo 5: Patients (PAT-01 a PAT-08)
+- [ ] QA Módulo 6: Consultations (CONS-01 a CONS-12)
+- [ ] QA Módulo 7: Leads (LEAD-01 a LEAD-05)
+- [ ] QA Módulo 8: Calls (CALL-01 a CALL-05)
+- [ ] QA Módulo 9: Billing/Stripe (BILL-01 a BILL-08)
+- [ ] QA Módulo 10: AI Integrations (AI-01 a AI-07)
+- [ ] QA Módulo 11: Profile (PROF-01 a PROF-02)
+- [ ] QA Módulo 12: Nav/UX (NAV-01 a NAV-05)
+- [ ] QA Módulo 13: Database (DB-01 a DB-03)
+
+## BUG-001: Implementar "Esqueci minha senha" (v41)
+- [x] Criar tabela Password_reset_tokens no Supabase (SQL executado pelo usuário)
+- [x] Criar funções DB: createPasswordResetToken, getPasswordResetToken, markTokenAsUsed, updateUserPassword
+- [x] Criar procedures: auth.requestPasswordReset e auth.resetPassword
+- [x] Criar página /forgot-password com formulário de email
+- [x] Criar página /reset-password com formulário de nova senha + validação
+- [x] Adicionar rotas no App.tsx
+- [x] Substituir toast placeholder no Login.tsx pelo link real para /forgot-password
+- [x] Notificação ao owner com link de reset via notifyOwner
+- [x] 450 testes passando, zero erros TypeScript
+
+## BUG-002: Melhorar resiliência do Webhook Stripe (v41)
+- [x] Webhook agora tenta 3 secrets como fallback (STRIPE_WEBHOOK_SECRET, STRIPE_WEBHOOKS, SRTIPE_WEBHOOKS_2)
+- [x] Melhorar logging com identificação de qual secret funcionou
+- [x] Handler de test events para verificação do Stripe
+- [ ] Pendente: Usuário precisa completar KYC do Stripe para obter chaves live

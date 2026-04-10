@@ -15,6 +15,8 @@ import Patients from "./pages/Patients";
 import Profile from "./pages/Profile";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import ForgotPassword from "./pages/ForgotPassword";
+import ResetPassword from "./pages/ResetPassword";
 import Subscription from "./pages/Subscription";
 import Pricing from "./pages/Pricing";
 import { lazy, Suspense } from "react";
@@ -47,6 +49,8 @@ function Router() {
         <Route path="/login" component={Login} />
         <Route path="/register" component={Register} />
         <Route path="/pricing" component={Pricing} />
+        <Route path="/forgot-password" component={ForgotPassword} />
+        <Route path="/reset-password" component={ResetPassword} />
 
         {/* All authenticated pages wrapped in DashboardLayout */}
         <Route>

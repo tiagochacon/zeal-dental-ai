@@ -1127,3 +1127,65 @@ export async function getClinicStats(clinicId: number) {
     team: { totalMembers: members.length, crcCount, dentistaCount },
   };
 }
+
+
+// ==================== PASSWORD RESET FUNCTIONS ====================
+
+export async function createPasswordResetToken(userId: number, email: string, token: string, expiresAt: string): Promise<void> {
+  // Invalidate any existing tokens for this email
+  await supabase
+    .from("Password_reset_tokens")
+    .update({ used: true })
+    .eq("email", email.toLowerCase())
+    .eq("used", false);
+
+  const { error } = await supabase.from("Password_reset_tokens").insert({
+    userId,
+    email: email.toLowerCase(),
+    token,
+    expiresAt,
+    used: false,
+  });
+  if (error) {
+    console.error("[Database] Failed to create password reset token:", error);
+    throw new Error("Erro ao criar token de recuperação");
+  }
+}
+
+export async function getPasswordResetToken(token: string): Promise<{
+  userId: number;
+  email: string;
+  token: string;
+  expiresAt: string;
+  used: boolean;
+} | null> {
+  const { data, error } = await supabase
+    .from("Password_reset_tokens")
+    .select("*")
+    .eq("token", token)
+    .eq("used", false)
+    .limit(1)
+    .maybeSingle();
+  if (error || !data) return null;
+  return data as { userId: number; email: string; token: string; expiresAt: string; used: boolean };
+}
+
+export async function markPasswordResetTokenUsed(token: string): Promise<void> {
+  await supabase
+    .from("Password_reset_tokens")
+    .update({ used: true })
+    .eq("token", token);
+}
+
+export async function updateUserPassword(userId: number, passwordHash: string): Promise<void> {
+  const { error } = await supabase
+    .from("Users")
+    .update({ passwordHash })
+    .eq("id", userId);
+  if (error) {
+    console.error("[Database] Failed to update user password:", error);
+    throw new Error("Erro ao atualizar senha");
+  }
+}
+
+

@@ -49,8 +49,11 @@ import { stripe, isStripeConfigured } from "./stripe/stripe";
 import { PLAN_CONFIGS, PlanTier } from "./stripe/products";
 import { updateUserSubscription, getUserByStripeCustomerId, updateUserByStripeCustomerId } from "./db";
 import { incrementClinicConsultationCount } from "./clinicBilling";
-import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth } from "./auth";
+import { createUser, authenticateUser, isAdminEmail, getUserByIdAuth, hashPassword } from "./auth";
 import { sdk } from "./_core/sdk";
+import { notifyOwner } from "./_core/notification";
+import { createPasswordResetToken, getPasswordResetToken, markPasswordResetTokenUsed, updateUserPassword, getUserByEmail } from "./db";
+import crypto from "crypto";
 import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 
 // Zod schemas for validation
@@ -241,6 +244,61 @@ export const appRouter = router({
         
         return { id: user.id, email: user.email, name: user.name, role: user.role, redirectTo: '/pricing' };
       }),
+    requestPasswordReset: publicProcedure
+      .input(z.object({ email: z.string().email("Email inválido") }))
+      .mutation(async ({ ctx, input }) => {
+        const user = await getUserByEmail(input.email);
+        // Always return success to prevent email enumeration
+        if (!user) {
+          return { success: true, message: "Se o email estiver cadastrado, você receberá instruções para redefinir sua senha." };
+        }
+
+        // Generate a secure token
+        const token = crypto.randomBytes(32).toString("hex");
+        const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString(); // 1 hour
+
+        await createPasswordResetToken(user.id, user.email || input.email, token, expiresAt);
+
+        // Build reset URL using request origin
+        const origin = ctx.req.headers.origin || ctx.req.headers.referer?.replace(/\/$/, "") || "https://zealtecnologia.com";
+        const resetUrl = `${origin}/reset-password?token=${token}`;
+
+        // Notify the owner with the reset link
+        await notifyOwner({
+          title: `🔑 Recuperação de Senha - ${user.name || user.email}`,
+          content: `O usuário ${user.name || ""} (${user.email}) solicitou recuperação de senha.\n\nLink de recuperação (válido por 1 hora):\n${resetUrl}\n\nEnvie este link ao usuário para que ele possa redefinir sua senha.`,
+        });
+
+        console.log(`[Auth] Password reset requested for ${user.email}, token created`);
+        return { success: true, message: "Se o email estiver cadastrado, você receberá instruções para redefinir sua senha." };
+      }),
+
+    resetPassword: publicProcedure
+      .input(z.object({
+        token: z.string().min(1, "Token é obrigatório"),
+        newPassword: z.string().min(6, "Senha deve ter no mínimo 6 caracteres"),
+      }))
+      .mutation(async ({ input }) => {
+        const resetToken = await getPasswordResetToken(input.token);
+        if (!resetToken) {
+          throw new Error("Token inválido ou expirado. Solicite uma nova recuperação de senha.");
+        }
+
+        // Check expiration
+        if (new Date(resetToken.expiresAt) < new Date()) {
+          await markPasswordResetTokenUsed(input.token);
+          throw new Error("Token expirado. Solicite uma nova recuperação de senha.");
+        }
+
+        // Hash new password and update
+        const newHash = await hashPassword(input.newPassword);
+        await updateUserPassword(resetToken.userId, newHash);
+        await markPasswordResetTokenUsed(input.token);
+
+        console.log(`[Auth] Password reset completed for userId ${resetToken.userId}`);
+        return { success: true, message: "Senha redefinida com sucesso! Você já pode fazer login." };
+      }),
+
     emailLogin: publicProcedure
       .input(z.object({ email: z.string().email("Email invalido"), password: z.string().min(1, "Senha obrigatoria") }))
       .mutation(async ({ ctx, input }) => {

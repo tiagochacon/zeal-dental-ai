@@ -111,13 +111,12 @@ export default function Login() {
             <div className="relative">
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-medium text-foreground/80">Senha</label>
-                <button
-                  type="button"
-                  onClick={() => toast.info("Recuperação de senha em breve!")}
+                <Link
+                  href="/forgot-password"
                   className="text-xs text-primary hover:text-primary/80 transition-colors"
                 >
                   Esqueci minha senha
-                </button>
+                </Link>
               </div>
               <div className="relative">
                 <Input
