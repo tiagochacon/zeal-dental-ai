@@ -1203,15 +1203,5 @@ export async function markPasswordResetTokenUsed(token: string): Promise<void> {
     .eq("token", token);
 }
 
-export async function updateUserPassword(userId: number, passwordHash: string): Promise<void> {
-  const { error } = await supabase
-    .from("Users")
-    .update({ passwordHash })
-    .eq("id", userId);
-  if (error) {
-    console.error("[Database] Failed to update user password:", error);
-    throw new Error("Erro ao atualizar senha");
-  }
-}
 
 
