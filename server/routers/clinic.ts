@@ -9,6 +9,7 @@ import {
   addClinicMember,
   updateClinicMember,
   removeClinicMember,
+  updateUserPassword,
   updateClinic,
   getUserById,
   getClinicStats,
@@ -170,6 +171,32 @@ export const clinicRouter = router({
       }
 
       await removeClinicMember(input.memberId);
+      return { success: true };
+    }),
+
+  // Change password of a clinic member - gestor only
+  updateMemberPassword: protectedProcedure
+    .input(z.object({
+      memberId: z.number(),
+      newPassword: z.string().min(6, "A senha deve ter no mínimo 6 caracteres"),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const user = await getUserById(ctx.user.id);
+      if (!user || !user.clinicId || user.clinicRole !== "gestor") {
+        throw new TRPCError({ code: "FORBIDDEN", message: "Apenas o gestor pode alterar senhas de membros" });
+      }
+
+      const member = await getUserById(input.memberId);
+      if (!member || member.clinicId !== user.clinicId) {
+        throw new TRPCError({ code: "NOT_FOUND", message: "Membro não encontrado nesta clínica" });
+      }
+
+      if (input.memberId === ctx.user.id) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Para alterar sua própria senha, use as configurações de conta" });
+      }
+
+      const newPasswordHash = await hashPassword(input.newPassword);
+      await updateUserPassword(input.memberId, newPasswordHash);
       return { success: true };
     }),
 

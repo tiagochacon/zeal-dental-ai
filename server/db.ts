@@ -881,6 +881,14 @@ export async function removeClinicMember(userId: number): Promise<void> {
   assertNoError(error, "removeClinicMember");
 }
 
+export async function updateUserPassword(userId: number, newPasswordHash: string): Promise<void> {
+  const { error } = await supabase
+    .from("Users")
+    .update({ passwordHash: newPasswordHash })
+    .eq("id", userId);
+  assertNoError(error, "updateUserPassword");
+}
+
 // ==================== LEAD FUNCTIONS ====================
 
 export async function createLead(data: InsertLead): Promise<Lead> {
@@ -1108,15 +1116,33 @@ export async function getClinicStats(clinicId: number) {
   }
 
   const allClinicConsultations = Array.from(consultationMap.values());
-  let totalConsultations = allClinicConsultations.length;
-  let closedTreatments = allClinicConsultations.filter(c => c.treatmentClosed === true).length;
+  const totalConsultations = allClinicConsultations.length;
 
-  if (totalConsultations > 0 && closedTreatments === 0) {
-    for (const c of allClinicConsultations) {
-      const { data: fbs } = await supabase.from("Feedbacks").select("treatmentClosed").eq("consultationId", c.id);
-      if ((fbs ?? []).some((f: { treatmentClosed: boolean }) => f.treatmentClosed === true)) closedTreatments++;
+  // Build a Set of consultationIds with treatmentClosed=true from the Feedbacks table
+  // in a single query to avoid N+1 and to correctly merge both sources of truth
+  const feedbackClosedSet = new Set<number>();
+  if (allClinicConsultations.length > 0) {
+    const consultationIds = allClinicConsultations.map(c => c.id);
+    const { data: allFeedbacks } = await supabase
+      .from("Feedbacks")
+      .select("consultationId, treatmentClosed")
+      .in("consultationId", consultationIds);
+    for (const fb of allFeedbacks ?? []) {
+      if ((fb as { consultationId: number; treatmentClosed: boolean }).treatmentClosed === true) {
+        feedbackClosedSet.add((fb as { consultationId: number; treatmentClosed: boolean }).consultationId);
+      }
     }
   }
+
+  // Count a consultation as "closed" if either Consultations.treatmentClosed=true
+  // OR a Feedback for that consultation has treatmentClosed=true
+  const closedSet = new Set<number>();
+  for (const c of allClinicConsultations) {
+    if (c.treatmentClosed === true || feedbackClosedSet.has(c.id)) {
+      closedSet.add(c.id);
+    }
+  }
+  const closedTreatments = closedSet.size;
 
   const members = await getClinicMembers(clinicId);
   const crcCount = members.filter(m => m.clinicRole === "crc").length;
