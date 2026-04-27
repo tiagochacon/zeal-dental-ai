@@ -28,7 +28,7 @@ export const ENV = {
   cookieSecret: getEnvVar("JWT_SECRET"),
   // Supabase (replaces DATABASE_URL)
   supabaseUrl: getEnvVar("SUPABASE_URL", ""),
-  supabaseAnonKey: getEnvVar("SUPABASE_ANON_KEY", ""),
+  supabaseServiceRoleKey: getEnvVar("SUPABASE_SERVICE_ROLE_KEY", ""),
   // OAuth (kept for backward compatibility, but not used with email/password auth)
   oAuthServerUrl: getEnvVar("OAUTH_SERVER_URL", ""),
   ownerOpenId: getEnvVar("OWNER_OPEN_ID", ""),
