@@ -918,7 +918,7 @@ export default function ConsultationDetail() {
         open={showUpgradeModal} 
         onOpenChange={setShowUpgradeModal}
         trigger="feature_gate"
-        currentPlan={user?.subscriptionTier as "trial" | "basic" | "pro" | "unlimited" || "basic"}
+        currentPlan={planInfo?.tier as "trial" | "basic" | "pro" | "unlimited" ?? "trial"}
         feature="Negociação"
       />
     </motion.div>

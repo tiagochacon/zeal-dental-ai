@@ -48,7 +48,7 @@ export function useUsageLimit(): UsageLimitInfo {
         consultationsLimit: 7,
         isLimitReached: false,
         isTrialExpired: false,
-        hasNegotiationAccess: false,
+        hasNegotiationAccess: true,
         trigger: null,
         usagePercentage: 0,
         shouldShowUpgradeModal: () => false,
