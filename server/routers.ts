@@ -1410,9 +1410,13 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
       const user = await getUserById(ctx.user.id);
       if (!user) throw new Error("Usuário não encontrado");
       
-      // Check if user already has a trial or subscription
-      if (user.trialStartedAt || user.subscriptionStatus === 'active') {
-        throw new Error("Você já possui um trial ou assinatura ativa");
+      // Check if user already used their trial
+      if (user.trialStartedAt) {
+        throw new Error("Seu período de trial já foi utilizado. Escolha um plano para continuar.");
+      }
+      // Check if user already has an active subscription
+      if (user.subscriptionStatus === 'active') {
+        throw new Error("Você já possui uma assinatura ativa.");
       }
       
       const trialEndDate = calculateTrialEndDate();

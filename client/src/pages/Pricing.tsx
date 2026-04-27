@@ -125,17 +125,21 @@ export default function Pricing() {
   // Determine which plans to show based on user's current subscription
   const visiblePlans = (() => {
     if (!user) return PLANS; // Show all plans for visitors
-    
+
     const tier = user.subscriptionTier;
     if (tier === "basic") {
-      // Only show Pro for basic users
       return PLANS.filter(p => p.key === "PRO");
     }
     if (tier === "pro" || tier === "unlimited") {
-      // Show nothing or current plan info
       return PLANS.filter(p => p.key === "PRO");
     }
-    return PLANS; // trial/free users see all
+
+    // User already used their trial: do not show TRIAL option again
+    if (user.trialStartedAt) {
+      return PLANS.filter(p => p.key !== "TRIAL");
+    }
+
+    return PLANS; // New users with no trial yet see all plans
   })();
 
   return (
@@ -175,6 +179,14 @@ export default function Pricing() {
             </p>
           )}
         </div>
+
+        {/* Trial expired banner */}
+        {user?.trialStartedAt && (
+          <div className="text-center mb-8 mx-auto max-w-xl px-4 py-4 rounded-2xl bg-amber-500/10 border border-amber-500/30">
+            <p className="text-amber-400 font-semibold text-base">Seu período de trial foi encerrado.</p>
+            <p className="text-slate-400 text-sm mt-1">Escolha um plano abaixo para continuar usando o ZEAL e não perder seus dados.</p>
+          </div>
+        )}
 
         {/* Plans Grid */}
         <div className={`grid gap-6 max-w-5xl mx-auto ${visiblePlans.length === 1 ? 'md:grid-cols-1 max-w-md' : visiblePlans.length === 2 ? 'md:grid-cols-2 max-w-3xl' : 'md:grid-cols-3'}`}>
