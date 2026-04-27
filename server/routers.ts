@@ -1346,6 +1346,7 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
         await updateConsultation(input.consultationId, {
           status: "finalized",
           finalizedAt: new Date(),
+          treatmentClosed: feedback.treatmentClosed ?? null,
         });
 
         return { success: true };

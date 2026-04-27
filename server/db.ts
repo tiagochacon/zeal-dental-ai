@@ -388,6 +388,7 @@ export async function updateConsultation(
     treatmentPlan: TreatmentPlan | null;
     neurovendasAnalysis: NeurovendasAnalysis | null;
     odontogramData: unknown | null;
+    treatmentClosed: boolean | null;
     status: "draft" | "transcribed" | "reviewed" | "finalized";
     finalizedAt: Date | null;
   }>

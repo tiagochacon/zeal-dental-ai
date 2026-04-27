@@ -840,7 +840,7 @@ export default function ConsultationDetail() {
             {/* Treatment Closed */}
             <Separator />
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Resultado do Tratamento</Label>
+              <Label className="text-sm font-medium">Resultado do Tratamento <span className="text-destructive">*</span></Label>
               <p className="text-xs text-muted-foreground">
                 O paciente aceitou o plano de tratamento proposto?
               </p>
@@ -872,6 +872,11 @@ export default function ConsultationDetail() {
                   <span className="text-sm font-medium">Não Fechado</span>
                 </button>
               </div>
+              {treatmentClosed === null && feedbackRating > 0 && (
+                <p className="text-xs text-amber-400 font-medium mt-1">
+                  Selecione o resultado do tratamento para poder finalizar.
+                </p>
+              )}
               {treatmentClosed === false && (
                 <Textarea
                   placeholder="Motivo (opcional): o que impediu o fechamento?"
@@ -898,7 +903,7 @@ export default function ConsultationDetail() {
             <Button 
               className="w-full" 
               onClick={handleSubmitFeedback}
-              disabled={feedbackRating === 0 || createFeedbackMutation.isPending}
+              disabled={feedbackRating === 0 || treatmentClosed === null || createFeedbackMutation.isPending}
             >
               {createFeedbackMutation.isPending ? (
                 <>
