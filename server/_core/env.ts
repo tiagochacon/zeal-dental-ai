@@ -36,4 +36,5 @@ export const ENV = {
   forgeApiUrl: getEnvVar("BUILT_IN_FORGE_API_URL"),
   forgeApiKey: getEnvVar("BUILT_IN_FORGE_API_KEY"),
   resendApiKey: getEnvVar("RESEND_API_KEY", ""),
+  adminPassword: getEnvVar("ADMIN_PASSWORD"),
 } as const;

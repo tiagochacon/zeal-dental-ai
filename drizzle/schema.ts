@@ -1,3 +1,18 @@
+/**
+ * ⚠️  AVISO IMPORTANTE — LEIA ANTES DE EDITAR ESTE ARQUIVO
+ *
+ * Este schema usa drizzle-orm/mysql-core (sintaxe MySQL) APENAS para geração
+ * de tipos TypeScript ($inferSelect / $inferInsert). O banco de dados real
+ * é PostgreSQL rodando no Supabase.
+ *
+ * O Drizzle ORM NÃO é usado para executar queries — toda comunicação com o
+ * banco é feita via supabase.from(...) em server/db.ts.
+ *
+ * CONSEQUÊNCIA: Este schema e o banco real podem divergir silenciosamente.
+ * REGRA OBRIGATÓRIA: Sempre que uma coluna for adicionada ou alterada
+ * diretamente no Supabase, atualize este schema imediatamente.
+ * Colunas ausentes neste schema causam erros de tipo TypeScript em db.ts.
+ */
 import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json, boolean } from "drizzle-orm/mysql-core";
 
 /**
@@ -183,7 +198,10 @@ export const consultations = mysqlTable("consultations", {
   // Treatment closed tracking
   treatmentClosed: boolean("treatmentClosed"),
   treatmentClosedNotes: text("treatmentClosedNotes"),
-  
+
+  // Odontogram data (stored as JSON in Supabase, text in schema for MySQL compat)
+  odontogramData: text("odontogramData"),
+
   // Metadata
   templateUsed: varchar("templateUsed", { length: 50 }),
   status: mysqlEnum("status", ["draft", "transcribed", "reviewed", "finalized"]).default("draft").notNull(),
