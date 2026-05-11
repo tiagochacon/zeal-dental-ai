@@ -149,7 +149,55 @@ function AttendanceVideoScriptCard({ script }: { script: AttendanceVideoScript }
   );
 }
 
-// ---- Profile config for Neurovendas display ----
+// ---- DISC Profile config (principal) ----
+const discProfileDisplayConfig: Record<string, {
+  label: string;
+  badgeClass: string;
+  bgGradient: string;
+  iconBg: string;
+  description: string;
+  keyApproach: string[];
+  Icon: React.ComponentType<{ className?: string }>;
+}> = {
+  dominancia: {
+    label: "Dominância (D)",
+    badgeClass: "bg-orange-600/20 text-orange-400 border-orange-500/30",
+    bgGradient: "from-orange-600/10 to-orange-600/5",
+    iconBg: "bg-orange-500/20 text-orange-400",
+    description: "Direto, assertivo e orientado a resultado. Quer saber o que será feito, em quanto tempo e qual benefício prático.",
+    keyApproach: ["Seja objetivo e direto", "Mostre próximos passos e prazo", "Dê opções claras sem rodeios"],
+    Icon: Target,
+  },
+  influencia: {
+    label: "Influência (I)",
+    badgeClass: "bg-amber-600/20 text-amber-400 border-amber-500/30",
+    bgGradient: "from-amber-600/10 to-amber-600/5",
+    iconBg: "bg-amber-500/20 text-amber-400",
+    description: "Comunicativo, emocional e motivado por transformação, autoestima e conexão humana.",
+    keyApproach: ["Crie conexão e entusiasmo", "Fale sobre transformação e autoestima", "Use linguagem positiva e acolhedora"],
+    Icon: Heart,
+  },
+  estabilidade: {
+    label: "Estabilidade (S)",
+    badgeClass: "bg-green-600/20 text-green-400 border-green-500/30",
+    bgGradient: "from-green-600/10 to-green-600/5",
+    iconBg: "bg-green-500/20 text-green-400",
+    description: "Calmo, cuidadoso e movido por segurança. Pode ter medo, ansiedade ou insegurança. Precisa de acolhimento.",
+    keyApproach: ["Transmita calma e segurança", "Explique cada etapa com paciência", "Valide medos, evite pressão"],
+    Icon: Shield,
+  },
+  conformidade: {
+    label: "Conformidade (C)",
+    badgeClass: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+    bgGradient: "from-blue-600/10 to-blue-600/5",
+    iconBg: "bg-blue-500/20 text-blue-400",
+    description: "Analítico, detalhista e orientado por dados. Faz perguntas técnicas, compara opções, planeja antes de decidir.",
+    keyApproach: ["Explique com estrutura e lógica", "Apresente etapas, critérios e benefícios", "Seja transparente sobre o processo"],
+    Icon: Brain,
+  },
+};
+
+// ---- Legacy neurovendas profile config (fallback para dados antigos) ----
 const profileDisplayConfig: Record<string, {
   label: string;
   badgeClass: string;
@@ -206,7 +254,20 @@ function NeurovendasProfileCard({ callProfile }: { callProfile: unknown }) {
     plainText = typeof callProfile === "string" ? callProfile : String(callProfile);
   }
 
-  // Extract fields from the callProfile JSON
+  // DISC profile — camada principal
+  const discProfile = parsed?.discProfile as Record<string, unknown> | undefined;
+  const discKey = discProfile?.perfilPrimario as string | undefined;
+  const discSecondary = discProfile?.perfilSecundario as string | null | undefined;
+  const discConfig = discKey ? discProfileDisplayConfig[discKey.toLowerCase()] : undefined;
+  const discConfianca = discProfile?.confianca as number | undefined;
+  const discResumo = discProfile?.resumo as string | undefined;
+  const discMotivadores = discProfile?.motivadores as string[] | undefined;
+  const discMedos = discProfile?.medosOuResistencias as string[] | undefined;
+  const discComoComunicar = discProfile?.comoComunicar as string[] | undefined;
+  const discOQueEvitar = discProfile?.oQueEvitar as string[] | undefined;
+  const discFrase = discProfile?.fraseRecomendada as string | undefined;
+
+  // Legacy neurovendas fallback
   const nivelCerebral = parsed
     ? ((parsed.nivelCerebralDominante || parsed.profileType || parsed.perfilPrincipal) as string | undefined)
     : undefined;
@@ -214,6 +275,144 @@ function NeurovendasProfileCard({ callProfile }: { callProfile: unknown }) {
   const config = profileKey ? profileDisplayConfig[profileKey] : undefined;
   const probabilidade = parsed?.probabilidadeAgendamento as number | undefined;
   const resumo = (parsed?.resumo || parsed?.resumoGeral) as string | undefined;
+
+  // If we have a DISC profile, render the DISC card
+  if (discConfig) {
+    const discSecondaryConfig = discSecondary ? discProfileDisplayConfig[discSecondary.toLowerCase()] : undefined;
+    return (
+      <div className="bg-card border border-border rounded-xl overflow-hidden mt-6">
+        <div className={`bg-gradient-to-r ${discConfig.bgGradient} border-b border-border px-6 py-4`}>
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-lg ${discConfig.iconBg} flex items-center justify-center`}>
+              <discConfig.Icon className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-lg font-semibold text-foreground">Perfil Comportamental DISC</h2>
+                <Badge className={`${discConfig.badgeClass} border text-xs font-semibold`}>
+                  {discConfig.label}
+                </Badge>
+                {discSecondaryConfig && (
+                  <Badge className={`${discSecondaryConfig.badgeClass} border text-xs`}>
+                    Secundário: {discSecondaryConfig.label}
+                  </Badge>
+                )}
+                {discConfianca !== undefined && (
+                  <Badge className="bg-secondary border-border border text-xs text-muted-foreground">
+                    {discConfianca}% confiança
+                  </Badge>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-0.5">{discConfig.description}</p>
+            </div>
+          </div>
+        </div>
+        <div className="p-6 space-y-5">
+          {probabilidade !== undefined && (
+            <div className="bg-secondary/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Target className="h-4 w-4 text-muted-foreground" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Probabilidade de Agendamento</span>
+              </div>
+              <div className="flex items-center gap-3">
+                <Progress
+                  value={probabilidade}
+                  className={`h-2.5 flex-1 ${probabilidade >= 70 ? "[&>div]:bg-green-500" : probabilidade >= 40 ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500"}`}
+                />
+                <span className={`text-lg font-bold min-w-[3rem] text-right ${probabilidade >= 70 ? "text-green-400" : probabilidade >= 40 ? "text-amber-400" : "text-red-400"}`}>
+                  {probabilidade}%
+                </span>
+              </div>
+            </div>
+          )}
+          <div className="bg-secondary/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Como abordar este perfil</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              {discConfig.keyApproach.map((tip, i) => (
+                <div key={i} className="flex items-start gap-2 bg-card border border-border rounded-lg p-3">
+                  <span className="text-primary font-bold text-sm mt-0.5">{i + 1}</span>
+                  <span className="text-sm text-foreground">{tip}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          {discResumo && (
+            <div className="border-l-4 border-primary pl-4 bg-primary/5 rounded-r-lg p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Análise do Perfil</p>
+              <p className="text-sm text-foreground leading-relaxed">{discResumo}</p>
+            </div>
+          )}
+          {discMotivadores && discMotivadores.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-secondary/30 rounded-xl p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Motivadores</p>
+                <ul className="space-y-1">
+                  {discMotivadores.map((m, i) => (
+                    <li key={i} className="text-sm text-foreground flex items-start gap-1.5">
+                      <span className="text-green-400 mt-0.5">•</span>{m}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {discMedos && discMedos.length > 0 && (
+                <div className="bg-secondary/30 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Medos / Resistências</p>
+                  <ul className="space-y-1">
+                    {discMedos.map((m, i) => (
+                      <li key={i} className="text-sm text-foreground flex items-start gap-1.5">
+                        <span className="text-amber-400 mt-0.5">•</span>{m}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {discComoComunicar && discComoComunicar.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="bg-secondary/30 rounded-xl p-4">
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Como comunicar</p>
+                <ul className="space-y-1">
+                  {discComoComunicar.map((c, i) => (
+                    <li key={i} className="text-sm text-foreground flex items-start gap-1.5">
+                      <span className="text-blue-400 mt-0.5">•</span>{c}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              {discOQueEvitar && discOQueEvitar.length > 0 && (
+                <div className="bg-secondary/30 rounded-xl p-4">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">O que evitar</p>
+                  <ul className="space-y-1">
+                    {discOQueEvitar.map((e, i) => (
+                      <li key={i} className="text-sm text-foreground flex items-start gap-1.5">
+                        <span className="text-red-400 mt-0.5">•</span>{e}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
+          {discFrase && (
+            <div className="bg-primary/5 border border-primary/20 rounded-xl p-4">
+              <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Frase recomendada para o CRC</p>
+              <p className="text-sm text-foreground italic leading-relaxed">"{discFrase}"</p>
+            </div>
+          )}
+          {resumo && !discResumo && (
+            <div className="border-l-4 border-primary pl-4 bg-primary/5 rounded-r-lg p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Resumo da Análise</p>
+              <p className="text-sm text-foreground leading-relaxed">{resumo}</p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Fallback: if no config matched but we have parsed data, show structured view
   if (!config && parsed && !plainText) {

@@ -315,8 +315,20 @@ INSTRUÇÕES ESPECÍFICAS:
 
 1. Analise a transcrição acima e extraia os padrões de comportamento do LEAD (não do CRC).
 
-2. Identifique:
-   a) Nível cerebral dominante (reptiliano, limbico, neocortex)
+2. Identifique o perfil comportamental DISC do LEAD (campo discProfile — obrigatório):
+   - perfilPrimario: o perfil DISC dominante inferido a partir dos sinais de fala.
+     * dominancia: lead direto, impaciente, orientado a resultado, quer saber próximos passos, prazo e efetividade.
+     * influencia: lead comunicativo, emocional, fala de estética, autoestima, transformação, sorriso, imagem.
+     * estabilidade: lead demonstra medo, ansiedade, insegurança, busca segurança e acolhimento, evita pressão.
+     * conformidade: lead faz perguntas detalhadas, quer entender riscos, etapas, critérios, planeja antes de decidir.
+   - perfilSecundario: segundo perfil quando houver mistura clara de sinais, senão null.
+   - confianca: 0 a 100 conforme volume e clareza dos sinais detectados.
+   - sinaisDetectados: trechos ou comportamentos observados que justificam o perfil.
+   - motivadores, medosOuResistencias, comoComunicar, oQueEvitar, fraseRecomendada: práticos para o CRC usar.
+   - justificativaTecnica: explicação técnica clara de como o perfil foi inferido pela metodologia.
+
+3. Identifique (metodologia do ebook — base obrigatória):
+   a) Nível cerebral dominante (reptiliano, limbico, neocortex) — campo legado, preencha com base na metodologia
    b) Motivação primária (alivio_dor, estetica, status, saude)
    c) Gatilhos mentais (transformacao, saude_longevidade, status, conforto, exclusividade)
    d) Objeções verdadeiras e ocultas (categoria: financeira, medo, tempo, confianca, outra)
@@ -324,15 +336,15 @@ INSTRUÇÕES ESPECÍFICAS:
    f) Nível de rapport (0-100) e breakdown
    g) Sinais de linguagem (positivos e negativos)
 
-3. Preencha TODOS os campos do schema — nunca deixe vazio.
+4. Preencha TODOS os campos do schema — nunca deixe vazio.
 
-4. ${leadWordCount < 100 ? `ATENÇÃO: Transcrição com apenas ~${leadWordCount} palavras do lead. Indique 'Amostra insuficiente' na descrição do perfil, mas continue preenchendo todos os campos.` : 'Transcrição com volume adequado para análise.'}
+5. ${leadWordCount < 100 ? `ATENÇÃO: Transcrição com apenas ~${leadWordCount} palavras do lead. No discProfile, indique 'Amostra insuficiente' no resumo e reduza a confiança para no máximo 20. Continue preenchendo todos os campos.` : 'Transcrição com volume adequado para análise.'}
 
-5. Use EXATAMENTE os valores de enum definidos no schema — sem variações.
+6. Use EXATAMENTE os valores de enum definidos no schema — sem variações.
 
-6. Para scriptPARE: crie um script COMPLETO adaptado ao contexto de AGENDAMENTO desta ligação.
+7. Para scriptPARE: crie um script COMPLETO adaptado ao contexto de AGENDAMENTO desta ligação, alinhado ao perfil DISC identificado.
 
-7. Para tecnicaObjecao: forneça passos ESPECÍFICOS para o CRC usar na próxima ligação.
+8. Para tecnicaObjecao: forneça passos ESPECÍFICOS para o CRC usar na próxima ligação, considerando o perfil DISC.
 
 RETORNE APENAS O JSON, sem explicações adicionais.`;
 
@@ -352,13 +364,31 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
                 perfilPsicografico: {
                   type: "object",
                   properties: {
+                    discProfile: {
+                      type: "object",
+                      properties: {
+                        perfilPrimario: { type: "string", enum: ["dominancia", "influencia", "estabilidade", "conformidade"] },
+                        perfilSecundario: { type: ["string", "null"], enum: ["dominancia", "influencia", "estabilidade", "conformidade", null] },
+                        confianca: { type: "number" },
+                        resumo: { type: "string" },
+                        sinaisDetectados: { type: "array", items: { type: "string" } },
+                        motivadores: { type: "array", items: { type: "string" } },
+                        medosOuResistencias: { type: "array", items: { type: "string" } },
+                        comoComunicar: { type: "array", items: { type: "string" } },
+                        oQueEvitar: { type: "array", items: { type: "string" } },
+                        fraseRecomendada: { type: "string" },
+                        justificativaTecnica: { type: "string" }
+                      },
+                      required: ["perfilPrimario", "perfilSecundario", "confianca", "resumo", "sinaisDetectados", "motivadores", "medosOuResistencias", "comoComunicar", "oQueEvitar", "fraseRecomendada", "justificativaTecnica"],
+                      additionalProperties: false
+                    },
                     nivelCerebralDominante: { type: "string", enum: ["neocortex", "limbico", "reptiliano"] },
                     motivacaoPrimaria: { type: "string", enum: ["alivio_dor", "estetica", "status", "saude"] },
                     nivelAnsiedade: { type: "number" },
                     nivelReceptividade: { type: "number" },
                     descricaoPerfil: { type: "string" }
                   },
-                  required: ["nivelCerebralDominante", "motivacaoPrimaria", "nivelAnsiedade", "nivelReceptividade", "descricaoPerfil"],
+                  required: ["discProfile", "nivelCerebralDominante", "motivacaoPrimaria", "nivelAnsiedade", "nivelReceptividade", "descricaoPerfil"],
                   additionalProperties: false
                 },
                 objecoes: {
@@ -460,7 +490,9 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
                   additionalProperties: false
                 }
               },
-              required: ["perfilPsicografico", "objecoes", "sinaisLinguagem", "gatilhosMentais", "scriptPARE", "tecnicaObjecao", "rapport"],
+                resumoGeral: { type: "string" }
+              },
+              required: ["perfilPsicografico", "objecoes", "sinaisLinguagem", "gatilhosMentais", "scriptPARE", "tecnicaObjecao", "rapport", "resumoGeral"],
               additionalProperties: false
             }
           }
@@ -505,16 +537,17 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
         status: "analyzed",
       });
 
-      // Also update lead's callProfile with the psychographic profile
+      // Also update lead's callProfile with the psychographic profile (DISC + legado)
       if (call.leadId) {
         const lead = await getLeadById(call.leadId);
         if (lead) {
           const perfil = analysis.perfilPsicografico as any;
           await updateLead(call.leadId, {
             callProfile: {
+              discProfile: perfil?.discProfile || null,
               nivelCerebralDominante: perfil?.nivelCerebralDominante || 'limbico',
               probabilidadeAgendamento: Math.min(100, Math.max(0, Math.round(((perfil?.nivelReceptividade || 0) <= 10 ? (perfil?.nivelReceptividade || 0) * 10 : perfil?.nivelReceptividade || 0)))),
-              resumo: perfil?.descricaoPerfil || '',
+              resumo: perfil?.discProfile?.resumo || perfil?.descricaoPerfil || '',
             },
             neurovendasAnalysis: analysis as any,
           });

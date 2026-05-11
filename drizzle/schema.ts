@@ -101,6 +101,9 @@ export type InsertPatient = typeof patients.$inferInsert;
 export type AttendanceVideoScript = {
   title: string;
   durationSeconds: number;
+  // DISC: perfil principal usado para gerar o script
+  discProfileUsed?: "dominancia" | "influencia" | "estabilidade" | "conformidade" | "unknown";
+  // Legado: mantido para compatibilidade com scripts gerados antes da migração DISC
   profileUsed: "neocortex" | "limbico" | "reptiliano" | "unknown";
   objective: string;
   script: string;
@@ -133,8 +136,9 @@ export const leads = mysqlTable("leads", {
   convertedPatientId: int("convertedPatientId"), // FK to patients.id after conversion
   // Neurovendas analysis from calls
   neurovendasAnalysis: json("neurovendasAnalysis").$type<NeurovendasAnalysis>(),
-  // Aggregated call profile
+  // Aggregated call profile (DISC + legado para compatibilidade)
   callProfile: json("callProfile").$type<{
+    discProfile?: DISCProfile;
     nivelCerebralDominante?: "neocortex" | "limbico" | "reptiliano";
     probabilidadeAgendamento?: number;
     resumo?: string;
@@ -413,8 +417,30 @@ export const paymentLogs = mysqlTable("payment_logs", {
 export type PaymentLog = typeof paymentLogs.$inferSelect;
 export type InsertPaymentLog = typeof paymentLogs.$inferInsert;
 
+/**
+ * Perfil comportamental DISC do paciente/lead.
+ * Camada principal de exibição para usuários (CRC, gestor, dentista).
+ * Inferido a partir da metodologia de neurovendas + sinais comportamentais da transcrição.
+ */
+export interface DISCProfile {
+  perfilPrimario: "dominancia" | "influencia" | "estabilidade" | "conformidade";
+  perfilSecundario: "dominancia" | "influencia" | "estabilidade" | "conformidade" | null;
+  confianca: number; // 0-100
+  resumo: string;
+  sinaisDetectados: string[];
+  motivadores: string[];
+  medosOuResistencias: string[];
+  comoComunicar: string[];
+  oQueEvitar: string[];
+  fraseRecomendada: string;
+  justificativaTecnica: string;
+}
+
 export interface NeurovendasAnalysis {
   perfilPsicografico: {
+    // DISC: camada principal de perfil comportamental exibida ao usuário
+    discProfile?: DISCProfile;
+    // Legado: nível cerebral (neurovendas) — mantido para compatibilidade com dados antigos
     nivelCerebralDominante: "neocortex" | "limbico" | "reptiliano";
     motivacaoPrimaria: "alivio_dor" | "estetica" | "status" | "saude";
     nivelAnsiedade: number;

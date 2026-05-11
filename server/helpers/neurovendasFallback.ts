@@ -6,6 +6,19 @@
 export function getNeurovendasFallback(): Record<string, unknown> {
   return {
     perfilPsicografico: {
+      discProfile: {
+        perfilPrimario: "estabilidade",
+        perfilSecundario: null,
+        confianca: 0,
+        resumo: "Análise indisponível. Tente novamente após a transcrição estar completa.",
+        sinaisDetectados: [],
+        motivadores: [],
+        medosOuResistencias: [],
+        comoComunicar: ["Seja acolhedor e paciente", "Explique com calma o que acontecerá na consulta"],
+        oQueEvitar: ["Pressão ou urgência agressiva"],
+        fraseRecomendada: "Estamos aqui para te ajudar. Na consulta vamos avaliar tudo com cuidado e sem pressa.",
+        justificativaTecnica: "Fallback automático — análise indisponível.",
+      },
       nivelCerebralDominante: "limbico",
       motivacaoPrimaria: "saude",
       nivelAnsiedade: 0,

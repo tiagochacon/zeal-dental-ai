@@ -191,12 +191,33 @@ const PatientForm = memo(function PatientForm({
   );
 });
 
-// ---- CRC Neurovendas Profile helpers ----
-const crcProfileConfig: Record<string, {
+// ---- DISC Profile config para briefing do dentista ----
+const discBriefingConfig: Record<string, {
   label: string;
   badgeClass: string;
   dica: string;
 }> = {
+  dominancia: {
+    label: "Dominância (D)",
+    badgeClass: "bg-orange-600/20 text-orange-400 border-orange-500/30",
+    dica: "Seja direto e objetivo. Mostre próximos passos e dê opções práticas. Este paciente decide rápido e valoriza eficiência.",
+  },
+  influencia: {
+    label: "Influência (I)",
+    badgeClass: "bg-amber-600/20 text-amber-400 border-amber-500/30",
+    dica: "Conecte-se emocionalmente. Fale sobre transformação, autoestima e bem-estar. Use linguagem positiva e acolhedora.",
+  },
+  estabilidade: {
+    label: "Estabilidade (S)",
+    badgeClass: "bg-green-600/20 text-green-400 border-green-500/30",
+    dica: "Transmita calma e segurança. Explique cada etapa com paciência. Valide medos e elimine incertezas antes de qualquer proposta.",
+  },
+  conformidade: {
+    label: "Conformidade (C)",
+    badgeClass: "bg-blue-600/20 text-blue-400 border-blue-500/30",
+    dica: "Explique com estrutura e lógica. Apresente etapas, critérios, benefícios e riscos de forma transparente.",
+  },
+  // Legacy fallback
   reptiliano: {
     label: "Reptiliano",
     badgeClass: "bg-green-600/20 text-green-400 border-green-500/30",
@@ -215,7 +236,7 @@ const crcProfileConfig: Record<string, {
 };
 
 function ProfileBadge({ profile }: { profile: string }) {
-  const config = crcProfileConfig[profile.toLowerCase()];
+  const config = discBriefingConfig[profile.toLowerCase()];
   if (!config) return null;
   return (
     <Badge className={`${config.badgeClass} border text-xs font-semibold mt-1`}>
@@ -225,7 +246,7 @@ function ProfileBadge({ profile }: { profile: string }) {
 }
 
 function AbordagemDica({ profile }: { profile: string }) {
-  const config = crcProfileConfig[profile.toLowerCase()];
+  const config = discBriefingConfig[profile.toLowerCase()];
   if (!config) return null;
   return (
     <div className="mt-3 bg-card border border-border rounded-lg p-3">
@@ -404,11 +425,27 @@ function PatientDetailSheet({
     }
   );
   const leadData = leadQuery.data as any;
-  const crcCallProfile = leadData?.callProfile as {
+  const crcCallProfileRaw = leadData?.callProfile as {
+    discProfile?: {
+      perfilPrimario: string;
+      perfilSecundario?: string | null;
+      confianca?: number;
+      resumo?: string;
+      motivadores?: string[];
+      medosOuResistencias?: string[];
+      comoComunicar?: string[];
+      oQueEvitar?: string[];
+      fraseRecomendada?: string;
+    } | null;
     nivelCerebralDominante?: "neocortex" | "limbico" | "reptiliano";
     probabilidadeAgendamento?: number;
     resumo?: string;
   } | null | undefined;
+  // Prioridade DISC: discProfile.perfilPrimario > nivelCerebralDominante
+  const discPerfil = crcCallProfileRaw?.discProfile?.perfilPrimario ?? null;
+  const legacyPerfil = crcCallProfileRaw?.nivelCerebralDominante ?? null;
+  const displayPerfil = discPerfil ?? legacyPerfil ?? null;
+  const crcCallProfile = crcCallProfileRaw as typeof crcCallProfileRaw;
   const crcNeurovendas = leadData?.neurovendasAnalysis as any;
 
   if (!patient) return null;
@@ -450,8 +487,14 @@ function PatientDetailSheet({
               </div>
             ) : (
               <>
-                {crcCallProfile?.nivelCerebralDominante && (
-                  <ProfileBadge profile={crcCallProfile.nivelCerebralDominante} />
+                {displayPerfil && (
+                  <ProfileBadge profile={displayPerfil} />
+                )}
+
+                {crcCallProfileRaw?.discProfile?.confianca !== undefined && (
+                  <span className="text-xs text-muted-foreground ml-1">
+                    ({crcCallProfileRaw.discProfile.confianca}% confiança)
+                  </span>
                 )}
 
                 {crcNeurovendas?.rapport?.nivel !== undefined && (
@@ -467,32 +510,38 @@ function PatientDetailSheet({
                   </div>
                 )}
 
-                {(crcCallProfile?.resumo || crcNeurovendas?.resumoGeral) && (
+                {(crcCallProfileRaw?.discProfile?.resumo || crcCallProfileRaw?.resumo || crcNeurovendas?.resumoGeral) && (
                   <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-                    {crcCallProfile?.resumo || crcNeurovendas?.resumoGeral}
+                    {crcCallProfileRaw?.discProfile?.resumo || crcCallProfileRaw?.resumo || crcNeurovendas?.resumoGeral}
                   </p>
                 )}
 
-                {crcCallProfile?.nivelCerebralDominante && (
-                  <AbordagemDica profile={crcCallProfile.nivelCerebralDominante} />
+                {crcCallProfileRaw?.discProfile?.fraseRecomendada && (
+                  <div className="mt-2 bg-card border border-border rounded-lg p-2">
+                    <p className="text-xs text-muted-foreground italic">"{crcCallProfileRaw.discProfile.fraseRecomendada}"</p>
+                  </div>
                 )}
 
-                {crcCallProfile?.probabilidadeAgendamento !== undefined && (
+                {displayPerfil && (
+                  <AbordagemDica profile={displayPerfil} />
+                )}
+
+                {crcCallProfileRaw?.probabilidadeAgendamento !== undefined && (
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-xs text-muted-foreground">Probabilidade de fechamento:</span>
                     <span className={`text-xs font-semibold ${
-                      crcCallProfile.probabilidadeAgendamento >= 70 ? "text-green-400" :
-                      crcCallProfile.probabilidadeAgendamento >= 40 ? "text-amber-400" :
+                      crcCallProfileRaw.probabilidadeAgendamento >= 70 ? "text-green-400" :
+                      crcCallProfileRaw.probabilidadeAgendamento >= 40 ? "text-amber-400" :
                       "text-red-400"
                     }`}>
-                      {crcCallProfile.probabilidadeAgendamento}%
+                      {crcCallProfileRaw.probabilidadeAgendamento}%
                     </span>
                   </div>
                 )}
 
-                {!crcCallProfile && !crcNeurovendas && !leadQuery.isLoading && (
+                {!crcCallProfileRaw && !crcNeurovendas && !leadQuery.isLoading && (
                   <p className="text-xs text-muted-foreground">
-                    Análise de neurovendas ainda não disponível para este paciente.
+                    Análise comportamental ainda não disponível para este paciente.
                   </p>
                 )}
 

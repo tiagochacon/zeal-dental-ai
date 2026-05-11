@@ -16,10 +16,20 @@ import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import type { AttendanceVideoScript } from "../../drizzle/schema";
 import type { Lead, Call, User } from "../../drizzle/schema";
 
+// Mapeamento DISC → orientações de vídeo
+const DISC_VIDEO_GUIDANCE: Record<string, string> = {
+  dominancia: "Perfil Dominância (DISC-D): seja direto e objetivo. Mostre o próximo passo, confirme o agendamento com segurança e destaque o valor prático da avaliação. Sem rodeios.",
+  influencia: "Perfil Influência (DISC-I): crie conexão humana e emocional. Use linguagem positiva, reforce autoestima e mostre que a equipe está animada para recebê-lo(a). Tom caloroso.",
+  estabilidade: "Perfil Estabilidade (DISC-S): transmita calma e segurança. Explique o que acontecerá na consulta, acolha possíveis medos e elimine incertezas. Tom tranquilo e acolhedor.",
+  conformidade: "Perfil Conformidade (DISC-C): seja claro e organizado. Explique de forma estruturada como será a avaliação, quais são as etapas e que a equipe está preparada. Tom informativo.",
+  unknown: "Perfil desconhecido: use abordagem equilibrada com acolhimento, clareza e convite direto.",
+};
+
 function buildVideoScriptFallback(lead: Lead): AttendanceVideoScript {
   return {
     title: `Vídeo de acolhimento para ${lead.name}`,
     durationSeconds: 45,
+    discProfileUsed: "unknown",
     profileUsed: "unknown",
     objective: "Aumentar comparecimento à consulta de avaliação",
     script: `Olá, ${lead.name}! Aqui é o seu dentista. Quero te dar as boas-vindas e confirmar que estamos te esperando na sua consulta de avaliação. Nossa equipe já está preparada para te receber com atenção e cuidado. Será um prazer te conhecer pessoalmente e conversar sobre como podemos te ajudar. Te esperamos!`,
@@ -44,14 +54,25 @@ async function generateAttendanceVideoScriptForLead(
   const analyzedCall = calls.find((c: any) => c.neurovendasAnalysis || c.callInsights || c.transcript);
   const lastCall = analyzedCall ?? calls[0] ?? null;
 
-  const profileRaw = (lead.callProfile as any)?.nivelCerebralDominante
-    ?? (lead.neurovendasAnalysis as any)?.perfilPrincipal
-    ?? (lastCall as any)?.neurovendasAnalysis?.perfilPrincipal
+  // Prioridade DISC: callProfile.discProfile > neurovendasAnalysis.discProfile > legado
+  const discProfileRaw = (lead.callProfile as any)?.discProfile
+    ?? (lead.neurovendasAnalysis as any)?.perfilPsicografico?.discProfile
+    ?? (lastCall as any)?.neurovendasAnalysis?.perfilPsicografico?.discProfile
     ?? null;
 
+  const discProfileUsed: AttendanceVideoScript["discProfileUsed"] =
+    discProfileRaw?.perfilPrimario &&
+    ["dominancia", "influencia", "estabilidade", "conformidade"].includes(discProfileRaw.perfilPrimario)
+      ? discProfileRaw.perfilPrimario
+      : "unknown";
+
+  // Legado para compatibilidade
+  const legacyProfileRaw = (lead.callProfile as any)?.nivelCerebralDominante
+    ?? (lead.neurovendasAnalysis as any)?.perfilPrincipal
+    ?? null;
   const profileUsed: AttendanceVideoScript["profileUsed"] =
-    ["neocortex", "limbico", "reptiliano"].includes(profileRaw?.toLowerCase?.() ?? "")
-      ? profileRaw.toLowerCase()
+    ["neocortex", "limbico", "reptiliano"].includes(legacyProfileRaw?.toLowerCase?.() ?? "")
+      ? legacyProfileRaw.toLowerCase()
       : "unknown";
 
   const callInsights = (lastCall as any)?.callInsights ?? null;
@@ -64,33 +85,30 @@ async function generateAttendanceVideoScriptForLead(
     `Origem: ${lead.source ?? "não informada"}`,
     `Notas do CRC: ${lead.notes ?? "nenhuma"}`,
     `Dentista responsável: ${dentist.name ?? "não informado"}`,
-    `Perfil comportamental dominante: ${profileUsed}`,
+    `Perfil comportamental DISC: ${discProfileUsed}`,
   ];
 
-  if (leadNeuro?.resumoGeral) contextLines.push(`Resumo neurovendas do lead: ${leadNeuro.resumoGeral}`);
-  if ((lead.callProfile as any)?.resumo) contextLines.push(`Resumo do perfil de ligação: ${(lead.callProfile as any).resumo}`);
+  if (discProfileRaw?.resumo) contextLines.push(`Resumo do perfil DISC: ${discProfileRaw.resumo}`);
+  if (discProfileRaw?.motivadores?.length) contextLines.push(`Motivadores do paciente: ${discProfileRaw.motivadores.join(", ")}`);
+  if (discProfileRaw?.medosOuResistencias?.length) contextLines.push(`Medos/resistências detectados: ${discProfileRaw.medosOuResistencias.join(", ")}`);
+  if (discProfileRaw?.sinaisDetectados?.length) contextLines.push(`Sinais de comportamento: ${discProfileRaw.sinaisDetectados.slice(0, 3).join("; ")}`);
+  if (leadNeuro?.resumoGeral) contextLines.push(`Resumo neurovendas: ${leadNeuro.resumoGeral}`);
+  if ((lead.callProfile as any)?.resumo) contextLines.push(`Resumo da ligação: ${(lead.callProfile as any).resumo}`);
   if (callNeuro?.resumoGeral) contextLines.push(`Resumo neurovendas da ligação: ${callNeuro.resumoGeral}`);
   if (callInsights?.dor) contextLines.push(`Dor mencionada na ligação: ${callInsights.dor}`);
   if (callInsights?.busca) contextLines.push(`O que o lead busca: ${callInsights.busca}`);
   if (callTranscript) contextLines.push(`Trecho da transcrição (primeiros 800 chars): ${String(callTranscript).slice(0, 800)}`);
 
-  const hasRichContext = !!(leadNeuro || callNeuro || callInsights || callTranscript);
+  const hasRichContext = !!(discProfileRaw || leadNeuro || callNeuro || callInsights || callTranscript);
 
-  const profileGuidance: Record<string, string> = {
-    reptiliano: "Perfil reptiliano: priorize segurança, controle e clareza sobre o que vai acontecer. Tom calmo e protetor, sem pressão.",
-    limbico: "Perfil límbico: conecte-se emocionalmente. Fale sobre transformação, autoestima e impacto do cuidado com a saúde bucal. Tom acolhedor e inspirador.",
-    neocortex: "Perfil neocortex: seja claro e objetivo. Explique que a consulta é uma avaliação organizada, com etapas e plano definido. Tom informativo.",
-    unknown: "Perfil desconhecido: use abordagem equilibrada com acolhimento, clareza e convite.",
-  };
-
-  const systemPrompt = `Você é um especialista em neurovendas odontológicas, análise comportamental e redução de faltas em consultas. Sua tarefa é criar um roteiro de vídeo curto para o dentista enviar ao lead recém-convertido em paciente, com objetivo de aumentar comparecimento à consulta. Use apenas informações fornecidas. Não invente diagnóstico, preço, promessa de resultado ou dados clínicos não mencionados.
+  const systemPrompt = `Você é um especialista em neurovendas odontológicas, análise comportamental DISC e redução de faltas em consultas. Sua tarefa é criar um roteiro de vídeo curto para o dentista enviar ao lead recém-convertido em paciente, com objetivo de aumentar comparecimento à consulta. Use apenas informações fornecidas. Não invente diagnóstico, preço, promessa de resultado ou dados clínicos não mencionados.
 
 Regras obrigatórias:
 - O vídeo deve ter no máximo 1 minuto (aproximadamente 150 palavras no script completo).
 - O script deve ter linguagem natural, humana e pronta para o dentista gravar.
 - Mencione o nome do paciente.
-- Cite pelo menos um ponto específico da ligação, se houver: dor, busca, medo, motivação, horário, objeção ou expectativa.
-- ${profileGuidance[profileUsed]}
+- Cite pelo menos um ponto específico da ligação ou do perfil, se houver: dor, busca, medo, motivação, horário, objeção, expectativa ou motivador DISC.
+- ${DISC_VIDEO_GUIDANCE[discProfileUsed ?? "unknown"]}
 - Não prometa cura, diagnóstico, resultado estético, preço ou aprovação de tratamento.
 - Não use tom de pressão ou urgência agressiva.
 - O CTA deve reforçar comparecimento à avaliação e mostrar que a equipe está preparada.`;
@@ -114,6 +132,7 @@ Regras obrigatórias:
             properties: {
               title: { type: "string" },
               durationSeconds: { type: "number" },
+              discProfileUsed: { type: "string", enum: ["dominancia", "influencia", "estabilidade", "conformidade", "unknown"] },
               profileUsed: { type: "string", enum: ["neocortex", "limbico", "reptiliano", "unknown"] },
               objective: { type: "string" },
               script: { type: "string" },
@@ -129,7 +148,7 @@ Regras obrigatórias:
               generatedAt: { type: "string" },
             },
             required: [
-              "title", "durationSeconds", "profileUsed", "objective", "script",
+              "title", "durationSeconds", "discProfileUsed", "profileUsed", "objective", "script",
               "opening", "personalConnection", "trustBuilder", "cta",
               "toneGuidance", "keyPointsToMention", "avoidSaying",
               "sourceCallId", "confidence", "generatedAt",

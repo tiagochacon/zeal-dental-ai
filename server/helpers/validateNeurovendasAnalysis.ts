@@ -8,6 +8,9 @@
 
 // Enums válidos conforme documentação de metodologia do Dr. Carlos Rodriguez
 export const VALID_ENUMS = {
+  // DISC — perfil comportamental principal (novo)
+  discPerfilPrimario: ["dominancia", "influencia", "estabilidade", "conformidade"],
+  // Legado neurovendas — mantido para compatibilidade com dados antigos
   nivelCerebralDominante: ["neocortex", "limbico", "reptiliano"],
   motivacaoPrimaria: ["alivio_dor", "estetica", "status", "saude"],
   gatilhoMentalNome: ["transformacao", "saude_longevidade", "status", "conforto", "exclusividade"],
@@ -69,6 +72,47 @@ export function validateNeurovendasAnalysis(
     // 2. Validate perfilPsicografico enums and ranges
     const perfil = analysis.perfilPsicografico as Record<string, unknown> | undefined;
     if (perfil) {
+      // Validate DISC profile (new — primary behavioral profile)
+      const discProfile = perfil.discProfile as Record<string, unknown> | undefined;
+      if (discProfile) {
+        if (discProfile.perfilPrimario && !(VALID_ENUMS.discPerfilPrimario as readonly string[]).includes(discProfile.perfilPrimario as string)) {
+          warnings.push({
+            field: "perfilPsicografico.discProfile.perfilPrimario",
+            issue: `Valor fora do enum DISC permitido: ${VALID_ENUMS.discPerfilPrimario.join(", ")}`,
+            value: discProfile.perfilPrimario,
+          });
+        }
+        if (discProfile.perfilSecundario !== null &&
+            discProfile.perfilSecundario !== undefined &&
+            !(VALID_ENUMS.discPerfilPrimario as readonly string[]).includes(discProfile.perfilSecundario as string)) {
+          warnings.push({
+            field: "perfilPsicografico.discProfile.perfilSecundario",
+            issue: `Valor fora do enum DISC permitido (deve ser null ou um dos: ${VALID_ENUMS.discPerfilPrimario.join(", ")})`,
+            value: discProfile.perfilSecundario,
+          });
+        }
+        if (typeof discProfile.confianca === "number" && (discProfile.confianca < 0 || discProfile.confianca > 100)) {
+          warnings.push({
+            field: "perfilPsicografico.discProfile.confianca",
+            issue: "Valor fora do range esperado (0-100)",
+            value: discProfile.confianca,
+          });
+        }
+        if (!discProfile.resumo || (typeof discProfile.resumo === "string" && discProfile.resumo.trim().length < 10)) {
+          warnings.push({
+            field: "perfilPsicografico.discProfile.resumo",
+            issue: "Resumo do perfil DISC vazio ou muito curto",
+          });
+        }
+      } else {
+        // Missing discProfile is a warning but not blocking (legacy data may not have it)
+        warnings.push({
+          field: "perfilPsicografico.discProfile",
+          issue: "Perfil DISC ausente — análise antiga ou geração sem DISC. Exibição usará campos legados.",
+        });
+      }
+
+      // Validate legacy fields (still required for backward compatibility)
       if (perfil.nivelCerebralDominante && !(VALID_ENUMS.nivelCerebralDominante as readonly string[]).includes(perfil.nivelCerebralDominante as string)) {
         warnings.push({
           field: "perfilPsicografico.nivelCerebralDominante",
