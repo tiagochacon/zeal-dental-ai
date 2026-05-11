@@ -51,6 +51,7 @@ import type {
   InsertClinic,
   Lead,
   InsertLead,
+  AttendanceVideoScript,
   Call,
   InsertCall,
   SOAPNote,

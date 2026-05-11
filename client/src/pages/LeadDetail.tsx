@@ -3,12 +3,151 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck, Brain, Shield, Heart, TrendingUp, Target, Lock, Crown } from "lucide-react";
+import { Loader2, ArrowLeft, Phone, Mail, MapPin, Edit2, Save, X, CalendarCheck, PhoneOff, Plus, UserCheck, Brain, Shield, Heart, TrendingUp, Target, Lock, Crown, Video, Copy, Check, Clock, Star, AlertCircle } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useLocation, Link, useParams } from "wouter";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+
+type AttendanceVideoScript = {
+  title: string;
+  durationSeconds: number;
+  profileUsed: "neocortex" | "limbico" | "reptiliano" | "unknown";
+  objective: string;
+  script: string;
+  opening: string;
+  personalConnection: string;
+  trustBuilder: string;
+  cta: string;
+  toneGuidance: string[];
+  keyPointsToMention: string[];
+  avoidSaying: string[];
+  sourceCallId: number | null;
+  confidence: "high" | "medium" | "low";
+  generatedAt: string;
+};
+
+const scriptConfidenceConfig = {
+  high: { label: "Alta confiança", className: "bg-green-600/20 text-green-400 border-green-500/30" },
+  medium: { label: "Média confiança", className: "bg-amber-600/20 text-amber-400 border-amber-500/30" },
+  low: { label: "Baixa confiança", className: "bg-gray-600/20 text-gray-400 border-gray-500/30" },
+};
+
+function AttendanceVideoScriptCard({ script }: { script: AttendanceVideoScript }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(script.script);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o script");
+    }
+  };
+
+  const conf = scriptConfidenceConfig[script.confidence] ?? scriptConfidenceConfig.low;
+  const durationMin = Math.floor(script.durationSeconds / 60);
+  const durationSec = script.durationSeconds % 60;
+  const durationLabel = durationMin > 0
+    ? `${durationMin}min ${durationSec > 0 ? `${durationSec}s` : ""}`
+    : `${durationSec}s`;
+
+  return (
+    <div className="bg-card border border-border rounded-xl overflow-hidden mt-6">
+      <div className="bg-gradient-to-r from-violet-600/10 to-violet-600/5 border-b border-border px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-violet-500/20 flex items-center justify-center">
+              <Video className="w-5 h-5 text-violet-400" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold text-foreground">Script de Vídeo</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">Roteiro para aumentar comparecimento à consulta</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1.5 border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+            onClick={handleCopy}
+          >
+            {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            {copied ? "Copiado!" : "Copiar script"}
+          </Button>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-4">
+        <div className="flex flex-wrap gap-2">
+          <Badge className={`${conf.className} border text-xs`}>{conf.label}</Badge>
+          <Badge className="bg-secondary border-border border text-xs text-muted-foreground flex items-center gap-1">
+            <Clock className="w-3 h-3" />
+            {durationLabel}
+          </Badge>
+        </div>
+
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Roteiro gerado com base no perfil comportamental e nos pontos-chave da ligação. O dentista pode gravar um vídeo de até 1 minuto usando este roteiro para aumentar a chance de comparecimento.
+        </p>
+
+        <div className="bg-secondary/30 rounded-xl p-4">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">Roteiro completo</p>
+          <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{script.script}</p>
+        </div>
+
+        {script.keyPointsToMention.length > 0 && (
+          <div className="bg-secondary/30 rounded-xl p-4">
+            <div className="flex items-center gap-2 mb-3">
+              <Star className="h-4 w-4 text-violet-400" />
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Pontos-chave</p>
+            </div>
+            <ul className="space-y-1">
+              {script.keyPointsToMention.map((pt, i) => (
+                <li key={i} className="text-sm text-foreground flex items-start gap-2">
+                  <span className="text-violet-400 font-bold mt-0.5">•</span>
+                  {pt}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {script.toneGuidance.length > 0 && (
+            <div className="bg-secondary/30 rounded-xl p-4">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">Tom recomendado</p>
+              <div className="flex flex-wrap gap-1.5">
+                {script.toneGuidance.map((tone, i) => (
+                  <span key={i} className="text-xs bg-violet-600/10 text-violet-300 px-2 py-0.5 rounded-full">
+                    {tone}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {script.avoidSaying.length > 0 && (
+            <div className="bg-secondary/30 rounded-xl p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertCircle className="h-4 w-4 text-amber-400" />
+                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Evite mencionar</p>
+              </div>
+              <ul className="space-y-1">
+                {script.avoidSaying.map((item, i) => (
+                  <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                    <span className="text-amber-400 mt-0.5">•</span>
+                    {item}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 // ---- Profile config for Neurovendas display ----
 const profileDisplayConfig: Record<string, {
@@ -481,6 +620,28 @@ export default function LeadDetail() {
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               Disponível no plano PRO. Faça upgrade para ver o perfil comportamental do lead.
+            </p>
+            <Link href="/pricing">
+              <Button size="sm" variant="outline" className="mt-3 flex items-center gap-2">
+                <Crown className="h-4 w-4" />
+                Ver Planos
+              </Button>
+            </Link>
+          </div>
+        )}
+
+        {/* Script de vídeo (visível após conversão em paciente, com acesso à negociação) */}
+        {(lead as any).attendanceVideoScript && hasNegotiationAccess && (
+          <AttendanceVideoScriptCard script={(lead as any).attendanceVideoScript as AttendanceVideoScript} />
+        )}
+        {(lead as any).attendanceVideoScript && !hasNegotiationAccess && (
+          <div className="bg-card border border-border rounded-xl p-4 mt-6">
+            <div className="flex items-center gap-2 mb-2">
+              <Lock className="h-4 w-4 text-muted-foreground" />
+              <p className="text-sm font-semibold text-muted-foreground">Script de Vídeo</p>
+            </div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Disponível no plano PRO. Faça upgrade para ver o script de vídeo personalizado.
             </p>
             <Link href="/pricing">
               <Button size="sm" variant="outline" className="mt-3 flex items-center gap-2">

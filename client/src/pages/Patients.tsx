@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { trpc } from "@/lib/trpc";
 import { motion } from "framer-motion";
-import { Loader2, Plus, User, Search, Phone, Mail, Trash2, Edit, Users, ChevronRight, FileText, Calendar, Brain } from "lucide-react";
+import { Loader2, Plus, User, Search, Phone, Mail, Trash2, Edit, Users, ChevronRight, FileText, Calendar, Brain, Video, Copy, Check, Clock, Star, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { useLocation } from "wouter";
 import { consultationStatusConfig } from "@/lib/utils";
@@ -235,6 +235,140 @@ function AbordagemDica({ profile }: { profile: string }) {
   );
 }
 
+type AttendanceVideoScript = {
+  title: string;
+  durationSeconds: number;
+  profileUsed: "neocortex" | "limbico" | "reptiliano" | "unknown";
+  objective: string;
+  script: string;
+  opening: string;
+  personalConnection: string;
+  trustBuilder: string;
+  cta: string;
+  toneGuidance: string[];
+  keyPointsToMention: string[];
+  avoidSaying: string[];
+  sourceCallId: number | null;
+  confidence: "high" | "medium" | "low";
+  generatedAt: string;
+};
+
+const confidenceConfig = {
+  high: { label: "Alta confiança", className: "bg-green-600/20 text-green-400 border-green-500/30" },
+  medium: { label: "Média confiança", className: "bg-amber-600/20 text-amber-400 border-amber-500/30" },
+  low: { label: "Baixa confiança", className: "bg-gray-600/20 text-gray-400 border-gray-500/30" },
+};
+
+function AttendanceVideoScriptCard({ script }: { script: AttendanceVideoScript }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(script.script);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast.error("Não foi possível copiar o script");
+    }
+  };
+
+  const conf = confidenceConfig[script.confidence] ?? confidenceConfig.low;
+  const durationMin = Math.floor(script.durationSeconds / 60);
+  const durationSec = script.durationSeconds % 60;
+  const durationLabel = durationMin > 0
+    ? `${durationMin}min ${durationSec > 0 ? `${durationSec}s` : ""}`
+    : `${durationSec}s`;
+
+  return (
+    <div className="mt-4 bg-violet-600/5 border border-violet-500/20 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded-full bg-violet-500/20 flex items-center justify-center">
+            <Video className="w-3.5 h-3.5 text-violet-400" />
+          </div>
+          <p className="text-xs font-bold text-violet-400 uppercase tracking-wider">
+            Script de vídeo para aumentar comparecimento
+          </p>
+        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          className="h-7 text-xs gap-1.5 border-violet-500/30 text-violet-400 hover:bg-violet-500/10"
+          onClick={handleCopy}
+        >
+          {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+          {copied ? "Copiado!" : "Copiar script"}
+        </Button>
+      </div>
+
+      <p className="text-xs text-muted-foreground mb-3 leading-relaxed">
+        Roteiro gerado com base no perfil comportamental e nos pontos-chave da ligação. Grave um vídeo de até 1 minuto usando este roteiro.
+      </p>
+
+      <div className="flex flex-wrap gap-2 mb-3">
+        <Badge className={`${conf.className} border text-xs`}>
+          {conf.label}
+        </Badge>
+        <Badge className="bg-secondary border-border border text-xs text-muted-foreground flex items-center gap-1">
+          <Clock className="w-3 h-3" />
+          {durationLabel}
+        </Badge>
+      </div>
+
+      <div className="bg-card border border-border rounded-lg p-3 mb-3">
+        <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-wrap">{script.script}</p>
+      </div>
+
+      {script.keyPointsToMention.length > 0 && (
+        <div className="mb-2">
+          <p className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
+            <Star className="w-3 h-3 text-violet-400" />
+            Pontos-chave para mencionar
+          </p>
+          <ul className="space-y-0.5">
+            {script.keyPointsToMention.map((pt, i) => (
+              <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <span className="text-violet-400 mt-0.5">•</span>
+                {pt}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {script.toneGuidance.length > 0 && (
+        <div className="mb-2">
+          <p className="text-xs font-semibold text-foreground mb-1">Tom recomendado</p>
+          <div className="flex flex-wrap gap-1">
+            {script.toneGuidance.map((tone, i) => (
+              <span key={i} className="text-xs bg-violet-600/10 text-violet-300 px-2 py-0.5 rounded-full">
+                {tone}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {script.avoidSaying.length > 0 && (
+        <div>
+          <p className="text-xs font-semibold text-foreground mb-1 flex items-center gap-1">
+            <AlertCircle className="w-3 h-3 text-amber-400" />
+            Evite mencionar
+          </p>
+          <ul className="space-y-0.5">
+            {script.avoidSaying.map((item, i) => (
+              <li key={i} className="text-xs text-muted-foreground flex items-start gap-1.5">
+                <span className="text-amber-400 mt-0.5">•</span>
+                {item}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Patient Detail Sheet
 function PatientDetailSheet({ 
   patient, 
@@ -359,6 +493,16 @@ function PatientDetailSheet({
                 {!crcCallProfile && !crcNeurovendas && !leadQuery.isLoading && (
                   <p className="text-xs text-muted-foreground">
                     Análise de neurovendas ainda não disponível para este paciente.
+                  </p>
+                )}
+
+                {/* Script de vídeo personalizado para aumentar comparecimento */}
+                {leadData?.attendanceVideoScript && (
+                  <AttendanceVideoScriptCard script={leadData.attendanceVideoScript as AttendanceVideoScript} />
+                )}
+                {!leadData?.attendanceVideoScript && !leadQuery.isLoading && (
+                  <p className="text-xs text-muted-foreground mt-3 italic">
+                    O script de vídeo será gerado automaticamente quando o lead for convertido em paciente com dados da ligação disponíveis.
                   </p>
                 )}
               </>

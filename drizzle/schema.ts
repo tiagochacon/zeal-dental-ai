@@ -95,6 +95,28 @@ export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = typeof patients.$inferInsert;
 
 /**
+ * Script de vídeo personalizado gerado pela IA ao converter lead em paciente.
+ * Usado pelo dentista para gravar um vídeo de acolhimento e aumentar comparecimento.
+ */
+export type AttendanceVideoScript = {
+  title: string;
+  durationSeconds: number;
+  profileUsed: "neocortex" | "limbico" | "reptiliano" | "unknown";
+  objective: string;
+  script: string;
+  opening: string;
+  personalConnection: string;
+  trustBuilder: string;
+  cta: string;
+  toneGuidance: string[];
+  keyPointsToMention: string[];
+  avoidSaying: string[];
+  sourceCallId: number | null;
+  confidence: "high" | "medium" | "low";
+  generatedAt: string;
+};
+
+/**
  * Leads table - stores prospect information managed by CRC
  */
 export const leads = mysqlTable("leads", {
@@ -117,6 +139,8 @@ export const leads = mysqlTable("leads", {
     probabilidadeAgendamento?: number;
     resumo?: string;
   }>(),
+  // Personalized video script generated on lead conversion to increase appointment attendance
+  attendanceVideoScript: json("attendanceVideoScript").$type<AttendanceVideoScript>(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

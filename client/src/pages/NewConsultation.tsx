@@ -509,7 +509,7 @@ export default function NewConsultation() {
                       <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                         <p className="text-xs font-semibold text-amber-400 mb-1">Dica do CRC:</p>
                         <p className="text-sm text-foreground">
-                          Este paciente veio de uma prospecção comercial. Consulte o histórico de ligações para entender o perfil.
+                          Este paciente veio de uma prospecção comercial. Consulte a ficha do paciente para ver o briefing do CRC, o perfil de neurovendas e o script de vídeo personalizado gerado para ele.
                         </p>
                       </div>
                     );
