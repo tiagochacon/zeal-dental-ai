@@ -488,8 +488,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
                   },
                   required: ["nivel", "justificativa", "sugestaoMelhoria", "breakdown"],
                   additionalProperties: false
-                }
-              },
+                },
                 resumoGeral: { type: "string" }
               },
               required: ["perfilPsicografico", "objecoes", "sinaisLinguagem", "gatilhosMentais", "scriptPARE", "tecnicaObjecao", "rapport", "resumoGeral"],
