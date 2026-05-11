@@ -134,6 +134,13 @@
       "when": 1777504199873,
       "tag": "0018_strong_blue_marvel",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "5",
+      "when": 1778515244474,
+      "tag": "0019_classy_the_phantom",
+      "breakpoints": true
     }
   ]
 }
