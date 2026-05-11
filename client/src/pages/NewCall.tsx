@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Mic, Square, Upload, Phone, FileAudio, Clock, AlertTriangle, CheckCircle, Volume2 } from "lucide-react";
+import { Loader2, Mic, Square, Upload, Phone, FileAudio, Clock, AlertTriangle, CheckCircle, Volume2, MessageCircle } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -300,6 +300,37 @@ export default function NewCall() {
           </div>
         )}
       </div>
+
+      {/* Perguntas guia para o CRC — visíveis após selecionar o lead */}
+      {leadId > 0 && (
+        <div className="bg-emerald-600/5 border border-emerald-500/20 rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="w-6 h-6 rounded-full bg-emerald-500/20 flex items-center justify-center shrink-0">
+              <MessageCircle className="w-3.5 h-3.5 text-emerald-400" />
+            </div>
+            <p className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
+              Perguntas para entender melhor o lead
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
+            Tente encaixar essas perguntas no ritmo da conversa. Elas ajudam a IA a identificar o perfil comportamental com mais precisão — não precisa parecer um questionário.
+          </p>
+          <ol className="space-y-3">
+            {[
+              "Me conta o que está te incomodando hoje e por que você decidiu procurar ajuda agora?",
+              "O que você gostaria que mudasse depois dessa avaliação ou tratamento?",
+              "O que você precisa entender ou sentir para ficar tranquilo(a) em vir para a avaliação?",
+            ].map((pergunta, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center mt-0.5">
+                  {i + 1}
+                </span>
+                <p className="text-sm text-foreground leading-relaxed italic">"{pergunta}"</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       {/* Audio Recording */}
       <div className="bg-card border border-border rounded-xl p-6">
