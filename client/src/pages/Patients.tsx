@@ -650,12 +650,39 @@ function PatientDetailSheet({
                 </AccordionItem>
               )}
 
-              {/* Perfil Psicológico */}
-              {neurovendas.perfilPsicologico && (
+              {/* Perfil comportamental DISC da consulta */}
+              {neurovendas?.perfilPsicografico?.discProfile && (
                 <AccordionItem value="perfil" className="border rounded-lg px-3 mb-2">
                   <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
                     <div className="flex items-center gap-2">
-                      <span>Perfil Psicológico</span>
+                      <span>Perfil Comportamental DISC</span>
+                      {neurovendas.perfilPsicografico.discProfile.perfilPrimario && (
+                        <Badge variant="outline" className="text-xs text-blue-400 border-blue-500/30">
+                          {neurovendas.perfilPsicografico.discProfile.perfilPrimario}
+                        </Badge>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-2 pb-3">
+                    {neurovendas.perfilPsicografico.discProfile.resumo && (
+                      <p className="text-sm text-muted-foreground">{neurovendas.perfilPsicografico.discProfile.resumo}</p>
+                    )}
+                    {neurovendas.perfilPsicografico.discProfile.fraseRecomendada && (
+                      <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-2.5">
+                        <p className="text-xs font-medium text-blue-400 mb-0.5">Abordagem Recomendada</p>
+                        <p className="text-sm text-muted-foreground">{neurovendas.perfilPsicografico.discProfile.fraseRecomendada}</p>
+                      </div>
+                    )}
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+
+              {/* Fallback legado para dados antigos */}
+              {!neurovendas?.perfilPsicografico?.discProfile && neurovendas.perfilPsicologico && (
+                <AccordionItem value="perfil-legado" className="border rounded-lg px-3 mb-2">
+                  <AccordionTrigger className="text-sm font-semibold hover:no-underline py-3">
+                    <div className="flex items-center gap-2">
+                      <span>Perfil Psicológico (legado)</span>
                       {neurovendas.perfilPsicologico.tipo && (
                         <Badge variant="outline" className="text-xs text-blue-400 border-blue-500/30">
                           {neurovendas.perfilPsicologico.tipo}

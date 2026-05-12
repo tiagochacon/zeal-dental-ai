@@ -680,8 +680,14 @@ RED FLAGS (sinais de alerta) - identifique se presentes:
 - Lesões suspeitas
 - Contraindicações para procedimentos
 
-ANÁLISE DE PERFIL NEUROLÓGICO DO PACIENTE:
-Baseado na transcrição, classifique o perfil predominante do paciente:
+ANÁLISE DE PERFIL COMPORTAMENTAL DO PACIENTE:
+Baseado na transcrição, classifique o perfil predominante DISC do paciente (camada principal) e mantenha o tipo neurológico legado para compatibilidade:
+
+0. DISC (camada principal):
+   - dominancia: foco em resultado, rapidez, objetividade e controle
+   - influencia: foco em transformação, autoestima, validação social, conexão emocional
+   - estabilidade: foco em segurança, medo/ansiedade, previsibilidade e confiança
+   - conformidade: foco em detalhes técnicos, dados, lógica, planejamento e critérios
 
 1. REPTILIANO (Cérebro Primitivo - Sobrevivência):
    - Indicadores: Expressões de medo, ansiedade, preocupação com dor/risco
@@ -729,6 +735,19 @@ FORMATO DE SAÍDA (JSON):
     "lembretes_clinicos": ["string"]
   },
   "patientProfile": {
+    "discProfile": {
+      "perfilPrimario": "dominancia" | "influencia" | "estabilidade" | "conformidade",
+      "perfilSecundario": "dominancia" | "influencia" | "estabilidade" | "conformidade" | null,
+      "confianca": 0-100,
+      "resumo": "string",
+      "sinaisDetectados": ["string"],
+      "motivadores": ["string"],
+      "medosOuResistencias": ["string"],
+      "comoComunicar": ["string"],
+      "oQueEvitar": ["string"],
+      "fraseRecomendada": "string",
+      "justificativaTecnica": "string"
+    },
     "type": "reptilian" | "neocortex" | "limbic",
     "confidence": 0-100,
     "primaryTraits": ["trait1", "trait2"],
@@ -749,7 +768,8 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
 - NÃO EXPANDA informações além do que foi dito.
 - NÃO INFIRA condições clínicas a partir de sintomas sem que o dentista as tenha citado explicitamente.
 - Para dentes: classifique APENAS os mencionados explicitamente. Os demais devem ser 'not_evaluated'.
-- patientProfile: baseie-se APENAS em palavras literais do paciente na transcrição, não em inferências gerais.`;
+- patientProfile: baseie-se APENAS em palavras literais do paciente na transcrição, não em inferências gerais.
+- patientProfile.discProfile: é obrigatório e deve ser o perfil principal de exibição.`;
 
       const response = await invokeLLM({
         messages: [
@@ -848,6 +868,24 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
                 patientProfile: {
                   type: "object",
                   properties: {
+                    discProfile: {
+                      type: "object",
+                      properties: {
+                        perfilPrimario: { type: "string", enum: ["dominancia", "influencia", "estabilidade", "conformidade"] },
+                        perfilSecundario: { type: ["string", "null"], enum: ["dominancia", "influencia", "estabilidade", "conformidade", null] },
+                        confianca: { type: "number" },
+                        resumo: { type: "string" },
+                        sinaisDetectados: { type: "array", items: { type: "string" } },
+                        motivadores: { type: "array", items: { type: "string" } },
+                        medosOuResistencias: { type: "array", items: { type: "string" } },
+                        comoComunicar: { type: "array", items: { type: "string" } },
+                        oQueEvitar: { type: "array", items: { type: "string" } },
+                        fraseRecomendada: { type: "string" },
+                        justificativaTecnica: { type: "string" }
+                      },
+                      required: ["perfilPrimario", "perfilSecundario", "confianca", "resumo", "sinaisDetectados", "motivadores", "medosOuResistencias", "comoComunicar", "oQueEvitar", "fraseRecomendada", "justificativaTecnica"],
+                      additionalProperties: false
+                    },
                     type: { type: "string", enum: ["reptilian", "neocortex", "limbic"] },
                     confidence: { type: "number" },
                     primaryTraits: { type: "array", items: { type: "string" } },
@@ -863,7 +901,7 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
                       additionalProperties: false
                     }
                   },
-                  required: ["type", "confidence", "primaryTraits", "detectedKeywords", "recommendedApproach", "triggers"],
+                  required: ["discProfile", "type", "confidence", "primaryTraits", "detectedKeywords", "recommendedApproach", "triggers"],
                   additionalProperties: false
                 }
               },
@@ -1046,7 +1084,9 @@ REGRAS ABSOLUTAS — NÃO NEGOCIÁVEIS:
    - Prefira 'não identificado' a 'presumido'.
 
 6. METODOLOGIA:
-   - Aplique o framework de análise comportamental: nível cerebral dominante (reptiliano, límbico, neocortex), motivações primárias, gatilhos mentais, objeções, rapport e scripts de objeção (LAER/PARE).
+   - Aplique o framework de análise comportamental DISC como camada principal: dominancia, influencia, estabilidade e conformidade.
+   - Mantenha o nível cerebral dominante (reptiliano, límbico, neocortex) como campo legado de compatibilidade.
+   - Inclua motivações primárias, gatilhos mentais, objeções, rapport e scripts de objeção (LAER/PARE).
    - Use apenas os documentos de metodologia fornecidos — não use conhecimento externo.`;
 
       const prompt = `DOCUMENTOS DE METODOLOGIA (base obrigatória para toda análise):
@@ -1067,13 +1107,14 @@ INSTRUÇÕES ESPECÍFICAS:
 1. Analise a transcrição acima e extraia os padrões de comportamento do PACIENTE (não do dentista).
 
 2. Identifique:
-   a) Nível cerebral dominante (reptiliano, limbico, neocortex) — baseado em padrões de linguagem e preocupações
-   b) Motivação primária (alivio_dor, estetica, status, saude)
-   c) Gatilhos mentais (transformacao, saude_longevidade, status, conforto, exclusividade)
-   d) Objeções verdadeiras e ocultas (categoria: financeira, medo, tempo, confianca, outra)
-   e) Técnicas de objeção sugeridas (LAER ou redirecionamento)
-   f) Nível de rapport (0-100) e breakdown de componentes
-   g) Sinais de linguagem (positivos e negativos)
+   a) Perfil comportamental DISC do paciente (obrigatório): dominancia, influencia, estabilidade ou conformidade, com evidências textuais
+   b) Nível cerebral dominante (reptiliano, limbico, neocortex) — campo legado, baseado em padrões de linguagem e preocupações
+   c) Motivação primária (alivio_dor, estetica, status, saude)
+   d) Gatilhos mentais (transformacao, saude_longevidade, status, conforto, exclusividade)
+   e) Objeções verdadeiras e ocultas (categoria: financeira, medo, tempo, confianca, outra)
+   f) Técnicas de objeção sugeridas (LAER ou redirecionamento)
+   g) Nível de rapport (0-100) e breakdown de componentes
+   h) Sinais de linguagem (positivos e negativos)
 
 3. Preencha TODOS os campos do schema — nunca deixe vazio.
 
@@ -1103,13 +1144,31 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
                 perfilPsicografico: {
                   type: "object",
                   properties: {
+                    discProfile: {
+                      type: "object",
+                      properties: {
+                        perfilPrimario: { type: "string", enum: ["dominancia", "influencia", "estabilidade", "conformidade"] },
+                        perfilSecundario: { type: ["string", "null"], enum: ["dominancia", "influencia", "estabilidade", "conformidade", null] },
+                        confianca: { type: "number" },
+                        resumo: { type: "string" },
+                        sinaisDetectados: { type: "array", items: { type: "string" } },
+                        motivadores: { type: "array", items: { type: "string" } },
+                        medosOuResistencias: { type: "array", items: { type: "string" } },
+                        comoComunicar: { type: "array", items: { type: "string" } },
+                        oQueEvitar: { type: "array", items: { type: "string" } },
+                        fraseRecomendada: { type: "string" },
+                        justificativaTecnica: { type: "string" }
+                      },
+                      required: ["perfilPrimario", "perfilSecundario", "confianca", "resumo", "sinaisDetectados", "motivadores", "medosOuResistencias", "comoComunicar", "oQueEvitar", "fraseRecomendada", "justificativaTecnica"],
+                      additionalProperties: false
+                    },
                     nivelCerebralDominante: { type: "string", enum: ["neocortex", "limbico", "reptiliano"] },
                     motivacaoPrimaria: { type: "string", enum: ["alivio_dor", "estetica", "status", "saude"] },
                     nivelAnsiedade: { type: "number" },
                     nivelReceptividade: { type: "number" },
                     descricaoPerfil: { type: "string" }
                   },
-                  required: ["nivelCerebralDominante", "motivacaoPrimaria", "nivelAnsiedade", "nivelReceptividade", "descricaoPerfil"],
+                  required: ["discProfile", "nivelCerebralDominante", "motivacaoPrimaria", "nivelAnsiedade", "nivelReceptividade", "descricaoPerfil"],
                   additionalProperties: false
                 },
                 objecoes: {

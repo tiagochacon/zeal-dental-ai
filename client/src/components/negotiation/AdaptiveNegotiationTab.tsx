@@ -7,7 +7,7 @@ import { ScriptPARE } from './ScriptPARE';
 import { trpc } from '@/lib/trpc';
 import { useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import type { PatientProfile } from '../../../../drizzle/schema';
+import type { PatientProfile, DISCProfile } from '../../../../drizzle/schema';
 import type { NeurovendasAnalysis } from '../../../../drizzle/schema';
 
 interface AdaptiveNegotiationTabProps {
@@ -18,8 +18,91 @@ interface AdaptiveNegotiationTabProps {
   isActive?: boolean;
 }
 
-// Configurações visuais por perfil
-const profileConfig = {
+// Configurações visuais por perfil DISC (camada principal)
+const discProfileConfig: Record<string, {
+  name: string;
+  subtitle: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color: 'green' | 'blue' | 'purple';
+  bgGradient: string;
+  borderColor: string;
+  accentColor: string;
+  badgeVariant: 'comfort' | 'data' | 'emotion';
+  description: string;
+  keyApproach: string[];
+}> = {
+  dominancia: {
+    name: 'Dominância (D)',
+    subtitle: 'Perfil orientado a resultado',
+    icon: Target,
+    color: 'green',
+    bgGradient: 'from-green-950/50 to-gray-900',
+    borderColor: 'border-green-500/30',
+    accentColor: 'text-green-400',
+    badgeVariant: 'comfort',
+    description: 'Paciente direto, objetivo e orientado a resultado. Responde melhor a clareza, velocidade e próximos passos concretos.',
+    keyApproach: [
+      'Seja objetivo e sem rodeios',
+      'Mostre próximos passos com clareza',
+      'Destaque benefícios práticos',
+      'Evite explicações longas sem conclusão',
+    ],
+  },
+  influencia: {
+    name: 'Influência (I)',
+    subtitle: 'Perfil emocional e relacional',
+    icon: Heart,
+    color: 'purple',
+    bgGradient: 'from-purple-950/50 to-gray-900',
+    borderColor: 'border-purple-500/30',
+    accentColor: 'text-purple-400',
+    badgeVariant: 'emotion',
+    description: 'Paciente comunicativo e motivado por transformação, autoestima e conexão humana.',
+    keyApproach: [
+      'Crie conexão e acolhimento',
+      'Use linguagem positiva',
+      'Fale de transformação e confiança',
+      'Evite comunicação fria e distante',
+    ],
+  },
+  estabilidade: {
+    name: 'Estabilidade (S)',
+    subtitle: 'Perfil cauteloso e orientado à segurança',
+    icon: Shield,
+    color: 'green',
+    bgGradient: 'from-green-950/50 to-gray-900',
+    borderColor: 'border-green-500/30',
+    accentColor: 'text-green-400',
+    badgeVariant: 'comfort',
+    description: 'Paciente que valoriza segurança, previsibilidade e confiança. Pode apresentar medo ou ansiedade antes de decidir.',
+    keyApproach: [
+      'Transmita calma e segurança',
+      'Explique cada etapa com paciência',
+      'Valide medos e incertezas',
+      'Evite pressão e urgência agressiva',
+    ],
+  },
+  conformidade: {
+    name: 'Conformidade (C)',
+    subtitle: 'Perfil analítico e orientado a dados',
+    icon: Brain,
+    color: 'blue',
+    bgGradient: 'from-blue-950/50 to-gray-900',
+    borderColor: 'border-blue-500/30',
+    accentColor: 'text-blue-400',
+    badgeVariant: 'data',
+    description: 'Paciente analítico, detalhista e orientado por informações e critérios. Decide com lógica e previsibilidade.',
+    keyApproach: [
+      'Apresente dados e critérios com clareza',
+      'Explique etapas e alternativas',
+      'Organize informações de forma estruturada',
+      'Evite respostas vagas',
+    ],
+  },
+};
+
+// Configurações visuais legadas por perfil neurológico
+const legacyProfileConfig = {
   reptilian: {
     name: 'Reptiliano',
     subtitle: 'Cérebro Primitivo - Sobrevivência',
@@ -195,10 +278,10 @@ export function AdaptiveNegotiationTab({
           <Brain className="w-10 h-10 text-gray-500" />
         </div>
         <h3 className="text-xl font-semibold text-gray-300 mb-2">
-          Perfil Neurológico Não Detectado
+          Perfil Comportamental DISC Não Detectado
         </h3>
         <p className="text-gray-500 max-w-md mb-6">
-          O perfil neurológico do paciente será detectado automaticamente quando a Nota Clínica for gerada.
+          O perfil comportamental do paciente será detectado automaticamente quando a Nota Clínica for gerada.
           {!transcript && ' Primeiro, grave ou transcreva a consulta.'}
         </p>
         {transcript && (
@@ -210,7 +293,15 @@ export function AdaptiveNegotiationTab({
     );
   }
   
-  const config = profileConfig[patientProfile.type];
+  const discFromPatient = (patientProfile as PatientProfile & { discProfile?: DISCProfile }).discProfile;
+  const discFromAnalysis = neurovendasAnalysis?.perfilPsicografico?.discProfile;
+  const discProfile = (discFromPatient ?? discFromAnalysis) as DISCProfile | undefined;
+  const hasDisc = !!discProfile?.perfilPrimario;
+  const discConfig = hasDisc ? discProfileConfig[discProfile!.perfilPrimario] : undefined;
+
+  const config = hasDisc
+    ? discConfig!
+    : legacyProfileConfig[patientProfile.type];
   const ProfileIcon = config.icon;
   
   // Preparar dados para os componentes
@@ -262,13 +353,15 @@ export function AdaptiveNegotiationTab({
             <div>
               <div className="flex items-center gap-2">
                 <h2 className={`text-2xl font-bold ${config.accentColor}`}>
-                  Perfil {config.name}
+                  {hasDisc ? 'Perfil Comportamental DISC' : `Perfil ${config.name}`}
                 </h2>
                 <span className="px-2 py-0.5 rounded-full bg-gray-700 text-xs text-gray-300">
-                  {patientProfile.confidence}% confiança
+                  {hasDisc ? (discProfile?.confianca ?? patientProfile.confidence) : patientProfile.confidence}% confiança
                 </span>
               </div>
-              <p className="text-gray-400 text-sm">{config.subtitle}</p>
+              <p className="text-gray-400 text-sm">
+                {hasDisc ? `${config.name}${discProfile?.perfilSecundario ? ` • Secundário: ${discProfile.perfilSecundario}` : ''}` : config.subtitle}
+              </p>
             </div>
           </div>
           
@@ -287,7 +380,7 @@ export function AdaptiveNegotiationTab({
         
         {/* Descrição do perfil */}
         <p className="mt-4 text-gray-300 text-sm leading-relaxed">
-          {config.description}
+          {hasDisc ? (discProfile?.resumo || config.description) : config.description}
         </p>
         
         {/* Insight Cards de Rapport */}
@@ -345,9 +438,13 @@ export function AdaptiveNegotiationTab({
               <Target className={`w-5 h-5 ${config.accentColor}`} />
               <h3 className="font-semibold text-gray-200">Abordagem Recomendada</h3>
             </div>
-            <p className="text-gray-300 text-sm mb-4">{patientProfile.recommendedApproach}</p>
+            <p className="text-gray-300 text-sm mb-4">
+              {hasDisc
+                ? (discProfile?.fraseRecomendada || patientProfile.recommendedApproach)
+                : patientProfile.recommendedApproach}
+            </p>
             <ul className="space-y-2">
-              {config.keyApproach.map((item, i) => (
+              {(hasDisc ? (discProfile?.comoComunicar ?? config.keyApproach) : config.keyApproach).map((item, i) => (
                 <li key={i} className="flex items-center gap-2 text-sm text-gray-400">
                   <span className={`w-1.5 h-1.5 rounded-full bg-${config.color}-500`} />
                   {item}
@@ -374,7 +471,7 @@ export function AdaptiveNegotiationTab({
                   ✓ Use estes gatilhos
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {patientProfile.triggers.positive.map((trigger, i) => (
+                  {(hasDisc ? (discProfile?.motivadores ?? patientProfile.triggers.positive) : patientProfile.triggers.positive).map((trigger, i) => (
                     <NegotiationBadge key={i} text={trigger} variant={config.badgeVariant} />
                   ))}
                 </div>
@@ -385,7 +482,7 @@ export function AdaptiveNegotiationTab({
                   ✗ Evite estes gatilhos
                 </span>
                 <div className="flex flex-wrap gap-2">
-                  {patientProfile.triggers.negative.map((trigger, i) => (
+                  {(hasDisc ? (discProfile?.oQueEvitar ?? patientProfile.triggers.negative) : patientProfile.triggers.negative).map((trigger, i) => (
                     <NegotiationBadge key={i} text={trigger} variant="warning" />
                   ))}
                 </div>
@@ -405,7 +502,7 @@ export function AdaptiveNegotiationTab({
               <h3 className="font-semibold text-gray-200">Palavras-chave Detectadas</h3>
             </div>
             <div className="flex flex-wrap gap-2">
-              {patientProfile.detectedKeywords.map((keyword, i) => (
+              {(hasDisc ? (discProfile?.sinaisDetectados ?? patientProfile.detectedKeywords) : patientProfile.detectedKeywords).map((keyword, i) => (
                 <span 
                   key={i} 
                   className={`px-3 py-1 rounded-full bg-${config.color}-500/10 text-${config.color}-400 text-sm border border-${config.color}-500/20`}
@@ -419,7 +516,7 @@ export function AdaptiveNegotiationTab({
                 Características Primárias
               </span>
               <ul className="space-y-1">
-                {patientProfile.primaryTraits.map((trait: string, i: number) => (
+                {(hasDisc ? (discProfile?.medosOuResistencias ?? patientProfile.primaryTraits) : patientProfile.primaryTraits).map((trait: string, i: number) => (
                   <li key={i} className="text-sm text-gray-400 flex items-center gap-2">
                     <span className={`w-1.5 h-1.5 rounded-full bg-${config.color}-500`} />
                     {trait}

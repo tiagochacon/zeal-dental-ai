@@ -306,6 +306,9 @@ export type InsertConsultationTemplate = typeof consultationTemplates.$inferInse
  * SOAP Note structure for dental consultations
  */
 export interface PatientProfile {
+  // DISC: camada principal para análise comportamental do paciente na consulta
+  discProfile?: DISCProfile;
+  // Legado: mantido para compatibilidade com consultas antigas
   type: 'reptilian' | 'neocortex' | 'limbic';
   confidence: number;
   primaryTraits: string[];

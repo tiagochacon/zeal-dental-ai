@@ -455,6 +455,46 @@ export default function CallDetail() {
               </div>
             )}
 
+            {/* Perfil Comportamental DISC */}
+            {neurovendas?.perfilPsicografico?.discProfile && (
+              <div className="mb-6">
+                <h3 className="font-semibold text-foreground mb-2">Perfil Comportamental DISC</h3>
+                <div className="bg-secondary/50 rounded-lg p-4 space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-medium text-foreground capitalize">
+                      Primário: {neurovendas.perfilPsicografico.discProfile.perfilPrimario}
+                    </span>
+                    {neurovendas.perfilPsicografico.discProfile.perfilSecundario && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">
+                        Secundário: {neurovendas.perfilPsicografico.discProfile.perfilSecundario}
+                      </span>
+                    )}
+                    {typeof neurovendas.perfilPsicografico.discProfile.confianca === "number" && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                        {neurovendas.perfilPsicografico.discProfile.confianca}% confiança
+                      </span>
+                    )}
+                  </div>
+                  {neurovendas.perfilPsicografico.discProfile.resumo && (
+                    <p className="text-sm text-muted-foreground">{neurovendas.perfilPsicografico.discProfile.resumo}</p>
+                  )}
+                  {Array.isArray(neurovendas.perfilPsicografico.discProfile.comoComunicar) && neurovendas.perfilPsicografico.discProfile.comoComunicar.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-muted-foreground mb-1">Como comunicar</p>
+                      <ul className="space-y-1">
+                        {neurovendas.perfilPsicografico.discProfile.comoComunicar.slice(0, 3).map((item: string, idx: number) => (
+                          <li key={idx} className="text-sm text-foreground flex items-start gap-2">
+                            <span className="text-blue-400 mt-0.5">•</span>
+                            <span>{item}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Rapport */}
             {rapportNivel !== undefined && (
               <div className="mb-6">
