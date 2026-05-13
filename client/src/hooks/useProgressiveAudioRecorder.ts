@@ -351,6 +351,13 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
       setIsLastChunkQueued(true);
       stopCompleteResolveRef.current?.();
     };
+    if (typeof recorder.requestData === "function" && recorder.state === "recording") {
+      try {
+        recorder.requestData();
+      } catch {
+        // ignore browsers that throw when forcing requestData near stop
+      }
+    }
     recorder.stop();
 
     return stopPromise;
@@ -388,7 +395,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     await transcriptionQueueRef.current;
 
     // Fix 3: Poll for in-flight chunks that may still be processing
-    const MAX_WAIT_MS = 30_000;
+    const MAX_WAIT_MS = 60_000;
     const POLL_INTERVAL_MS = 200;
     const startWait = Date.now();
 

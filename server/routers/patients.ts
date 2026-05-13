@@ -9,6 +9,7 @@ import {
   deletePatient,
   getPatientByNameForDentist,
   getUserById,
+  getPatientAssignmentsByPatient,
 } from "../db";
 
 const createPatientSchema = z.object({
@@ -50,12 +51,39 @@ export const patientsRouter = router({
       return { success: true, patient };
     }),
 
-  list: protectedProcedure.query(async ({ ctx }) => {
+  list: protectedProcedure
+    .input(z.object({
+      search: z.string().optional(),
+      scheduledDate: z.string().optional(),
+    }).optional())
+    .query(async ({ ctx, input }) => {
     const user = ctx.user;
-    if (user.clinicId && (user.clinicRole === 'gestor' || user.role === 'admin')) {
-      return await getPatientsByClinic(user.clinicId);
+    const baseList = user.clinicId && (user.clinicRole === 'gestor' || user.role === 'admin')
+      ? await getPatientsByClinic(user.clinicId)
+      : await getPatientsByDentist(ctx.user.id);
+
+    let filtered = baseList;
+    if (input?.search?.trim()) {
+      const q = input.search.toLowerCase().trim();
+      filtered = filtered.filter((p: any) =>
+        p.name?.toLowerCase().includes(q) ||
+        p.email?.toLowerCase().includes(q) ||
+        p.phone?.includes(input.search!)
+      );
     }
-    return await getPatientsByDentist(ctx.user.id);
+
+    if (input?.scheduledDate) {
+      filtered = filtered.filter((p: any) => {
+        if (!p.scheduledAt) return false;
+        const d = new Date(p.scheduledAt);
+        if (Number.isNaN(d.getTime())) return false;
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, "0");
+        const dd = String(d.getDate()).padStart(2, "0");
+        return `${yyyy}-${mm}-${dd}` === input.scheduledDate;
+      });
+    }
+    return filtered;
   }),
 
   getById: protectedProcedure
@@ -68,7 +96,11 @@ export const patientsRouter = router({
       if (!isOwner && !isClinicGestor) {
         throw new Error("Paciente não encontrado ou acesso negado");
       }
-      return patient;
+      const assignments = await getPatientAssignmentsByPatient(patient.id);
+      return {
+        ...patient,
+        assignments,
+      } as any;
     }),
 
   update: protectedProcedure

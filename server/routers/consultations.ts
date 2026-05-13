@@ -28,6 +28,7 @@ import { invokeLLM } from "../_core/llm";
 import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
+import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims } from "../helpers/antiHallucination";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { SOAPNote, TreatmentPlan } from "../../drizzle/schema";
 import { incrementClinicConsultationCount } from "../clinicBilling";
@@ -1303,6 +1304,17 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
         const fallback = getNeurovendasFallback();
         await updateConsultation(input.consultationId, { neurovendasAnalysis: fallback as any });
         return { success: true, analysis: fallback, fallback: true };
+      }
+
+      const perfilPsicografico = (analysis as any)?.perfilPsicografico;
+      if (perfilPsicografico?.discProfile && consultation.transcript) {
+        const disc = perfilPsicografico.discProfile as any;
+        disc.motivadores = sanitizeUnsupportedClaims(consultation.transcript, disc.motivadores || []);
+        disc.medosOuResistencias = sanitizeUnsupportedClaims(consultation.transcript, disc.medosOuResistencias || []);
+        perfilPsicografico.discProfile = enforceLowConfidenceWhenSparse(
+          disc,
+          consultation.transcript
+        );
       }
 
       const warnings = validateNeurovendasAnalysis(analysis, 'consulta');

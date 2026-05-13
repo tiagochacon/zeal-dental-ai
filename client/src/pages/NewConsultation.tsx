@@ -29,6 +29,7 @@ export default function NewConsultation() {
 
   // Form state
   const [selectedPatientId, setSelectedPatientId] = useState<string>("");
+  const [patientSearch, setPatientSearch] = useState("");
   const [newPatientName, setNewPatientName] = useState("");
   const [isNewPatient, setIsNewPatient] = useState(false);
   const [inputMode, setInputMode] = useState<"audio" | "text">("audio");
@@ -52,9 +53,21 @@ export default function NewConsultation() {
 
   // Queries
   const { data: patients, isLoading: patientsLoading } = trpc.patients.list.useQuery(
-    undefined,
+    { search: patientSearch || undefined },
     { enabled: !!user }
   );
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const presetPatientId = params.get("patientId");
+    if (!presetPatientId) return;
+    if (!patients || patients.length === 0) return;
+    const exists = patients.some((p) => String(p.id) === presetPatientId);
+    if (exists) {
+      setIsNewPatient(false);
+      setSelectedPatientId(presetPatientId);
+    }
+  }, [patients]);
 
   // Mutations
   const createPatientMutation = trpc.patients.create.useMutation();
@@ -476,6 +489,11 @@ export default function NewConsultation() {
                 ) : (
                   <div className="space-y-2">
                     <Label className="text-sm">Selecione o Paciente</Label>
+                    <Input
+                      placeholder="Filtrar paciente por nome, telefone ou email..."
+                      value={patientSearch}
+                      onChange={(e) => setPatientSearch(e.target.value)}
+                    />
                     <Select value={selectedPatientId} onValueChange={setSelectedPatientId}>
                       <SelectTrigger>
                         <SelectValue placeholder="Selecione um paciente" />

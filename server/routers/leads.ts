@@ -310,11 +310,12 @@ export const leadsRouter = router({
       return { success: true };
     }),
 
-  // Convert lead to patient (assigns to a dentist)
+  // Convert lead to patient (assigns to professionals)
   convert: protectedProcedure
     .input(z.object({
       leadId: z.number(),
-      dentistId: z.number(),
+      dentistIds: z.array(z.number()).min(1, "Selecione ao menos um profissional responsável"),
+      scheduledAt: z.string().datetime().optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const user = await getUserById(ctx.user.id);
@@ -331,20 +332,35 @@ export const leadsRouter = router({
         throw new TRPCError({ code: "CONFLICT", message: "Este lead já foi convertido em paciente" });
       }
 
-      // Verify dentist belongs to same clinic
-      const dentist = await getUserById(input.dentistId);
-      if (!dentist || dentist.clinicId !== user.clinicId || dentist.clinicRole !== "dentista") {
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Dentista inválido" });
+      // Verify professionals belong to same clinic and are dentist or gestor
+      const professionals = await Promise.all(input.dentistIds.map((id) => getUserById(id)));
+      const invalidProfessional = professionals.find(
+        (member) =>
+          !member ||
+          member.clinicId !== user.clinicId ||
+          (member.clinicRole !== "dentista" && member.clinicRole !== "gestor")
+      );
+      if (invalidProfessional) {
+        throw new TRPCError({ code: "BAD_REQUEST", message: "Profissional inválido para atribuição" });
       }
 
-      const patient = await convertLeadToPatient(input.leadId, input.dentistId);
+      const patient = await convertLeadToPatient(
+        input.leadId,
+        input.dentistIds,
+        input.scheduledAt ?? null,
+        ctx.user.id
+      );
 
       // Gerar script de vídeo personalizado para aumentar comparecimento
       // Executa de forma assíncrona após a conversão; nunca bloqueia nem falha a conversão
       let attendanceVideoScript = null;
       try {
         const leadCalls = await getCallsByLead(input.leadId);
-        attendanceVideoScript = await generateAttendanceVideoScriptForLead(lead, dentist, leadCalls);
+        const primaryProfessional = professionals[0];
+        if (!primaryProfessional) {
+          throw new Error("Profissional principal não encontrado");
+        }
+        attendanceVideoScript = await generateAttendanceVideoScriptForLead(lead, primaryProfessional, leadCalls);
         await updateLead(input.leadId, { attendanceVideoScript } as any);
       } catch (err) {
         console.warn("[leads.convert] Falha ao gerar script de vídeo — conversão continua normalmente:", err);

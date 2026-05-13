@@ -18,6 +18,7 @@ import { invokeLLM } from "../_core/llm";
 import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
+import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims } from "../helpers/antiHallucination";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { nanoid } from "nanoid";
 
@@ -93,6 +94,7 @@ export const callsRouter = router({
     .input(z.object({
       leadId: z.number(),
       leadName: z.string(),
+      sourceType: z.enum(["phone_call", "audio_upload", "whatsapp_export"]).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       const user = await getUserById(ctx.user.id);
@@ -114,6 +116,7 @@ export const callsRouter = router({
         crcId: ctx.user.id,
         leadId: input.leadId,
         leadName: input.leadName,
+        sourceType: input.sourceType ?? "phone_call",
       });
 
       return call;
@@ -186,6 +189,7 @@ export const callsRouter = router({
         audioUrl: url,
         audioFileKey: fileKey,
         audioDurationSeconds: input.durationSeconds || null,
+        sourceType: "audio_upload",
       });
 
       return { success: true, audioUrl: url };
@@ -270,7 +274,13 @@ export const callsRouter = router({
       const metodologiaContext = await getMetodologiaContext();
       const leadWordCount = countPatientWords(call.transcript || '');
 
-      const systemMessage = `Você é um especialista em análise comportamental e neurovendas odontológicas, baseado na metodologia do Dr. Carlos Rodriguez. Sua função é EXCLUSIVAMENTE analisar transcrições de ligações comerciais (CRC → Lead) e extrair padrões de comportamento, motivações e técnicas de comunicação.
+      const sourceType = call.sourceType ?? "phone_call";
+      const sourceLabel =
+        sourceType === "whatsapp_export"
+          ? "Conversa exportada do WhatsApp (mensagens assíncronas e áudios transcritos)"
+          : "Ligação comercial CRC → Lead (prospecção/agendamento)";
+
+      const systemMessage = `Você é um especialista em análise comportamental e neurovendas odontológicas, baseado na metodologia do Dr. Carlos Rodriguez. Sua função é EXCLUSIVAMENTE analisar transcrições de interações comerciais (CRC → Lead) e extrair padrões de comportamento, motivações e técnicas de comunicação.
 
 REGRAS ABSOLUTAS — NÃO NEGOCIÁVEIS:
 
@@ -291,7 +301,7 @@ REGRAS ABSOLUTAS — NÃO NEGOCIÁVEIS:
    - Campos de array: use [] se não houver dados.
 
 4. CONTEXTO:
-   - Esta é uma ligação de prospecção/agendamento telefônico.
+   - Esta é uma interação de prospecção/agendamento.
    - O foco é agendamento, NÃO fechamento de tratamento.
    - Scripts e gatilhos devem refletir esse objetivo.
 
@@ -305,8 +315,13 @@ ${metodologiaContext}
 
 CONTEXTO DA LIGAÇÃO:
 - Número de palavras do lead: ~${leadWordCount} palavras
-- Tipo: Ligação comercial CRC → Lead (prospecção/agendamento)
+- Tipo: ${sourceLabel}
 - Metodologia disponível: sim
+
+SINAIS IMPORTANTES PARA WHATSAPP:
+- Se a origem for WhatsApp, considere sinais de conversa assíncrona (tempo entre respostas, sumiço, retomadas, mensagens curtas/longas, pedido de preço, pedido de detalhes, hesitação).
+- Se houver áudios transcritos, use o conteúdo falado do lead como evidência prioritária quando identificado.
+- Não usar imagens como evidência comportamental neste ciclo (apenas contexto).
 
 TRANSCRIÇÃO DA LIGAÇÃO:
 ${call.transcript}
@@ -525,6 +540,13 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
       }
 
       // Validação pós-parse não-bloqueante com helper centralizado
+      const perfilPsicografico = (analysis as any)?.perfilPsicografico;
+      if (perfilPsicografico?.discProfile) {
+        const disc = perfilPsicografico.discProfile as any;
+        disc.motivadores = sanitizeUnsupportedClaims(call.transcript, disc.motivadores || []);
+        disc.medosOuResistencias = sanitizeUnsupportedClaims(call.transcript, disc.medosOuResistencias || []);
+        perfilPsicografico.discProfile = enforceLowConfidenceWhenSparse(disc, call.transcript);
+      }
       const warnings = validateNeurovendasAnalysis(analysis, 'crc');
       if (warnings.length > 0) {
         console.warn(`[NEUROVENDAS-CRC] ${warnings.length} warning(s) na análise da ligação ${input.callId}`);

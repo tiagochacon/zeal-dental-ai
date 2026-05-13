@@ -32,6 +32,9 @@ export type {
   SOAPNote,
   TreatmentPlan,
   NeurovendasAnalysis,
+  CallSourceType,
+  WhatsAppImportData,
+  WhatsAppMediaSummary,
 } from "../drizzle/schema";
 
 import type {
@@ -58,6 +61,11 @@ import type {
   TreatmentPlan,
   NeurovendasAnalysis,
   CallTranscriptSegment,
+  CallSourceType,
+  WhatsAppImportData,
+  WhatsAppMediaSummary,
+  PatientDentistAssignment,
+  InsertPatientDentistAssignment,
 } from "../drizzle/schema";
 
 // Helper: convert ISO date strings from Supabase to Date objects
@@ -241,13 +249,69 @@ export async function getPatientByNameForDentist(
 }
 
 export async function getPatientsByDentist(dentistId: number): Promise<Patient[]> {
-  const { data, error } = await supabase
+  const [directRes, assignmentRes] = await Promise.all([
+    supabase
+      .from("Patients")
+      .select("*")
+      .eq("dentistId", dentistId)
+      .order("updatedAt", { ascending: false }),
+    supabase
+      .from("PatientDentistAssignments")
+      .select("patientId")
+      .eq("dentistId", dentistId),
+  ]);
+  assertNoError(directRes.error, "getPatientsByDentist.direct");
+  assertNoError(assignmentRes.error, "getPatientsByDentist.assignments");
+
+  const assignmentPatientIds = Array.from(
+    new Set((assignmentRes.data ?? []).map((row: any) => Number(row.patientId)).filter(Boolean))
+  );
+  const directPatients = (directRes.data ?? []) as Patient[];
+  const existingIds = new Set(directPatients.map((p) => Number(p.id)));
+
+  if (assignmentPatientIds.length === 0) {
+    return directPatients;
+  }
+
+  const pendingIds = assignmentPatientIds.filter((id) => !existingIds.has(id));
+  if (pendingIds.length === 0) {
+    return directPatients;
+  }
+
+  const { data: assignedPatients, error: assignedError } = await supabase
     .from("Patients")
     .select("*")
-    .eq("dentistId", dentistId)
+    .in("id", pendingIds)
     .order("updatedAt", { ascending: false });
-  assertNoError(error, "getPatientsByDentist");
-  return (data ?? []) as Patient[];
+  assertNoError(assignedError, "getPatientsByDentist.assignedPatients");
+  return [...directPatients, ...((assignedPatients ?? []) as Patient[])];
+}
+
+export async function getPatientAssignmentsByPatient(patientId: number): Promise<PatientDentistAssignment[]> {
+  const { data, error } = await supabase
+    .from("PatientDentistAssignments")
+    .select("*")
+    .eq("patientId", patientId)
+    .order("createdAt", { ascending: true });
+  assertNoError(error, "getPatientAssignmentsByPatient");
+  return (data ?? []) as PatientDentistAssignment[];
+}
+
+export async function createPatientDentistAssignments(
+  rows: Array<Omit<InsertPatientDentistAssignment, "id" | "createdAt">>
+): Promise<void> {
+  if (rows.length === 0) return;
+  const prepared: Record<string, unknown>[] = [];
+  for (const row of rows) {
+    prepared.push({
+      ...row,
+      id: await getNextId("PatientDentistAssignments"),
+      scheduledAt: row.scheduledAt instanceof Date ? row.scheduledAt.toISOString() : row.scheduledAt ?? null,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  const { error } = await supabase.from("PatientDentistAssignments").insert(prepared);
+  assertNoError(error, "createPatientDentistAssignments");
 }
 
 export async function getPatientsByClinic(clinicId: number): Promise<Patient[]> {
@@ -941,7 +1005,15 @@ export async function deleteLead(id: number): Promise<void> {
   assertNoError(error, "deleteLead");
 }
 
-export async function convertLeadToPatient(leadId: number, dentistId: number): Promise<Patient> {
+export async function convertLeadToPatient(
+  leadId: number,
+  dentistIds: number[],
+  scheduledAt?: string | null,
+  assignedByUserId?: number
+): Promise<Patient> {
+  if (!dentistIds.length) {
+    throw new Error("At least one professional is required to convert lead");
+  }
   const { data: leadRow, error: leadError } = await supabase
     .from("Leads")
     .select("*")
@@ -957,20 +1029,34 @@ export async function convertLeadToPatient(leadId: number, dentistId: number): P
     .from("Patients")
     .insert({
       id: convertedPatientId,
-      dentistId,
+      dentistId: dentistIds[0],
       name: lead.name,
       phone: lead.phone,
       email: lead.email,
       clinicId: lead.clinicId,
       createdByUserId: lead.crcId,
       originLeadId: leadId,
+      scheduledAt: scheduledAt ?? null,
     })
     .select()
     .single();
   assertNoError(patientError, "convertLeadToPatient.createPatient");
 
-  await supabase.from("Leads").update({ isConverted: true, convertedPatientId: (patientRow as Patient).id }).eq("id", leadId);
-  return patientRow as Patient;
+  const patient = patientRow as Patient;
+
+  await createPatientDentistAssignments(
+    dentistIds.map((dentistId, index) => ({
+      patientId: Number(patient.id),
+      dentistId,
+      clinicId: Number(lead.clinicId),
+      assignedByUserId: assignedByUserId ?? null,
+      scheduledAt: scheduledAt ? new Date(scheduledAt) : null,
+      role: index === 0 ? "primary" : "secondary",
+    }))
+  );
+
+  await supabase.from("Leads").update({ isConverted: true, convertedPatientId: Number(patient.id) }).eq("id", leadId);
+  return patient;
 }
 
 // ==================== CALL FUNCTIONS ====================
@@ -982,8 +1068,11 @@ function normalizeCall(row: any): Call {
   return {
     ...rest,
     status: callStatus ?? rest.status,
+    sourceType: (rest.sourceType ?? "phone_call") as CallSourceType,
     callInsights: parseJsonField(rest.callInsights),
     neurovendasAnalysis: parseJsonField(rest.neurovendasAnalysis),
+    whatsappImportData: parseJsonField(rest.whatsappImportData) as WhatsAppImportData | null,
+    whatsappMediaSummary: parseJsonField(rest.whatsappMediaSummary) as WhatsAppMediaSummary | null,
   } as Call;
 }
 
@@ -1049,6 +1138,9 @@ export async function updateCall(
     transcriptSegments: CallTranscriptSegment[] | null;
     neurovendasAnalysis: NeurovendasAnalysis | null;
     callInsights: { dor: string; busca: string; trabalha: string; geradoEm: string } | null;
+    sourceType: CallSourceType;
+    whatsappImportData: WhatsAppImportData | null;
+    whatsappMediaSummary: WhatsAppMediaSummary | null;
     schedulingResult: "scheduled" | "not_scheduled" | "callback" | "no_answer";
     schedulingNotes: string | null;
     status: "draft" | "transcribed" | "analyzed" | "finalized";
@@ -1061,6 +1153,8 @@ export async function updateCall(
   const toSave: Record<string, unknown> = { ...rest };
   if ("callInsights" in rest) toSave.callInsights = toJsonText(rest.callInsights);
   if ("neurovendasAnalysis" in rest) toSave.neurovendasAnalysis = toJsonText(rest.neurovendasAnalysis);
+  if ("whatsappImportData" in rest) toSave.whatsappImportData = toJsonText(rest.whatsappImportData);
+  if ("whatsappMediaSummary" in rest) toSave.whatsappMediaSummary = toJsonText(rest.whatsappMediaSummary);
   const updateData = { ...toSave, ...(status !== undefined ? { callStatus: status } : {}) };
   const { error } = await supabase.from("Calls").update(updateData).eq("id", id);
   assertNoError(error, "updateCall");

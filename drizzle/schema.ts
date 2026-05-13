@@ -87,12 +87,29 @@ export const patients = mysqlTable("patients", {
   clinicId: int("clinicId"), // FK to clinics.id
   createdByUserId: int("createdByUserId"), // Who created this patient (CRC via lead conversion or dentist)
   originLeadId: int("originLeadId"), // FK to leads.id if converted from lead
+  scheduledAt: timestamp("scheduledAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
 export type Patient = typeof patients.$inferSelect;
 export type InsertPatient = typeof patients.$inferInsert;
+
+export type PatientDentistAssignmentRole = "primary" | "secondary";
+
+export const patientDentistAssignments = mysqlTable("patientDentistAssignments", {
+  id: int("id").autoincrement().primaryKey(),
+  patientId: int("patientId").notNull(),
+  dentistId: int("dentistId").notNull(),
+  clinicId: int("clinicId").notNull(),
+  assignedByUserId: int("assignedByUserId"),
+  scheduledAt: timestamp("scheduledAt"),
+  role: mysqlEnum("role", ["primary", "secondary"]).default("secondary").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type PatientDentistAssignment = typeof patientDentistAssignments.$inferSelect;
+export type InsertPatientDentistAssignment = typeof patientDentistAssignments.$inferInsert;
 
 /**
  * Script de vídeo personalizado gerado pela IA ao converter lead em paciente.
@@ -152,6 +169,47 @@ export const leads = mysqlTable("leads", {
 export type Lead = typeof leads.$inferSelect;
 export type InsertLead = typeof leads.$inferInsert;
 
+export type CallSourceType = "phone_call" | "audio_upload" | "whatsapp_export";
+
+export interface WhatsAppImportData {
+  fileName: string;
+  importedAt: string;
+  chatFileName: string;
+  totalMessages: number;
+  leadMessages: number;
+  crcMessages: number;
+  audioFilesFound: number;
+  audioFilesTranscribed: number;
+  imageFilesFound: number;
+  unsupportedFiles: string[];
+  dateRange: {
+    start: string | null;
+    end: string | null;
+  };
+  participants: string[];
+  warnings: string[];
+}
+
+export interface WhatsAppMediaSummary {
+  audioTranscripts: Array<{
+    fileName: string;
+    speakerGuess: "lead" | "crc" | "unknown";
+    transcript: string;
+    durationSeconds: number | null;
+    status: "transcribed" | "skipped" | "failed";
+    error: string | null;
+  }>;
+  images: Array<{
+    fileName: string;
+    referencedInChat: boolean;
+    status: "ignored";
+  }>;
+  skippedFiles: Array<{
+    fileName: string;
+    reason: string;
+  }>;
+}
+
 /**
  * Calls table - stores CRC phone call records with leads
  */
@@ -175,6 +233,9 @@ export const calls = mysqlTable("calls", {
   // Scheduling result
   schedulingResult: mysqlEnum("schedulingResult", ["scheduled", "not_scheduled", "callback", "no_answer"]),
   schedulingNotes: text("schedulingNotes"),
+  sourceType: mysqlEnum("sourceType", ["phone_call", "audio_upload", "whatsapp_export"]).default("phone_call"),
+  whatsappImportData: json("whatsappImportData").$type<WhatsAppImportData>(),
+  whatsappMediaSummary: json("whatsappMediaSummary").$type<WhatsAppMediaSummary>(),
   // Status
   status: mysqlEnum("callStatus", ["draft", "transcribed", "analyzed", "finalized"]).default("draft").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),

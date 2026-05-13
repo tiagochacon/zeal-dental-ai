@@ -591,8 +591,11 @@ export default function LeadDetail() {
   });
 
   const [showConvertDialog, setShowConvertDialog] = useState(false);
-  const [selectedDentistId, setSelectedDentistId] = useState<number | null>(null);
-  const dentists = (membersQuery.data || []).filter((m: any) => m.clinicRole === "dentista");
+  const [selectedDentistIds, setSelectedDentistIds] = useState<number[]>([]);
+  const [scheduledAt, setScheduledAt] = useState("");
+  const assignableProfessionals = (membersQuery.data || []).filter(
+    (m: any) => m.clinicRole === "dentista" || m.clinicRole === "gestor"
+  );
 
   const lead = leadQuery.data;
 
@@ -653,8 +656,8 @@ export default function LeadDetail() {
           {!lead.isConverted && (
             <Button
               onClick={() => {
-                if (dentists.length === 0) {
-                  toast.error("Nenhum dentista cadastrado na clínica. Peça ao gestor para adicionar.");
+                if (assignableProfessionals.length === 0) {
+                  toast.error("Nenhum profissional elegível cadastrado na clínica.");
                   return;
                 }
                 setShowConvertDialog(true);
@@ -761,13 +764,13 @@ export default function LeadDetail() {
             <Link href={`/calls/new?leadId=${leadId}&leadName=${encodeURIComponent(lead.name)}`}>
               <Button size="sm" className="bg-green-600 hover:bg-green-700">
                 <Plus className="h-4 w-4 mr-1" />
-                Nova Ligação
+                Nova Interação
               </Button>
             </Link>
           </div>
 
           {leadCalls.length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-8">Nenhuma ligação registrada para este lead</p>
+            <p className="text-muted-foreground text-sm text-center py-8">Nenhuma interação registrada para este lead</p>
           ) : (
             <div className="space-y-3">
               {leadCalls.map((call: any) => (
@@ -786,7 +789,11 @@ export default function LeadDetail() {
                           {call.createdAt ? new Date(call.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" }) : ""}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {call.audioDurationSeconds ? `${Math.floor(call.audioDurationSeconds / 60)}min ${call.audioDurationSeconds % 60}s` : "Sem áudio"}
+                          {(call.sourceType ?? "phone_call") === "whatsapp_export"
+                            ? "Conversa WhatsApp"
+                            : call.audioDurationSeconds
+                            ? `${Math.floor(call.audioDurationSeconds / 60)}min ${call.audioDurationSeconds % 60}s`
+                            : "Sem áudio"}
                         </p>
                       </div>
                     </div>
@@ -857,32 +864,55 @@ export default function LeadDetail() {
             <DialogTitle>Converter Lead em Paciente</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground mb-4">
-            Selecione o dentista que atenderá este paciente:
+            Selecione os profissionais responsáveis e a data do agendamento:
           </p>
+          <div className="mb-3">
+            <label className="text-xs text-muted-foreground block mb-1">Data e hora do agendamento</label>
+            <Input
+              type="datetime-local"
+              value={scheduledAt}
+              onChange={(e) => setScheduledAt(e.target.value)}
+              className="bg-secondary border-border"
+            />
+          </div>
           <div className="space-y-2">
-            {dentists.map((d: any) => (
+            {assignableProfessionals.map((d: any) => {
+              const checked = selectedDentistIds.includes(d.id);
+              return (
               <div
                 key={d.id}
-                onClick={() => setSelectedDentistId(d.id)}
+                onClick={() => {
+                  setSelectedDentistIds((prev) =>
+                    prev.includes(d.id) ? prev.filter((id) => id !== d.id) : [...prev, d.id]
+                  );
+                }}
                 className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                  selectedDentistId === d.id
+                  checked
                     ? "border-blue-500 bg-blue-500/10"
                     : "border-border hover:border-blue-500/30"
                 }`}
               >
-                <p className="font-medium text-foreground text-sm">{d.name}</p>
+                <p className="font-medium text-foreground text-sm">
+                  {d.name} {d.clinicRole === "gestor" ? "(Gestor)" : "(Dentista)"}
+                </p>
                 <p className="text-xs text-muted-foreground">{d.email}</p>
               </div>
-            ))}
+            )})}
           </div>
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowConvertDialog(false)}>Cancelar</Button>
             <Button
-              disabled={!selectedDentistId || convertLead.isPending}
+              disabled={selectedDentistIds.length === 0 || !scheduledAt || convertLead.isPending}
               onClick={() => {
-                if (selectedDentistId) {
-                  convertLead.mutate({ leadId, dentistId: selectedDentistId });
+                if (selectedDentistIds.length > 0 && scheduledAt) {
+                  convertLead.mutate({
+                    leadId,
+                    dentistIds: selectedDentistIds,
+                    scheduledAt: new Date(scheduledAt).toISOString(),
+                  });
                   setShowConvertDialog(false);
+                  setSelectedDentistIds([]);
+                  setScheduledAt("");
                 }
               }}
               className="bg-green-600 hover:bg-green-700"

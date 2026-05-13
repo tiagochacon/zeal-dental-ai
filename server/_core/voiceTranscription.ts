@@ -529,7 +529,8 @@ function processChunkResult(
     if (allSegments.length > 0) {
       const lastSeg = allSegments[allSegments.length - 1];
       // Skip if this segment overlaps significantly with the last one
-      if (adjustedSeg.start < lastSeg.end - 1) {
+      // Use smaller boundary tolerance to avoid cutting the final phrase
+      if (adjustedSeg.start < lastSeg.end - 0.25) {
         continue;
       }
     }

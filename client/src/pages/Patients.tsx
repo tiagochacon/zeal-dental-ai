@@ -837,6 +837,7 @@ function PatientDetailSheet({
 export default function Patients() {
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
+  const [scheduledDateFilter, setScheduledDateFilter] = useState("");
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [editingPatient, setEditingPatient] = useState<number | null>(null);
   const [viewingPatient, setViewingPatient] = useState<Patient | null>(null);
@@ -845,7 +846,10 @@ export default function Patients() {
   const utils = trpc.useUtils();
 
   const { data: patients, isLoading } = trpc.patients.list.useQuery(
-    undefined,
+    {
+      search: searchQuery || undefined,
+      scheduledDate: scheduledDateFilter || undefined,
+    },
     { enabled: !!user }
   );
 
@@ -944,11 +948,7 @@ export default function Patients() {
     setFormData(initialFormData);
   }, []);
 
-  const filteredPatients = patients?.filter(patient =>
-    patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    patient.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    patient.phone?.includes(searchQuery)
-  );
+  const filteredPatients = patients;
 
   return (
     <motion.div
@@ -995,13 +995,21 @@ export default function Patients() {
       </div>
 
       {/* Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="relative sm:col-span-2">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar paciente por nome, email ou telefone..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-11 surface-glass border-white/5 text-foreground placeholder:text-muted-foreground transition-all focus-visible:ring-1 focus-visible:ring-primary/50"
+          />
+        </div>
         <Input
-          placeholder="Buscar paciente por nome, email ou telefone..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-10 h-11 surface-glass border-white/5 text-foreground placeholder:text-muted-foreground transition-all focus-visible:ring-1 focus-visible:ring-primary/50"
+          type="date"
+          value={scheduledDateFilter}
+          onChange={(e) => setScheduledDateFilter(e.target.value)}
+          className="h-11 surface-glass border-white/5 text-foreground"
         />
       </div>
 
@@ -1056,6 +1064,17 @@ export default function Patients() {
                           <Mail className="h-3 w-3" />
                           {patient.email}
                         </span>
+                      )}
+                      {(patient as any).scheduledAt && (
+                        <Badge className="bg-blue-600/20 text-blue-400 border-blue-500/30">
+                          Agendado: {new Date((patient as any).scheduledAt).toLocaleString("pt-BR", {
+                            day: "2-digit",
+                            month: "2-digit",
+                            year: "numeric",
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Badge>
                       )}
                     </div>
                   </div>

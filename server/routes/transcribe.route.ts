@@ -23,6 +23,8 @@ const HALLUCINATION_MARKERS = [
   "transcrição de consulta odontológica clínica",
   "consulta odontológica. português brasileiro.",
   "vocabulário esperado",
+  "continuação da transcrição",
+  "contexto anterior",
 ];
 
 // ─── Context chaining ─────────────────────────────────────────────────────────
