@@ -25,6 +25,12 @@ function createValidAnalysis(): Record<string, unknown> {
       nivelAnsiedade: 5,
       nivelReceptividade: 7,
       descricaoPerfil: "Paciente lógico e analítico",
+      discProfile: {
+        perfilPrimario: "dominancia",
+        perfilSecundario: "conformidade",
+        confianca: 85,
+        resumo: "Paciente com perfil dominante, busca resultados rápidos e decisões objetivas.",
+      },
     },
     objecoes: {
       verdadeiras: [
