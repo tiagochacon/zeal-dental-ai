@@ -14,10 +14,12 @@ import { parseWhatsAppChat, buildUnifiedTranscript } from "../helpers/whatsappEx
 import { transcribeAudio } from "../_core/voiceTranscription";
 import type { WhatsAppImportData, WhatsAppMediaSummary } from "../../drizzle/schema";
 
-const ZIP_MAX_SIZE = 100 * 1024 * 1024; // 100MB
-const SINGLE_FILE_MAX = 25 * 1024 * 1024; // 25MB per internal file
+const ZIP_MAX_SIZE = 500 * 1024 * 1024; // 500MB — conversas grandes com mídias
+const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB per audio file
 const AUDIO_EXTENSIONS = [".opus", ".ogg", ".m4a", ".mp3", ".wav", ".aac"];
-const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
+const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"];
+const VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi", ".mkv", ".webm", ".3gp"];
+const DOCUMENT_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", ".vcf", ".pptx", ".ppt"];
 const DANGEROUS_EXTENSIONS = [".exe", ".bat", ".cmd", ".sh", ".ps1", ".msi", ".dll", ".com", ".vbs", ".js"];
 
 const upload = multer({
@@ -144,12 +146,33 @@ router.post(
           continue;
         }
 
-        // Collect audio files
+        // Ignore videos — never extract buffer, just register
+        if (VIDEO_EXTENSIONS.includes(ext)) {
+          skippedFiles.push({ fileName: safeName, reason: "Vídeo ignorado (não processado)" });
+          console.log(`[WhatsApp] Skipping video: ${safeName}`);
+          continue;
+        }
+
+        // Ignore documents and other irrelevant files — never extract buffer
+        if (DOCUMENT_EXTENSIONS.includes(ext)) {
+          skippedFiles.push({ fileName: safeName, reason: "Documento ignorado" });
+          continue;
+        }
+
+        // Collect audio files — extract buffer only for audio
         if (AUDIO_EXTENSIONS.includes(ext)) {
           try {
+            // Check compressed size first to avoid loading huge files
+            const compressedSize = (entry as any)._data?.compressedSize;
+            if (compressedSize && compressedSize > MAX_AUDIO_SIZE) {
+              skippedFiles.push({ fileName: safeName, reason: `Áudio muito grande (comprimido: ${(compressedSize / (1024 * 1024)).toFixed(1)}MB)` });
+              console.log(`[WhatsApp] Skipping large audio (compressed check): ${safeName}`);
+              continue;
+            }
             const buf = await entry.async("nodebuffer");
-            if (buf.length > SINGLE_FILE_MAX) {
+            if (buf.length > MAX_AUDIO_SIZE) {
               skippedFiles.push({ fileName: safeName, reason: `Áudio muito grande (${(buf.length / (1024 * 1024)).toFixed(1)}MB)` });
+              console.log(`[WhatsApp] Skipping large audio: ${safeName} (${(buf.length / (1024 * 1024)).toFixed(1)}MB)`);
             } else {
               audioFiles.push({ name: safeName, buffer: buf, ext });
             }
@@ -159,13 +182,13 @@ router.post(
           continue;
         }
 
-        // Collect image files (just register, no processing)
+        // Register image files (no buffer extraction, no processing)
         if (IMAGE_EXTENSIONS.includes(ext)) {
           imageFiles.push(safeName);
           continue;
         }
 
-        // Skip other files
+        // Skip any other unrecognized files
         unsupportedFiles.push(safeName);
       }
 
@@ -310,6 +333,11 @@ router.post(
       const leadMessages = parseResult.messages.filter((m) => m.speakerRole === "lead").length;
       const crcMessages = parseResult.messages.filter((m) => m.speakerRole === "crc").length;
 
+      // Count ignored categories
+      const videosIgnored = skippedFiles.filter((f) => f.reason.startsWith("Vídeo ignorado")).length;
+      const audiosSkipped = skippedFiles.filter((f) => f.reason.startsWith("Áudio muito grande")).length;
+      const docsIgnored = skippedFiles.filter((f) => f.reason.startsWith("Documento ignorado")).length;
+
       // Build import data
       const importData: WhatsAppImportData = {
         fileName: file.originalname,
@@ -318,13 +346,18 @@ router.post(
         totalMessages: parseResult.messages.filter((m) => m.messageType !== "system").length,
         leadMessages,
         crcMessages,
-        audioFilesFound: audioFiles.length,
+        audioFilesFound: audioFiles.length + audiosSkipped,
         audioFilesTranscribed: audioTranscripts.filter((a) => a.status === "transcribed").length,
         imageFilesFound: imageFiles.length,
         unsupportedFiles,
         dateRange: parseResult.dateRange,
         participants: parseResult.participants,
-        warnings: parseResult.warnings,
+        warnings: [
+          ...parseResult.warnings,
+          ...(videosIgnored > 0 ? [`${videosIgnored} vídeo(s) ignorado(s) — não processados`] : []),
+          ...(audiosSkipped > 0 ? [`${audiosSkipped} áudio(s) ignorado(s) por exceder ${MAX_AUDIO_SIZE / (1024 * 1024)}MB`] : []),
+          ...(docsIgnored > 0 ? [`${docsIgnored} documento(s) ignorado(s)`] : []),
+        ],
       };
 
       const mediaSummary: WhatsAppMediaSummary = {
@@ -348,7 +381,7 @@ router.post(
         whatsappMediaSummary: mediaSummary,
       });
 
-      console.log(`[WhatsApp] Call ${callId} updated: ${parseResult.messages.length} msgs, ${audioTranscripts.filter((a) => a.status === "transcribed").length}/${audioFiles.length} audios transcribed`);
+      console.log(`[WhatsApp] Call ${callId} updated: ${parseResult.messages.length} msgs, ${audioTranscripts.filter((a) => a.status === "transcribed").length}/${audioFiles.length} audios transcribed, ${videosIgnored} videos ignored, ${imageFiles.length} images registered, ${docsIgnored} docs ignored`);
 
       return res.json({
         success: true,

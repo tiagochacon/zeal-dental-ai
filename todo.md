@@ -1328,3 +1328,15 @@
 - [x] Manter processamento de mídias inalterado
 - [x] Atualizar testes existentes e adicionar cenários (11 novos testes, todos passando)
 - [x] Verificar TypeScript (0 erros) e rodar todos os testes (494/495, 1 timeout pré-existente em email.test.ts)
+
+## Task: Suportar conversas grandes com mídias pesadas no WhatsApp
+- [x] Aumentar limite do ZIP de 100MB para 500MB (backend + frontend)
+- [x] Ignorar vídeos (.mp4, .mov, .avi, .mkv, .webm, .3gp) sem erro — apenas registrar
+- [x] Ignorar imagens por padrão (apenas registrar nomes, sem extrair buffer)
+- [x] Ignorar outros arquivos irrelevantes (.pdf, .doc, .vcf, .pptx, etc.)
+- [x] Filtrar arquivos ANTES de extrair buffer (vídeos/docs nunca carregados em memória)
+- [x] Manter processamento de .txt e áudios como prioridade
+- [x] Áudios acima de 25MB: ignorar com log claro, sem derrubar importação
+- [x] Adicionar extensões de vídeo e outros formatos à lista de ignorados
+- [x] Atualizar frontend: limite de upload para 500MB na mensagem
+- [x] Verificar TypeScript (0 erros) e rodar todos os testes (495/495)
