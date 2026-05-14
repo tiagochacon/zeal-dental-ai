@@ -445,7 +445,7 @@ export default function NewCall() {
             {[
               "Me conta o que está te incomodando hoje e por que você decidiu procurar ajuda agora?",
               "O que você gostaria que mudasse depois dessa avaliação ou tratamento?",
-              "O que você precisa entender ou sentir para ficar tranquilo(a) em vir para a avaliação?",
+              "Você já consultou outra clínica sobre isso? Se sim, o que faltou para você fechar lá?",
             ].map((pergunta, i) => (
               <li key={i} className="flex items-start gap-3">
                 <span className="flex-shrink-0 w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 text-xs font-bold flex items-center justify-center mt-0.5">
