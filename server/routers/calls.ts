@@ -18,7 +18,7 @@ import { invokeLLM } from "../_core/llm";
 import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
-import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims } from "../helpers/antiHallucination";
+import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims, EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK } from "../helpers/antiHallucination";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { nanoid } from "nanoid";
 
@@ -306,7 +306,11 @@ REGRAS ABSOLUTAS — NÃO NEGOCIÁVEIS:
    - Scripts e gatilhos devem refletir esse objetivo.
 
 5. METODOLOGIA:
-   - Use apenas os documentos de metodologia fornecidos — não use conhecimento externo.`;
+   - Use apenas os documentos de metodologia fornecidos — não use conhecimento externo.
+
+${EVIDENCE_REQUIRED_BLOCK}
+
+${DISC_EVIDENCE_BLOCK}`;
 
       const prompt = `DOCUMENTOS DE METODOLOGIA (base obrigatória para toda análise):
 ${metodologiaContext}

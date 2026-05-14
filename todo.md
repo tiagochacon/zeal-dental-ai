@@ -1253,3 +1253,50 @@
 - [x] Corrigir teste validateNeurovendasAnalysis: adicionar discProfile ao createValidAnalysis()
 - [x] Todos os 473 testes vitest passando (27 arquivos de teste)
 - [x] Servidor rodando sem erros, Supabase conectado
+
+## Task 2.1: Gestor como dentista selecionável + múltiplos dentistas na conversão
+- [x] Schema TypeScript para PatientDentistAssignments e scheduledAt em Patients (já existia)
+- [x] Funções no db.ts: createPatientDentistAssignments (já existia)
+- [x] convertLeadToPatient recebe dentistIds: number[] e scheduledAt (já implementado)
+- [x] leads.convert valida profissionais dentista ou gestor da mesma clínica (já implementado)
+- [x] LeadDetail.tsx usa selectedDentistIds array com multi-select checkboxes (já implementado)
+- [x] Textos atualizados para 'profissionais responsáveis' (já implementado)
+
+## Task 2.2: Nova Consulta com paciente preselecionado e filtro
+- [x] Ler patientId da URL em NewConsultation.tsx e preselecionar (já implementado linhas 60-70)
+- [x] Filtro textual na seleção de paciente por nome/telefone/email (já implementado linhas 492-496)
+- [ ] Garantir que isStep1Valid funcione com paciente preselecionado
+
+## Task 2.3: Data de agendamento e filtro de pacientes por data
+- [x] scheduledAt no input de leads.convert com campo datetime-local obrigatório (já implementado)
+- [x] patients.list aceita filtro por scheduledDate (já implementado)
+- [x] Input type=date em Patients.tsx (já implementado)
+- [x] Badge 'Agendado' com data nos cards de pacientes (já implementado)
+
+## Task 2.4: Corrigir corte do último chunk na transcrição
+- [x] stop() chama requestData() antes de stop() (linhas 354-359, já implementado)
+- [x] stopCompletePromise resolve após onstop despachar último chunk (já implementado)
+- [x] assembleTranscript() aguarda stopCompletePromise (já implementado)
+- [x] isLastChunkQueued exposto para UI desabilitar botão (já implementado)
+- [ ] Aumentar MAX_WAIT_MS ou aguardar fila serial explicitamente
+- [ ] Garantir ordenação por chunkIndex ao montar transcript
+- [ ] Revisar regra de overlap para não remover segmentos do final
+
+## Task 2.5: Reduzir alucinações nas análises e transcrições
+- [x] Criar helper antiHallucination.ts (expandido com EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK, EXTENDED_HALLUCINATION_MARKERS)
+- [x] Reforçar prompts com bloco 'EVIDÊNCIA OBRIGATÓRIA' (calls.ts, consultations.ts, leads.ts)
+- [x] Reduzir temperature para 0 em tarefas extrativas (já configurado em SOAP e extractInsights)
+- [x] Ampliar HALLUCINATION_MARKERS em transcribe.route.ts (importando EXTENDED_HALLUCINATION_MARKERS)
+
+## Task 1.6: Importação WhatsApp - Schema e Backend
+- [x] Adicionar tipos CallSourceType, WhatsAppImportData, WhatsAppMediaSummary no schema (já existiam)
+- [x] Atualizar db.ts para incluir novos campos (já existiam)
+- [x] Criar server/routes/whatsappUpload.ts (parser .zip + transcrição áudios)
+- [x] Criar server/helpers/whatsappExportParser.ts + testes (11 testes passando)
+- [x] Registrar rota em server/_core/index.ts
+
+## Task 1.7: Importação WhatsApp - Frontend
+- [x] Adicionar 3ª aba "Importar WhatsApp" em NewCall.tsx
+- [x] Implementar upload .zip com validação e progresso
+- [x] Adaptar CallDetail.tsx para exibir sourceType WhatsApp (título, badge, info de importação)
+- [x] Adaptar calls.analyzeNeurovendas para contexto WhatsApp (já tinha suporte no prompt)

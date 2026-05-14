@@ -28,7 +28,7 @@ import { invokeLLM } from "../_core/llm";
 import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
-import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims } from "../helpers/antiHallucination";
+import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims, EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK } from "../helpers/antiHallucination";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { SOAPNote, TreatmentPlan } from "../../drizzle/schema";
 import { incrementClinicConsultationCount } from "../clinicBilling";
@@ -770,7 +770,11 @@ INSTRUÇÕES ANTI-ALUCINAÇÃO:
 - NÃO INFIRA condições clínicas a partir de sintomas sem que o dentista as tenha citado explicitamente.
 - Para dentes: classifique APENAS os mencionados explicitamente. Os demais devem ser 'not_evaluated'.
 - patientProfile: baseie-se APENAS em palavras literais do paciente na transcrição, não em inferências gerais.
-- patientProfile.discProfile: é obrigatório e deve ser o perfil principal de exibição.`;
+- patientProfile.discProfile: é obrigatório e deve ser o perfil principal de exibição.
+
+${EVIDENCE_REQUIRED_BLOCK}
+
+${DISC_EVIDENCE_BLOCK}`;
 
       const response = await invokeLLM({
         messages: [
@@ -1088,7 +1092,11 @@ REGRAS ABSOLUTAS — NÃO NEGOCIÁVEIS:
    - Aplique o framework de análise comportamental DISC como camada principal: dominancia, influencia, estabilidade e conformidade.
    - Mantenha o nível cerebral dominante (reptiliano, límbico, neocortex) como campo legado de compatibilidade.
    - Inclua motivações primárias, gatilhos mentais, objeções, rapport e scripts de objeção (LAER/PARE).
-   - Use apenas os documentos de metodologia fornecidos — não use conhecimento externo.`;
+   - Use apenas os documentos de metodologia fornecidos — não use conhecimento externo.
+
+${EVIDENCE_REQUIRED_BLOCK}
+
+${DISC_EVIDENCE_BLOCK}`;
 
       const prompt = `DOCUMENTOS DE METODOLOGIA (base obrigatória para toda análise):
 ${metodologiaContext}

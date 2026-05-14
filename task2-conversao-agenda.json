@@ -1,0 +1,234 @@
+{
+  "task": "Melhorar fluxo de conversao de lead, agenda do dentista, nova consulta, transcricao em chunks e reducao de alucinacoes",
+  "project_path": "c:\\Zeal\\Zeal Manus\\zeal-dental-ai",
+  "modo_de_execucao": "Agent mode",
+  "instrucao_geral": "Antes de alterar, leia os arquivos citados, entenda o fluxo atual e faca uma alteracao por vez. Apos cada alteracao, rode verificacoes de TypeScript/lints quando possivel e teste manualmente o fluxo afetado. Nao alterar .env nem segredos.",
+  "analise_tecnica_identificada": {
+    "conversao_lead": [
+      "client/src/pages/LeadDetail.tsx usa selectedDentistId unico e filtra membros apenas com clinicRole dentista.",
+      "server/routers/leads.ts aceita dentistId unico e valida apenas clinicRole dentista.",
+      "server/db.ts convertLeadToPatient cria um unico paciente com dentistId unico.",
+      "drizzle/schema.ts Patients possui dentistId unico, sem suporte nativo a multiplos dentistas nem data de agendamento."
+    ],
+    "nova_consulta": [
+      "client/src/pages/Patients.tsx ja chama /new-consultation?patientId=ID ao clicar em Nova Consulta.",
+      "client/src/pages/NewConsultation.tsx ainda nao preseleciona o paciente vindo da URL.",
+      "NewConsultation.tsx usa Select simples sem filtro textual para paciente existente."
+    ],
+    "agenda_dentista": [
+      "Patients.tsx ja tem filtro textual, mas nao tem filtro por data agendada.",
+      "patients.list retorna todos do dentista ou da clinica para gestor, sem filtro por data.",
+      "Nao existe scheduledAt/appointmentDate em Patients ou tabela auxiliar."
+    ],
+    "transcricao_chunks": [
+      "client/src/hooks/useProgressiveAudioRecorder.ts tenta aguardar o ultimo chunk, mas ha risco de o ultimo ondataavailable nao ser flushado completamente antes do assembleTranscript.",
+      "server/routes/transcribe.route.ts trata chunks progressivos e ja tem filtros basicos de alucinacao do Whisper.",
+      "server/_core/voiceTranscription.ts tambem faz chunking para audios longos e pode descartar segmentos de overlap de forma agressiva."
+    ],
+    "alucinacoes_ia": [
+      "server/routers/calls.ts, server/routers/consultations.ts e server/routers/leads.ts ja possuem regras anti-invencao, mas precisam de reforco sistemico.",
+      "server/helpers/invokeLLMWithRetry.ts valida JSON, mas nao valida groundedness nem campos clinicos inventados de forma ampla."
+    ]
+  },
+  "alteracoes_banco_supabase": {
+    "sql_recomendado": [
+      "ALTER TABLE \"Patients\" ADD COLUMN IF NOT EXISTS \"scheduledAt\" timestamptz;",
+      "CREATE TABLE IF NOT EXISTS \"PatientDentistAssignments\" (\"id\" bigint PRIMARY KEY, \"patientId\" bigint NOT NULL, \"dentistId\" bigint NOT NULL, \"clinicId\" bigint NOT NULL, \"assignedByUserId\" bigint, \"scheduledAt\" timestamptz, \"role\" text DEFAULT 'secondary', \"createdAt\" timestamptz DEFAULT now());",
+      "CREATE INDEX IF NOT EXISTS idx_patient_dentist_assignments_patient ON \"PatientDentistAssignments\" (\"patientId\");",
+      "CREATE INDEX IF NOT EXISTS idx_patient_dentist_assignments_dentist_date ON \"PatientDentistAssignments\" (\"dentistId\", \"scheduledAt\");"
+    ],
+    "observacao": "Manter Patients.dentistId como dentista principal para compatibilidade. Usar PatientDentistAssignments para multiplos dentistas, incluindo gestor como profissional selecionavel."
+  },
+  "prompts_por_alteracao": [
+    {
+      "id": 1,
+      "titulo": "Gestor como dentista selecionavel e multiplos dentistas na conversao",
+      "arquivos": [
+        "drizzle/schema.ts",
+        "server/db.ts",
+        "server/routers/leads.ts",
+        "server/routers/patients.ts",
+        "client/src/pages/LeadDetail.tsx"
+      ],
+      "requisitos": [
+        "Na conversao do lead, permitir selecionar usuarios da clinica com clinicRole dentista ou gestor.",
+        "Permitir selecionar mais de um profissional.",
+        "Exigir ao menos um profissional selecionado.",
+        "Manter Patients.dentistId como profissional principal, usando o primeiro selecionado.",
+        "Criar registros em PatientDentistAssignments para todos os profissionais selecionados.",
+        "Nao criar multiplos pacientes para o mesmo lead.",
+        "Manter compatibilidade com leads ja convertidos."
+      ],
+      "passo_a_passo": [
+        "Adicionar schema TypeScript para PatientDentistAssignments e scheduledAt em Patients.",
+        "Criar funcoes no db.ts: createPatientDentistAssignments, getPatientAssignmentsByPatient, getPatientsByAssignedDentist, e adaptar getPatientsByDentist para incluir dentistId direto e assignments.",
+        "Alterar convertLeadToPatient para receber dentistIds: number[] e scheduledAt opcional.",
+        "Alterar leads.convert para validar cada profissional selecionado, aceitando clinicRole dentista ou gestor da mesma clinica.",
+        "No LeadDetail.tsx, trocar selectedDentistId por selectedDentistIds array.",
+        "No dialog de conversao, exibir checkboxes/cards multi-select com dentistas e gestor.",
+        "Atualizar textos para 'profissionais responsáveis' em vez de apenas 'dentista'."
+      ],
+      "testes_obrigatorios": [
+        "Converter lead selecionando apenas um dentista.",
+        "Converter lead selecionando gestor como profissional.",
+        "Converter lead selecionando gestor e dentista juntos.",
+        "Validar que o paciente aparece para os profissionais selecionados.",
+        "Validar que lead ja convertido continua bloqueado para nova conversao."
+      ]
+    },
+    {
+      "id": 2,
+      "titulo": "Nova Consulta com paciente preselecionado e filtro de paciente",
+      "arquivos": [
+        "client/src/pages/Patients.tsx",
+        "client/src/pages/NewConsultation.tsx"
+      ],
+      "requisitos": [
+        "Quando vier de /new-consultation?patientId=ID, NewConsultation deve preselecionar o paciente automaticamente.",
+        "Se o paciente vier preselecionado, manter modo paciente existente.",
+        "Adicionar filtro textual na selecao de paciente em NewConsultation para facilitar busca.",
+        "Nao quebrar criacao de consulta fora do perfil do paciente."
+      ],
+      "passo_a_passo": [
+        "Ler patientId da URL em NewConsultation.tsx.",
+        "Quando patients carregar, se patientId existir e for acessivel, setar selectedPatientId.",
+        "Criar patientSearch state.",
+        "Filtrar patients por nome, telefone ou email antes de renderizar no Select ou trocar por lista pesquisavel.",
+        "Garantir que isStep1Valid funcione com paciente preselecionado.",
+        "Manter fluxo de novo paciente intacto."
+      ],
+      "testes_obrigatorios": [
+        "Abrir paciente e clicar Nova Consulta, confirmando que ele ja aparece selecionado.",
+        "Abrir Nova Consulta pelo menu e buscar paciente por texto.",
+        "Criar consulta para paciente existente.",
+        "Criar consulta para novo paciente."
+      ]
+    },
+    {
+      "id": 3,
+      "titulo": "Data de agendamento e filtro de pacientes por data",
+      "arquivos": [
+        "drizzle/schema.ts",
+        "server/db.ts",
+        "server/routers/leads.ts",
+        "server/routers/patients.ts",
+        "client/src/pages/LeadDetail.tsx",
+        "client/src/pages/Patients.tsx"
+      ],
+      "requisitos": [
+        "CRC deve preencher data e hora do agendamento ao converter lead em paciente.",
+        "A data deve ser salva em Patients.scheduledAt e em PatientDentistAssignments.scheduledAt.",
+        "Dentista deve visualizar a data agendada no card/detalhe do paciente.",
+        "Patients.tsx deve ter filtro por data, alem do filtro textual existente.",
+        "Para gestor, permitir ver todos da clinica filtrando por data.",
+        "Para dentista, retornar pacientes vinculados a ele naquela data."
+      ],
+      "passo_a_passo": [
+        "Adicionar scheduledAt no schema de Patients.",
+        "Adicionar scheduledAt no input de leads.convert.",
+        "No dialog de conversao, incluir campo datetime-local obrigatorio.",
+        "Validar no backend que scheduledAt e uma data valida.",
+        "Adaptar patients.list para aceitar input opcional { search?: string, scheduledDate?: string } sem quebrar chamadas antigas.",
+        "Implementar filtro por dia no backend usando inicio e fim do dia.",
+        "Adicionar em Patients.tsx um input type=date e aplicar filtro por backend ou frontend.",
+        "Exibir badge 'Agendado para DD/MM/AAAA HH:mm' nos cards e no detalhe do paciente."
+      ],
+      "testes_obrigatorios": [
+        "Converter lead com data de agendamento.",
+        "Ver paciente na lista do dentista com data exibida.",
+        "Filtrar pacientes por data e validar que aparecem apenas os agendados naquele dia.",
+        "Limpar filtro de data e validar que lista volta ao normal.",
+        "Validar pacientes antigos sem scheduledAt sem quebrar UI."
+      ]
+    },
+    {
+      "id": 4,
+      "titulo": "Corrigir corte do ultimo chunk na transcricao de consulta",
+      "arquivos": [
+        "client/src/hooks/useProgressiveAudioRecorder.ts",
+        "client/src/components/consultations/AudioRecorder.tsx",
+        "server/routes/transcribe.route.ts",
+        "server/routers/consultations.ts",
+        "server/_core/voiceTranscription.ts"
+      ],
+      "requisitos": [
+        "Garantir que o ultimo chunk seja enviado, transcrito e incluido antes de habilitar 'Usar transcricao'.",
+        "Evitar corte do final da fala em consultas curtas e longas.",
+        "Nao descartar agressivamente segmentos finais por overlap.",
+        "Adicionar logs seguros de quantidade de chunks, indices e status, sem logar dados sensiveis completos."
+      ],
+      "passo_a_passo": [
+        "No stop() do useProgressiveAudioRecorder, chamar recorder.requestData() antes de recorder.stop() quando suportado.",
+        "Garantir que ondataavailable final seja capturado antes de resolver stopCompletePromise.",
+        "Em assembleTranscript, aguardar fila completa e todos os chunks em status done/error sem timeout curto demais para o ultimo chunk.",
+        "Aumentar MAX_WAIT_MS de 30s para valor mais seguro ou aguardar a fila serial explicitamente.",
+        "Criar protecao para nao duplicar chunk final caso requestData gere blob ja capturado.",
+        "No server, garantir ordenacao por chunkIndex ao montar transcript em consultations.ts.",
+        "Em voiceTranscription.ts, revisar regra de overlap para nao remover segmentos do final do ultimo chunk."
+      ],
+      "testes_obrigatorios": [
+        "Gravar consulta de 1min40s falando uma frase clara nos ultimos 10 segundos e confirmar que aparece na transcricao.",
+        "Gravar consulta menor que 60s e confirmar que gera um unico chunk completo.",
+        "Gravar consulta maior que 2min e confirmar que todos os chunks aparecem em ordem.",
+        "Regravar apos reset e confirmar que nao mistura chunks de sessoes anteriores."
+      ]
+    },
+    {
+      "id": 5,
+      "titulo": "Reduzir alucinacoes nas analises e transcricoes",
+      "arquivos": [
+        "server/routes/transcribe.route.ts",
+        "server/_core/voiceTranscription.ts",
+        "server/routers/consultations.ts",
+        "server/routers/calls.ts",
+        "server/routers/leads.ts",
+        "server/helpers/invokeLLMWithRetry.ts",
+        "server/helpers/validateNeurovendasAnalysis.ts"
+      ],
+      "requisitos": [
+        "Reforcar prompts para extrair somente o que aparece na transcricao.",
+        "Campos sem evidencia devem usar string vazia, array vazio, 'Nao informado' ou baixa confianca conforme schema.",
+        "Diagnosticos clinicos devem ser hipotese quando nao ditos explicitamente.",
+        "Nao inventar preco, procedimento, promessa de resultado, dor, motivo ou perfil DISC sem evidencia.",
+        "Adicionar etapa de validacao pos-LLM para detectar termos sem correspondencia na transcricao quando possivel.",
+        "Para transcricao Whisper, manter prompts curtos para evitar repeticao do prompt."
+      ],
+      "passo_a_passo": [
+        "Criar helper central antiHallucination.ts com funcoes simples: normalizeText, hasEvidenceInTranscript, sanitizeUnsupportedClaims.",
+        "Aplicar validacao conservadora em SOAP, treatmentPlan, neurovendas de consulta e neurovendas de calls.",
+        "Nos prompts, incluir bloco 'EVIDENCIA OBRIGATORIA' pedindo que cada conclusao relevante tenha base textual ou seja marcada como baixa confianca.",
+        "Reduzir temperature para 0 em tarefas extrativas quando ainda nao estiver assim.",
+        "Em invokeLLMWithRetry, quando JSON for valido, permitir uma validacao opcional por contexto para rejeitar respostas com campos clinicos obviamente inventados.",
+        "Em transcribe.route.ts, ampliar HALLUCINATION_MARKERS com frases que apareceram nos testes reais.",
+        "Nao remover fallback, mas garantir que fallback seja claramente marcado como baixa confianca."
+      ],
+      "testes_obrigatorios": [
+        "Usar transcricao curta e confirmar que analise retorna baixa confianca, sem inventar detalhes.",
+        "Usar transcricao sem diagnostico e confirmar que SOAP nao cria diagnostico definitivo.",
+        "Usar call sem fala suficiente do lead e confirmar DISC com baixa confianca.",
+        "Validar que JSON schema continua sendo respeitado."
+      ]
+    }
+  ],
+  "criterios_de_aceite_gerais": [
+    "Gestor aparece como profissional selecionavel na conversao.",
+    "Conversao aceita multiplos profissionais.",
+    "CRC informa data/hora de agendamento na conversao.",
+    "Dentista filtra pacientes por data agendada e por texto.",
+    "Nova Consulta aberta pelo perfil do paciente ja vem com paciente selecionado.",
+    "Nova Consulta aberta fora do perfil permite buscar paciente por texto.",
+    "Transcricao progressiva nao corta o ultimo chunk.",
+    "Prompts e validacoes reduzem alucinacoes evitaveis.",
+    "Fluxos antigos continuam funcionando com dados antigos sem scheduledAt e sem assignments.",
+    "ReadLints sem erros nos arquivos alterados."
+  ],
+  "git_workflow": {
+    "antes_de_tudo": "git pull origin main",
+    "apos_cada_alteracao": [
+      "rodar verificacao de lint/TypeScript nos arquivos alterados quando possivel",
+      "testar manualmente o fluxo afetado",
+      "corrigir erros antes de seguir para a proxima alteracao"
+    ],
+    "commit_sugerido": "feat: melhorar agenda e conversao de pacientes"
+  }
+}

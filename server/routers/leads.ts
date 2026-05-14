@@ -13,6 +13,7 @@ import {
   getCallsByLead,
 } from "../db";
 import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
+import { EVIDENCE_REQUIRED_BLOCK } from "../helpers/antiHallucination";
 import type { AttendanceVideoScript } from "../../drizzle/schema";
 import type { Lead, Call, User } from "../../drizzle/schema";
 
@@ -111,7 +112,9 @@ Regras obrigatórias:
 - ${DISC_VIDEO_GUIDANCE[discProfileUsed ?? "unknown"]}
 - Não prometa cura, diagnóstico, resultado estético, preço ou aprovação de tratamento.
 - Não use tom de pressão ou urgência agressiva.
-- O CTA deve reforçar comparecimento à avaliação e mostrar que a equipe está preparada.`;
+- O CTA deve reforçar comparecimento à avaliação e mostrar que a equipe está preparada.
+
+${EVIDENCE_REQUIRED_BLOCK}`;
 
   const userPrompt = `Contexto do paciente e ligação:\n${contextLines.join("\n")}\n\nGere o roteiro de vídeo no formato JSON solicitado.`;
 

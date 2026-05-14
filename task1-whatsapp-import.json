@@ -1,0 +1,412 @@
+{
+  "task": "Adicionar importação de conversa exportada do WhatsApp para análise comportamental DISC do lead",
+  "project_path": "c:\\Zeal\\Zeal Manus\\zeal-dental-ai",
+  "modo_de_execucao": "Agent mode",
+  "objetivo_geral": "Adicionar ao fluxo atual de registro de ligação do CRC uma terceira aba para importar conversa exportada do WhatsApp em arquivo .zip. O sistema deve abrir o zip, localizar o arquivo _chat.txt, processar mensagens de texto, identificar mídias/áudios referenciados, transcrever áudios quando possível, montar uma linha do tempo textual unificada e gerar análise comportamental DISC/neurovendas do lead com base no contexto da conversa.",
+  "contexto_do_produto": {
+    "produto": "ZEAL é um SaaS odontológico com IA para clínicas privadas, governo e universidades. Hoje o CRC pode registrar ligações, gravar áudio ou subir arquivo de áudio, transcrever e gerar análise comportamental DISC/neurovendas.",
+    "problema": "Muitos agendamentos acontecem pelo WhatsApp, não por ligação. Em várias clínicas, o CRC conversa pelo WhatsApp Web/Desktop e a conversa contém textos, áudios, imagens e informações relevantes sobre dores, objeções, motivadores e estilo de decisão do lead. Sem importar essa conversa, o ZEAL perde uma parte importante do contexto comercial.",
+    "resultado_esperado": "O CRC deve conseguir importar uma conversa exportada do WhatsApp em .zip, vinculada a um lead, e o sistema deve transformar essa conversa em um transcript analisável, transcrever áudios relevantes, gerar análise DISC e atualizar o perfil do lead como já acontece com ligações."
+  },
+  "contexto_tecnico_identificado": {
+    "frontend_atual": [
+      "client/src/pages/NewCall.tsx possui abas para 'Gravar Agora' e 'Enviar Arquivo'.",
+      "NewCall.tsx já seleciona lead, cria uma call via trpc.calls.create e envia áudio para /api/calls/upload-audio.",
+      "Após registrar, redireciona para /calls/:id.",
+      "Também já exibe perguntas-guia para o CRC quando um lead é selecionado."
+    ],
+    "backend_atual": [
+      "server/routers/calls.ts possui create, uploadAudio, transcribe e analyzeNeurovendas.",
+      "server/routes/audioUpload.ts recebe upload multipart de áudio para calls.",
+      "server/_core/voiceTranscription.ts transcreve áudio e já lida com arquivos grandes em alguns cenários.",
+      "server/routers/calls.ts salva transcript em Calls.transcript e depois analyzeNeurovendas usa esse transcript para gerar análise DISC.",
+      "Calls já possui neurovendasAnalysis, callInsights, transcript, transcriptSegments, schedulingResult e status.",
+      "drizzle/schema.ts define Calls e NeurovendasAnalysis com DISCProfile."
+    ],
+    "decisao_recomendada": "Reaproveitar a entidade Calls como 'interação comercial' para manter o mínimo de mudança no fluxo. Uma conversa importada do WhatsApp deve ser salva como uma Call com sourceType/originType = whatsapp_export, transcript preenchido pela conversa processada, e neurovendasAnalysis gerado pelo mesmo fluxo analyzeNeurovendas, com pequenas adaptações de prompt para contexto WhatsApp."
+  },
+  "decisao_de_arquitetura": {
+    "principio": "Tratar WhatsApp exportado como uma interação comercial do CRC com o lead, aproveitando o pipeline atual de lead, call, transcript, análise DISC e atualização do callProfile.",
+    "opcao_escolhida": "Adicionar suporte a importação .zip de WhatsApp dentro de NewCall.tsx como terceira aba.",
+    "por_que_reaproveitar_Calls": [
+      "Reduz alterações estruturais.",
+      "Permite usar CallDetail.tsx para exibir transcript/análise.",
+      "Permite usar calls.analyzeNeurovendas sem criar uma análise paralela.",
+      "Mantém dashboards e histórico comercial próximos do fluxo atual.",
+      "Facilita vínculo com lead e atualização de callProfile."
+    ],
+    "campos_recomendados_em_Calls": [
+      "sourceType ou originType: 'phone_call' | 'audio_upload' | 'whatsapp_export'",
+      "whatsappImportData: json com metadados do zip processado",
+      "whatsappMediaSummary: json opcional com áudios transcritos, imagens ignoradas e arquivos não suportados"
+    ],
+    "compatibilidade": [
+      "Registros antigos sem sourceType devem ser tratados como phone_call.",
+      "O fluxo de gravação e upload de áudio não pode ser alterado ou quebrado.",
+      "A análise DISC atual deve continuar funcionando para ligações e arquivos de áudio."
+    ]
+  },
+  "alteracoes_banco_supabase": {
+    "acao_manual_necessaria": {
+      "descricao": "Adicionar colunas opcionais na tabela Calls para identificar origem WhatsApp e guardar metadados do processamento.",
+      "sql_recomendado": [
+        "ALTER TABLE \"Calls\" ADD COLUMN IF NOT EXISTS \"sourceType\" text DEFAULT 'phone_call';",
+        "ALTER TABLE \"Calls\" ADD COLUMN IF NOT EXISTS \"whatsappImportData\" jsonb;",
+        "ALTER TABLE \"Calls\" ADD COLUMN IF NOT EXISTS \"whatsappMediaSummary\" jsonb;"
+      ],
+      "observacao": "Como o sistema usa Supabase como banco real e drizzle/schema.ts como tipagem, as colunas precisam existir no Supabase e no schema TypeScript."
+    }
+  },
+  "modelo_de_dados": {
+    "CallSourceType": "phone_call | audio_upload | whatsapp_export",
+    "WhatsAppImportData": {
+      "fileName": "string",
+      "importedAt": "string ISO",
+      "chatFileName": "string",
+      "totalMessages": "number",
+      "leadMessages": "number",
+      "crcMessages": "number",
+      "audioFilesFound": "number",
+      "audioFilesTranscribed": "number",
+      "imageFilesFound": "number",
+      "unsupportedFiles": "string[]",
+      "dateRange": {
+        "start": "string | null",
+        "end": "string | null"
+      },
+      "participants": "string[]",
+      "warnings": "string[]"
+    },
+    "WhatsAppMediaSummary": {
+      "audioTranscripts": [
+        {
+          "fileName": "string",
+          "speakerGuess": "lead | crc | unknown",
+          "transcript": "string",
+          "durationSeconds": "number | null",
+          "status": "transcribed | skipped | failed",
+          "error": "string | null"
+        }
+      ],
+      "images": [
+        {
+          "fileName": "string",
+          "referencedInChat": "boolean",
+          "status": "ignored"
+        }
+      ],
+      "skippedFiles": [
+        {
+          "fileName": "string",
+          "reason": "string"
+        }
+      ]
+    },
+    "transcript_unificado": {
+      "descricao": "O campo Calls.transcript deve receber uma linha do tempo textual, misturando mensagens de texto do _chat.txt e transcrições dos áudios.",
+      "formato_sugerido": "[WhatsApp Exportado]\\n[2026-01-20 14:03] Lead: mensagem...\\n[2026-01-20 14:05] CRC: mensagem...\\n[2026-01-20 14:07] Lead (áudio transcrito: PTT-2026...opus): texto transcrito..."
+    }
+  },
+  "alteracoes_backend": {
+    "schema": {
+      "arquivo": "drizzle/schema.ts",
+      "instrucoes": [
+        "Adicionar tipo CallSourceType = 'phone_call' | 'audio_upload' | 'whatsapp_export'.",
+        "Adicionar tipos WhatsAppImportData e WhatsAppMediaSummary próximos dos tipos de Call.",
+        "Adicionar em calls: sourceType, whatsappImportData e whatsappMediaSummary.",
+        "Preservar campos existentes de áudio, transcript, neurovendasAnalysis e callInsights.",
+        "Garantir que registros antigos sem sourceType sejam tratados como phone_call em UI/backend."
+      ]
+    },
+    "db": {
+      "arquivo": "server/db.ts",
+      "instrucoes": [
+        "Garantir que getCallById, getCallsByLead, getCallsByClinic e getCallsByCRC retornem sourceType, whatsappImportData e whatsappMediaSummary automaticamente via select('*').",
+        "Atualizar normalizeCall para parsear whatsappImportData e whatsappMediaSummary caso venham como string.",
+        "Atualizar updateCall para aceitar sourceType, whatsappImportData e whatsappMediaSummary.",
+        "Se houver serialização manual com toJsonText para campos JSON, incluir whatsappImportData e whatsappMediaSummary."
+      ]
+    },
+    "nova_rota_upload_whatsapp": {
+      "arquivo_sugerido": "server/routes/whatsappUpload.ts",
+      "endpoint_sugerido": "POST /api/calls/upload-whatsapp-export",
+      "instrucoes": [
+        "Criar rota multipart para receber arquivo .zip e callId.",
+        "Validar autenticação e permissão da mesma forma que /api/calls/upload-audio.",
+        "Validar se a Call pertence à mesma clínica e se o usuário CRC pode acessar.",
+        "Aceitar apenas .zip.",
+        "Limitar tamanho do ZIP, sugerido 100MB no MVP.",
+        "Extrair conteúdo em memória ou em diretório temporário seguro.",
+        "Proteger contra Zip Slip: nunca confiar em paths internos do zip, normalizar nomes e rejeitar paths com '..' ou paths absolutos.",
+        "Localizar arquivo _chat.txt ou arquivo contendo '_chat' e extensão .txt.",
+        "Se não encontrar _chat.txt, retornar erro amigável.",
+        "Ler _chat.txt como UTF-8, com fallback para latin1 se necessário.",
+        "Identificar arquivos de áudio comuns exportados do WhatsApp: .opus, .ogg, .m4a, .mp3, .wav, .aac, .mp4 audio.",
+        "Identificar imagens comuns: .jpg, .jpeg, .png, .webp, mas não fazer OCR neste MVP.",
+        "Para áudios, tentar transcrever cada arquivo de áudio relevante usando transcribeAudio ou helper compatível.",
+        "Se algum áudio falhar, não falhar a importação inteira: registrar em whatsappMediaSummary.skippedFiles ou audioTranscripts com status failed.",
+        "Montar transcript unificado com mensagens do chat e transcrições dos áudios.",
+        "Atualizar Calls com sourceType='whatsapp_export', transcript, status='transcribed', whatsappImportData e whatsappMediaSummary.",
+        "Retornar { success: true, callId, transcript, importData, mediaSummary }."
+      ],
+      "dependencias": [
+        "Adicionar uma biblioteca de extração ZIP segura se o projeto ainda não tiver. Preferir unzipper, yauzl ou jszip.",
+        "Não adicionar dependências pesadas sem necessidade.",
+        "Se usar extração em memória, garantir limites de tamanho por arquivo e total."
+      ]
+    },
+    "parser_chat_whatsapp": {
+      "arquivo_sugerido": "server/helpers/whatsappExportParser.ts",
+      "responsabilidades": [
+        "Parsear o _chat.txt exportado pelo WhatsApp.",
+        "Suportar formatos comuns de data do WhatsApp em português, por exemplo: '20/01/2026, 14:03 - Nome: mensagem'.",
+        "Suportar mensagens multilinha, anexando linhas sem timestamp à mensagem anterior.",
+        "Identificar mensagens de sistema e ignorar ou marcar como system.",
+        "Detectar anexos referenciados com padrões como '<arquivo anexado>', 'arquivo anexado', '‎imagem omitida', 'áudio omitido', ou nomes de arquivo presentes no texto.",
+        "Inferir participantes pelo nome antes dos dois pontos.",
+        "Inferir speakerRole = crc | lead | unknown com heurística conservadora: se o participante tiver o nome do lead selecionado, marcar lead; se tiver nome do usuário CRC ou clínica, marcar crc; caso contrário unknown.",
+        "Não inventar papel do participante se houver ambiguidade."
+      ],
+      "saida_sugerida": {
+        "messages": [
+          {
+            "timestamp": "string | null",
+            "sender": "string | null",
+            "speakerRole": "lead | crc | system | unknown",
+            "text": "string",
+            "mediaFileName": "string | null",
+            "messageType": "text | audio | image | system | unknown"
+          }
+        ],
+        "participants": "string[]",
+        "dateRange": {
+          "start": "string | null",
+          "end": "string | null"
+        },
+        "warnings": "string[]"
+      }
+    },
+    "transcricao_audio_whatsapp": {
+      "instrucoes": [
+        "WhatsApp geralmente exporta áudios como .opus ou .ogg. Mapear MIME types corretamente: .opus e .ogg como audio/ogg ou audio/opus se suportado pelo transcribeAudio.",
+        "Se a pipeline atual não suportar .opus diretamente, implementar conversão ou fallback seguro. Não quebrar importação se um áudio não puder ser transcrito.",
+        "Se for necessário converter áudio, avaliar uso de ffmpeg apenas se já existir suporte no ambiente. Caso contrário, deixar erro por áudio e continuar com texto.",
+        "Não transcrever imagens no MVP.",
+        "Não enviar imagens para IA nesse primeiro ciclo, apenas registrar que existiam imagens/anexos."
+      ]
+    },
+    "calls_router": {
+      "arquivo": "server/routers/calls.ts",
+      "instrucoes": [
+        "Atualizar calls.create para aceitar opcionalmente sourceType, default phone_call.",
+        "Se sourceType='whatsapp_export', ainda criar uma Call vinculada ao lead e CRC.",
+        "Atualizar analyzeNeurovendas para adaptar prompt conforme call.sourceType.",
+        "Se call.sourceType='whatsapp_export', o prompt deve dizer que o transcript vem de conversa WhatsApp exportada, com mensagens assíncronas e possíveis áudios transcritos.",
+        "Manter o mesmo JSON schema DISC já usado em ligações.",
+        "A análise deve considerar sinais específicos de WhatsApp: tempo e sequência de respostas quando disponível, mensagens curtas/longas, dúvidas repetidas, perguntas de preço, hesitação, sumiço, áudios emocionais, pedido de detalhes, medo de dor, busca por estética, confirmação de agendamento.",
+        "Ao salvar análise, continuar atualizando lead.callProfile.discProfile e lead.neurovendasAnalysis como já acontece.",
+        "Manter callInsights, extraindo dor, busca e trabalha do transcript unificado."
+      ]
+    },
+    "registro_rota": {
+      "arquivo": "server/_core/index.ts",
+      "instrucoes": [
+        "Registrar app.use('/api/calls/upload-whatsapp-export', whatsappUploadRouter).",
+        "Não alterar rotas existentes de upload de áudio ou consulta."
+      ]
+    }
+  },
+  "prompt_llm_para_whatsapp": {
+    "system": "Você é um especialista em neurovendas odontológicas, análise comportamental DISC e atendimento comercial por WhatsApp. Sua tarefa é analisar uma conversa exportada do WhatsApp entre CRC e lead, usando apenas as mensagens e áudios transcritos fornecidos. Identifique o perfil comportamental DISC do lead, objeções, motivadores, medo, intenção de agendamento e recomendações práticas para o CRC/dentista. Não invente dados, não faça diagnóstico clínico e não prometa resultado.",
+    "regras": [
+      "A conversa é assíncrona e pode misturar mensagens de texto, áudios transcritos e anexos ignorados.",
+      "Analise o comportamento do lead, não do CRC.",
+      "Use DISC como camada principal: dominancia, influencia, estabilidade, conformidade.",
+      "Use a metodologia do ebook de neurovendas como base para gatilhos, objeções, rapport, PARE e LAER.",
+      "Considere sinais de WhatsApp: mensagens curtas ou longas, dúvidas repetidas, pergunta de preço, pedido de detalhes, medo/dor, sumiço, hesitação, resposta por áudio, confirmação ou não de agendamento.",
+      "Se houver pouca fala do lead, marcar baixa confiança.",
+      "Se houver áudio transcrito, priorizar o conteúdo falado pelo lead quando identificado.",
+      "Não usar imagens como evidência comportamental no MVP, apenas mencionar que havia anexos se isso aparecer no transcript.",
+      "O resultado deve seguir exatamente o mesmo schema DISC de neurovendas usado nas ligações."
+    ],
+    "heuristicas_disc_whatsapp": {
+      "dominancia": [
+        "Pergunta direto sobre preço, horário, disponibilidade, rapidez ou solução.",
+        "Mensagens curtas e objetivas.",
+        "Quer resolver logo ou pede próximo passo."
+      ],
+      "influencia": [
+        "Fala de estética, sorriso, vergonha, autoestima, imagem, desejo de transformação.",
+        "Usa linguagem mais emocional ou áudio contando história pessoal.",
+        "Valoriza acolhimento e conexão."
+      ],
+      "estabilidade": [
+        "Demonstra medo, insegurança, ansiedade, receio de dor ou desconfiança.",
+        "Pede segurança, calma, garantia, explicação simples.",
+        "Pode demorar para responder por insegurança."
+      ],
+      "conformidade": [
+        "Pede detalhes, etapas, materiais, procedimentos, avaliação, riscos, formas de pagamento.",
+        "Compara opções ou pede explicações mais completas.",
+        "Demonstra necessidade de entender antes de decidir."
+      ]
+    }
+  },
+  "alteracoes_frontend": {
+    "NewCall.tsx": {
+      "objetivo": "Adicionar terceira aba para importar conversa exportada do WhatsApp.",
+      "instrucoes": [
+        "Adicionar uma nova TabsTrigger chamada 'WhatsApp' ou 'Importar WhatsApp'.",
+        "A aba deve aparecer junto de 'Gravar Agora' e 'Enviar Arquivo'.",
+        "Permitir upload de arquivo .zip.",
+        "Mostrar texto explicativo: 'Exporte a conversa do WhatsApp com mídia e envie o arquivo .zip aqui. O ZEAL vai ler o _chat.txt, transcrever áudios e gerar análise DISC do lead.'",
+        "Validar no frontend se o arquivo termina com .zip.",
+        "Usar o lead selecionado obrigatório, igual nas outras abas.",
+        "Ao enviar o zip, criar uma Call com sourceType='whatsapp_export'.",
+        "Enviar zip para /api/calls/upload-whatsapp-export via FormData com callId.",
+        "Mostrar progresso de upload/processamento.",
+        "Após sucesso, redirecionar para /calls/:id.",
+        "Não alterar o fluxo de gravação atual nem upload de áudio atual."
+      ],
+      "microcopy_sugerida": {
+        "titulo": "Importar conversa do WhatsApp",
+        "descricao": "Envie o .zip exportado pelo WhatsApp. O arquivo deve conter o _chat.txt e, se exportado com mídia, os áudios da conversa.",
+        "alerta": "Para melhor análise, exporte a conversa com mídia. Imagens serão registradas, mas não serão analisadas nesta versão.",
+        "botao": "Importar conversa"
+      }
+    },
+    "CallDetail.tsx": {
+      "objetivo": "Exibir conversa WhatsApp importada de forma coerente no detalhe da interação.",
+      "instrucoes": [
+        "Se call.sourceType='whatsapp_export', trocar labels de 'Ligação' para 'Conversa WhatsApp' onde fizer sentido.",
+        "Exibir card de origem: 'Conversa importada do WhatsApp'.",
+        "Se whatsappImportData existir, mostrar resumo: total de mensagens, áudios encontrados, áudios transcritos, período da conversa e participantes.",
+        "Exibir transcript unificado na seção atual de transcrição.",
+        "Manter card DISC já existente quando neurovendasAnalysis.perfilPsicografico.discProfile existir.",
+        "Botão de analisar neurovendas deve funcionar com transcript de WhatsApp igual funciona com ligação."
+      ]
+    },
+    "Calls.tsx": {
+      "objetivo": "Diferenciar visualmente ligações e conversas WhatsApp na listagem.",
+      "instrucoes": [
+        "Quando sourceType='whatsapp_export', mostrar ícone/label WhatsApp ou 'WhatsApp'.",
+        "Registros antigos sem sourceType continuam como ligação.",
+        "Não quebrar filtros/listagem existentes."
+      ]
+    },
+    "LeadDetail.tsx": {
+      "objetivo": "Mostrar histórico de interações do lead incluindo WhatsApp importado.",
+      "instrucoes": [
+        "Na lista de ligações/interações do lead, se call.sourceType='whatsapp_export', mostrar como 'Conversa WhatsApp' em vez de 'Ligação'.",
+        "Manter status analisada/transcrita/finalizada.",
+        "Não alterar fluxo de conversão."
+      ]
+    },
+    "Patients.tsx": {
+      "objetivo": "Aproveitar análise WhatsApp no briefing do paciente convertido.",
+      "instrucoes": [
+        "Como a análise WhatsApp atualiza lead.callProfile.discProfile, o briefing do CRC deve funcionar sem grande alteração.",
+        "Revisar microcopy para dizer 'ligação/conversa comercial' quando houver dados vindos do WhatsApp.",
+        "Não duplicar blocos se o DISC já estiver disponível via leadData.callProfile."
+      ]
+    }
+  },
+  "analise_disc_com_whatsapp": {
+    "regras": [
+      "O sistema deve gerar análise DISC mesmo que não haja áudios, desde que o _chat.txt tenha conteúdo suficiente.",
+      "Se houver áudios transcritos, integrar as transcrições na linha do tempo no ponto mais próximo possível da mensagem/anexo.",
+      "Se não for possível associar áudio a mensagem específica, anexar ao final da conversa em seção 'Áudios transcritos não associados'.",
+      "Se houver poucos textos do lead e poucos áudios, gerar análise com baixa confiança.",
+      "Não usar imagem como evidência comportamental no MVP.",
+      "Não usar mensagens do CRC como evidência do perfil do lead, exceto para contexto da resposta do lead.",
+      "Marcar speakerRole unknown quando não for possível diferenciar lead/CRC."
+    ],
+    "transcript_unificado_exemplo": "[WhatsApp Exportado]\\nParticipantes: Clínica ZEAL, Maria\\nPeríodo: 20/01/2026 a 21/01/2026\\n\\n[20/01/2026 14:03] CRC: Olá Maria, tudo bem?\\n[20/01/2026 14:05] Lead: Tenho medo de sentir dor, mas queria ver sobre implante.\\n[20/01/2026 14:07] Lead (áudio transcrito: PTT-20260120-WA0001.opus): Eu queria entender como funciona, quanto tempo demora e se tem avaliação primeiro."
+  },
+  "seguranca_e_lgpd": {
+    "instrucoes": [
+      "Não logar conteúdo completo de conversas no console.",
+      "Não salvar arquivos extraídos em diretórios públicos.",
+      "Limpar arquivos temporários após processamento.",
+      "Validar tamanho máximo do zip e dos arquivos internos.",
+      "Rejeitar arquivos executáveis ou extensões inesperadas.",
+      "Evitar armazenar imagens no MVP, a menos que já exista política clara de armazenamento.",
+      "Exibir microcopy para o CRC confirmando que a conversa deve ter autorização/uso legítimo para atendimento da clínica.",
+      "Não enviar dados para serviços além dos já usados pelo sistema para transcrição/análise."
+    ]
+  },
+  "criterios_de_aceite": [
+    "NewCall.tsx possui terceira aba para importar conversa WhatsApp .zip.",
+    "O CRC consegue selecionar lead, subir .zip exportado do WhatsApp e criar uma interação vinculada ao lead.",
+    "Backend abre o .zip com segurança e encontra _chat.txt.",
+    "Sistema parseia mensagens do _chat.txt e monta transcript unificado.",
+    "Sistema identifica áudios exportados do WhatsApp e tenta transcrever.",
+    "Falha em um áudio não quebra a importação inteira.",
+    "Imagens são contabilizadas/registradas como ignoradas no MVP.",
+    "Calls.transcript recebe a conversa consolidada.",
+    "Calls.sourceType fica whatsapp_export.",
+    "CallDetail exibe a conversa importada e permite análise DISC.",
+    "calls.analyzeNeurovendas gera perfil DISC com base na conversa WhatsApp.",
+    "Lead.callProfile.discProfile é atualizado com a análise gerada.",
+    "Lead convertido em paciente continua levando briefing DISC e script de vídeo quando aplicável.",
+    "Fluxos existentes de gravação e upload de áudio continuam funcionando.",
+    "Dados antigos sem sourceType continuam funcionando.",
+    "ReadLints não retorna erros nos arquivos modificados.",
+    "Nenhum arquivo .env ou segredo é alterado."
+  ],
+  "verificacoes_tecnicas": [
+    "Exportar conversa WhatsApp com mídia e subir .zip em um lead.",
+    "Testar .zip válido com _chat.txt e sem áudios.",
+    "Testar .zip válido com _chat.txt e áudios .opus/.ogg.",
+    "Testar .zip sem _chat.txt e confirmar erro amigável.",
+    "Testar .zip grande acima do limite e confirmar bloqueio.",
+    "Testar arquivo que não é .zip e confirmar validação.",
+    "Abrir /calls/:id e confirmar transcript da conversa.",
+    "Executar análise DISC e confirmar perfil em neurovendasAnalysis.perfilPsicografico.discProfile.",
+    "Abrir LeadDetail e confirmar que a interação aparece como WhatsApp.",
+    "Converter lead em paciente e confirmar briefing DISC em Patients.",
+    "Confirmar que gravação de ligação ainda funciona.",
+    "Confirmar que upload de áudio ainda funciona.",
+    "Testar usuário sem acesso PRO e confirmar paywall da análise, se aplicável."
+  ],
+  "restricoes_importantes": [
+    "Não quebrar fluxo atual de ligação.",
+    "Não substituir ligações por WhatsApp; adicionar WhatsApp como nova fonte de dados.",
+    "Não obrigar o CRC a importar WhatsApp para registrar ligação.",
+    "Não analisar imagens no MVP.",
+    "Não criar integração com WhatsApp Business API nesta etapa.",
+    "Não usar extensão de navegador.",
+    "Não remover campos legados.",
+    "Não alterar autenticação, billing, Stripe ou permissões.",
+    "Não commitar .env.",
+    "Antes de alterar, executar git pull origin main.",
+    "Após alterações, executar ReadLints, git status, commit e push."
+  ],
+  "arquivos_relevantes_para_ler_antes_de_editar": [
+    "client/src/pages/NewCall.tsx",
+    "client/src/pages/CallDetail.tsx",
+    "client/src/pages/Calls.tsx",
+    "client/src/pages/LeadDetail.tsx",
+    "client/src/pages/Patients.tsx",
+    "server/routers/calls.ts",
+    "server/routes/audioUpload.ts",
+    "server/_core/index.ts",
+    "server/_core/voiceTranscription.ts",
+    "server/storage.ts",
+    "server/db.ts",
+    "drizzle/schema.ts",
+    "server/helpers/validateNeurovendasAnalysis.ts",
+    "server/helpers/neurovendasFallback.ts"
+  ],
+  "git_workflow": {
+    "antes_de_tudo": "git pull origin main",
+    "apos_alteracoes": [
+      "git status",
+      "git add client/src/pages/NewCall.tsx client/src/pages/CallDetail.tsx client/src/pages/Calls.tsx client/src/pages/LeadDetail.tsx client/src/pages/Patients.tsx server/routers/calls.ts server/routes/whatsappUpload.ts server/helpers/whatsappExportParser.ts server/_core/index.ts server/db.ts drizzle/schema.ts package.json package-lock.json",
+      "git commit -m \"feat: importar conversas whatsapp para analise disc\"",
+      "git push origin main"
+    ],
+    "observacao": "Se algum arquivo listado não for modificado após análise, não adicioná-lo ao commit. Se package-lock não existir ou não for alterado, não adicioná-lo."
+  },
+  "mensagem_de_commit_sugerida": "feat: importar conversas whatsapp para analise disc"
+}

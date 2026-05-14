@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle, Lock, ClipboardList, HeartPulse, Target, Briefcase } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle, Lock, ClipboardList, HeartPulse, Target, Briefcase, MessageSquare, FileArchive } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link, useParams } from "wouter";
 import { useState } from "react";
@@ -121,7 +121,9 @@ export default function CallDetail() {
           </Button>
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Ligação — {call.leadName}</h1>
+          <h1 className="text-xl font-bold text-foreground">
+            {(call as any).sourceType === 'whatsapp_export' ? 'WhatsApp' : 'Ligação'} — {call.leadName}
+          </h1>
           <span className={`text-xs px-2 py-0.5 rounded-full ${statusBadge.className}`}>
             {statusBadge.label}
           </span>
@@ -129,6 +131,52 @@ export default function CallDetail() {
       </div>
 
       <div className="space-y-6 max-w-4xl">
+        {/* WhatsApp Import Info */}
+        {(call as any).sourceType === 'whatsapp_export' && (call as any).whatsappImportData && (() => {
+          const wd = (call as any).whatsappImportData as any;
+          const ms = (call as any).whatsappMediaSummary as any;
+          return (
+            <div className="bg-green-500/5 border border-green-500/20 rounded-xl p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <MessageSquare className="h-5 w-5 text-green-400" />
+                <h2 className="text-sm font-semibold text-green-300">Importação WhatsApp</h2>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="bg-card/50 rounded-lg p-2.5">
+                  <p className="text-muted-foreground">Mensagens</p>
+                  <p className="text-foreground font-semibold text-sm">{wd.totalMessages}</p>
+                </div>
+                <div className="bg-card/50 rounded-lg p-2.5">
+                  <p className="text-muted-foreground">Lead / CRC</p>
+                  <p className="text-foreground font-semibold text-sm">{wd.leadMessages} / {wd.crcMessages}</p>
+                </div>
+                <div className="bg-card/50 rounded-lg p-2.5">
+                  <p className="text-muted-foreground">Áudios</p>
+                  <p className="text-foreground font-semibold text-sm">{wd.audioFilesTranscribed}/{wd.audioFilesFound} transcritos</p>
+                </div>
+                <div className="bg-card/50 rounded-lg p-2.5">
+                  <p className="text-muted-foreground">Imagens</p>
+                  <p className="text-foreground font-semibold text-sm">{wd.imageFilesFound}</p>
+                </div>
+              </div>
+              {wd.dateRange?.start && wd.dateRange?.end && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Período: {new Date(wd.dateRange.start).toLocaleDateString('pt-BR')} — {new Date(wd.dateRange.end).toLocaleDateString('pt-BR')}
+                </p>
+              )}
+              {wd.warnings && wd.warnings.length > 0 && (
+                <div className="mt-2 space-y-1">
+                  {wd.warnings.map((w: string, i: number) => (
+                    <p key={i} className="text-xs text-amber-400 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3 shrink-0" /> {w}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Audio Player */}
         {call.audioUrl && (
           <div className="bg-card border border-border rounded-xl p-6">
@@ -169,7 +217,7 @@ export default function CallDetail() {
               </div>
               <Button
                 onClick={() => transcribe.mutate({ callId })}
-                disabled={!call.audioUrl || step1Done || transcribe.isPending}
+                disabled={(!call.audioUrl && (call as any).sourceType !== 'whatsapp_export') || step1Done || transcribe.isPending}
                 size="sm"
                 className={`w-full ${step1Done ? "bg-green-600/20 text-green-400 border border-green-500/30 hover:bg-green-600/30" : "bg-blue-600 hover:bg-blue-700"}`}
                 variant={step1Done ? "outline" : "default"}

@@ -10,6 +10,7 @@ import {
 } from "../db";
 
 import { nanoid } from "nanoid";
+import { EXTENDED_HALLUCINATION_MARKERS } from "../helpers/antiHallucination";
 
 export const transcribeRouter = Router();
 
@@ -18,14 +19,7 @@ const DENTAL_PROMPT =
   "Consulta odontológica. Português brasileiro. Termos: cárie, restauração, canal, extração, implante, prótese, anestesia, SOAP, diagnóstico, plano de tratamento.";
 
 // Markers de alucinação do Whisper — quando aparece isso, o transcript é inválido
-const HALLUCINATION_MARKERS = [
-  "diálogo entre dentista e paciente",
-  "transcrição de consulta odontológica clínica",
-  "consulta odontológica. português brasileiro.",
-  "vocabulário esperado",
-  "continuação da transcrição",
-  "contexto anterior",
-];
+const HALLUCINATION_MARKERS = EXTENDED_HALLUCINATION_MARKERS;
 
 // ─── Context chaining ─────────────────────────────────────────────────────────
 // Busca as últimas 30 palavras do chunk anterior para usar como contexto no Whisper.

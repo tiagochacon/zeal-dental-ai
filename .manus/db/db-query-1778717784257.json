@@ -1,0 +1,19 @@
+{
+  "query": "SELECT column_name FROM information_schema.columns WHERE table_name = 'Calls' AND column_name IN ('sourceType', 'whatsappImportData', 'whatsappMediaSummary');",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user JnT69AjTPMBmzj1.root --database Kz68s2pwfLAqNwAYGGvkHR --execute SELECT column_name FROM information_schema.columns WHERE table_name = 'Calls' AND column_name IN ('sourceType', 'whatsappImportData', 'whatsappMediaSummary');",
+  "rows": [
+    {
+      "column_name": "sourceType"
+    },
+    {
+      "column_name": "whatsappImportData"
+    },
+    {
+      "column_name": "whatsappMediaSummary"
+    }
+  ],
+  "messages": [],
+  "stdout": "column_name\nsourceType\nwhatsappImportData\nwhatsappMediaSummary\n",
+  "stderr": "",
+  "execution_time_ms": 965
+}
