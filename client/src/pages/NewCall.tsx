@@ -773,17 +773,7 @@ export default function NewCall() {
                     </div>
                   )}
 
-                  {/* Submit button for WhatsApp */}
-                  {!whatsappUploading && (
-                    <Button
-                      onClick={handleWhatsAppSubmit}
-                      disabled={!leadId || whatsappUploading || createCall.isPending}
-                      className="w-full h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl"
-                    >
-                      <MessageSquare className="h-5 w-5 mr-2" />
-                      Importar Conversa
-                    </Button>
-                  )}
+
                 </div>
               ) : (
                 <div
@@ -829,8 +819,32 @@ export default function NewCall() {
         </div>
       )}
 
-      {/* Submit (for audio tabs only - WhatsApp has its own button) */}
-      {activeTab !== "whatsapp" && (
+      {/* Submit button — all tabs */}
+      {activeTab === "whatsapp" ? (
+        <>
+          <Button
+            onClick={handleWhatsAppSubmit}
+            disabled={!leadId || !zipFile || whatsappUploading || createCall.isPending}
+            className="w-full h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold rounded-xl"
+          >
+            {whatsappUploading ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <MessageSquare className="h-5 w-5 mr-2" />
+                Importar Conversa
+              </>
+            )}
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            As mensagens serão processadas e analisadas automaticamente pela IA
+          </p>
+        </>
+      ) : (
         <>
           <Button
             onClick={handleSubmit}

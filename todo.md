@@ -1313,3 +1313,6 @@
 - [x] LeadDetail.tsx: link para criar interação e textos da lista com vocabulário consistente
 - [x] Validar TypeScript sem erros
 - [x] Validar todos os testes passando (484/484)
+
+## Task: Botão "Importar Conversa" na aba WhatsApp
+- [x] Mover botão submit da aba WhatsApp para fora do card (igual às outras abas), visível antes de selecionar arquivo
