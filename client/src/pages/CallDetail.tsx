@@ -49,7 +49,7 @@ export default function CallDetail() {
 
   const finalize = trpc.calls.finalize.useMutation({
     onSuccess: () => {
-      toast.success("Ligação finalizada!");
+      toast.success((callQuery.data as any)?.sourceType === 'whatsapp_export' ? "Conversa finalizada!" : "Ligação finalizada!");
       utils.calls.getById.invalidate({ id: callId });
     },
     onError: (err: any) => toast.error(err.message),
@@ -68,7 +68,7 @@ export default function CallDetail() {
     return (
       <div className="flex items-center justify-center py-20">
         <div className="text-center">
-          <h2 className="text-xl font-bold text-foreground mb-2">Ligação não encontrada</h2>
+          <h2 className="text-xl font-bold text-foreground mb-2">Interação não encontrada</h2>
           <Link href="/calls"><Button variant="outline">Voltar</Button></Link>
         </div>
       </div>
@@ -376,7 +376,7 @@ export default function CallDetail() {
               <textarea
                 value={schedulingNotes}
                 onChange={(e) => setSchedulingNotes(e.target.value)}
-                placeholder="Observações sobre a ligação (opcional)..."
+                placeholder={(call as any).sourceType === 'whatsapp_export' ? "Observações sobre a conversa (opcional)..." : "Observações sobre a ligação (opcional)..."}
                 className="w-full min-h-[80px] bg-secondary border border-border rounded-xl text-foreground placeholder:text-muted-foreground px-4 py-3 text-sm resize-none"
               />
               {!schedulingResult && (
@@ -429,7 +429,7 @@ export default function CallDetail() {
           <div className="bg-card border border-border rounded-xl p-6">
             <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
               <ClipboardList className="h-5 w-5 text-violet-400" />
-              Observações da Ligação
+              {(call as any).sourceType === 'whatsapp_export' ? 'Observações da Conversa' : 'Observações da Ligação'}
               <span className="ml-1 text-xs bg-violet-500/20 text-violet-300 px-2 py-0.5 rounded-full font-medium">IA</span>
             </h2>
             {(call as any).callInsights ? (
@@ -443,7 +443,7 @@ export default function CallDetail() {
                     <p className="text-sm text-foreground">
                       {(call as any).callInsights.dor
                         ? (call as any).callInsights.dor
-                        : <em className="text-muted-foreground">Não mencionado na ligação</em>}
+                        : <em className="text-muted-foreground">Não mencionado na {(call as any).sourceType === 'whatsapp_export' ? 'conversa' : 'ligação'}</em>}
                     </p>
                   </div>
                   <div className="bg-secondary/50 rounded-lg p-4">
@@ -454,7 +454,7 @@ export default function CallDetail() {
                     <p className="text-sm text-foreground">
                       {(call as any).callInsights.busca
                         ? (call as any).callInsights.busca
-                        : <em className="text-muted-foreground">Não mencionado na ligação</em>}
+                        : <em className="text-muted-foreground">Não mencionado na {(call as any).sourceType === 'whatsapp_export' ? 'conversa' : 'ligação'}</em>}
                     </p>
                   </div>
                   <div className="bg-secondary/50 rounded-lg p-4">
@@ -465,7 +465,7 @@ export default function CallDetail() {
                     <p className="text-sm text-foreground">
                       {(call as any).callInsights.trabalha
                         ? (call as any).callInsights.trabalha
-                        : <em className="text-muted-foreground">Não mencionado na ligação</em>}
+                        : <em className="text-muted-foreground">Não mencionado na {(call as any).sourceType === 'whatsapp_export' ? 'conversa' : 'ligação'}</em>}
                     </p>
                   </div>
                 </div>

@@ -46,9 +46,9 @@ export default function Calls() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl lg:text-3xl font-bold text-foreground">Ligações</h1>
+          <h1 className="text-xl lg:text-3xl font-bold text-foreground">Interações</h1>
           <p className="text-sm text-muted-foreground hidden sm:block">
-            Histórico de ligações com leads
+            Histórico de interações com leads
           </p>
         </div>
         <Button
@@ -56,7 +56,7 @@ export default function Calls() {
           onClick={() => setLocation("/calls/new")}
         >
           <Plus className="h-4 w-4 mr-2" />
-          Nova Ligação
+          Nova Interação
         </Button>
       </div>
 
@@ -76,7 +76,7 @@ export default function Calls() {
         <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
         <div className="flex items-center gap-2 mb-6">
           <Phone className="h-5 w-5 text-primary" />
-          <h2 className="text-lg font-medium text-foreground tracking-tight">Histórico de Ligações</h2>
+          <h2 className="text-lg font-medium text-foreground tracking-tight">Histórico de Interações</h2>
         </div>
 
         {callsQuery.isLoading ? (
@@ -93,10 +93,10 @@ export default function Calls() {
               <Phone className="h-8 w-8 text-primary/70" />
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              {search ? "Nenhuma ligação encontrada" : "Nenhuma ligação registrada"}
+              {search ? "Nenhuma interação encontrada" : "Nenhuma interação registrada"}
             </h3>
             <p className="text-muted-foreground mb-4">
-              {search ? "Tente outro termo de busca" : "Comece registrando sua primeira ligação"}
+              {search ? "Tente outro termo de busca" : "Comece registrando sua primeira interação"}
             </p>
             {!search && (
               <Button
@@ -104,7 +104,7 @@ export default function Calls() {
                 onClick={() => setLocation("/calls/new")}
               >
                 <Plus className="h-4 w-4 mr-2" />
-                Nova Ligação
+                Nova Interação
               </Button>
             )}
           </div>

@@ -87,11 +87,11 @@ export default function DashboardGestor() {
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6 lg:gap-8 mb-12">
-            {/* Ligações */}
+            {/* Interações */}
             <div className="flex flex-col gap-2 pl-6 border-l border-white/10">
               <div className="flex items-center gap-2 text-muted-foreground mb-1">
                 <PhoneCall className="h-3.5 w-3.5" />
-                <span className="text-xs font-semibold uppercase tracking-wider">Ligações</span>
+                <span className="text-xs font-semibold uppercase tracking-wider">Interações</span>
               </div>
               <p className="text-4xl lg:text-5xl font-black text-foreground tracking-tighter">{stats.totalCalls}</p>
             </div>
@@ -147,7 +147,7 @@ export default function DashboardGestor() {
             return (
               <div className="space-y-4 max-w-2xl">
                 <div className="flex items-center gap-4 group">
-                  <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Ligações</span>
+                  <span className="text-sm text-muted-foreground w-28 group-hover:text-foreground transition-colors">Interações</span>
                   <div className="flex-1 h-[3px] bg-white/5 rounded-full relative overflow-hidden">
                     <div className="absolute top-0 left-0 h-full rounded-full bg-gradient-to-r from-blue-600 to-cyan-400 shadow-[0_0_10px_rgba(34,211,238,0.4)] transition-all duration-700 ease-out" style={{ width: pct(stats.totalCalls) }} />
                   </div>
@@ -250,7 +250,7 @@ export default function DashboardGestor() {
               </div>
               <div>
                 <h3 className="font-medium text-sm text-foreground tracking-tight">Ver Leads</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Acompanhar leads e ligações</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Acompanhar leads e interações</p>
               </div>
             </div>
           </Link>

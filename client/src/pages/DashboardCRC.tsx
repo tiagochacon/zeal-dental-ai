@@ -83,7 +83,7 @@ export default function DashboardCRC() {
               <div className="w-10 h-10 rounded-lg bg-green-600/20 flex items-center justify-center">
                 <Phone className="w-5 h-5 text-green-400" />
               </div>
-              <span className="text-sm text-muted-foreground">Ligações</span>
+              <span className="text-sm text-muted-foreground">Interações</span>
             </div>
             <p className="text-2xl font-bold text-foreground">{totalCalls}</p>
           </div>
@@ -120,8 +120,8 @@ export default function DashboardCRC() {
               <Phone className="w-5 h-5 text-blue-400" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="font-semibold text-foreground text-sm">Nova Ligação</p>
-              <p className="text-xs text-muted-foreground">Registrar ligação com lead</p>
+              <p className="font-semibold text-foreground text-sm">Nova Interação</p>
+              <p className="text-xs text-muted-foreground">Registrar interação com lead</p>
             </div>
             <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
               <Plus className="w-4 h-4 text-blue-400" />
@@ -181,11 +181,11 @@ export default function DashboardCRC() {
           {/* Recent Calls */}
           <div className="surface-glass border-white/5 rounded-xl p-5 hover:bg-white/5 transition-all cursor-pointer">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold text-foreground">Ligações Recentes</h3>
+              <h3 className="font-semibold text-foreground">Interações Recentes</h3>
               <Link href="/calls" className="text-sm text-blue-400 hover:text-blue-300">Ver todas</Link>
             </div>
             {recentCalls.length === 0 ? (
-              <p className="text-muted-foreground text-sm text-center py-8">Nenhuma ligação registrada ainda</p>
+              <p className="text-muted-foreground text-sm text-center py-8">Nenhuma interação registrada ainda</p>
             ) : (
               <div className="space-y-3">
                 {recentCalls.map((call: any) => (

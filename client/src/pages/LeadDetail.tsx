@@ -759,7 +759,7 @@ export default function LeadDetail() {
         <div className="bg-card border border-border rounded-xl p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-semibold text-foreground">
-              Ligações ({leadCalls.length})
+              Interações ({leadCalls.length})
             </h2>
             <Link href={`/calls/new?leadId=${leadId}&leadName=${encodeURIComponent(lead.name)}`}>
               <Button size="sm" className="bg-green-600 hover:bg-green-700">

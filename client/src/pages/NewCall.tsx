@@ -43,6 +43,9 @@ export default function NewCall() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Active tab state for dynamic copy
+  const [activeTab, setActiveTab] = useState<"record" | "upload" | "whatsapp">("record");
+
   // WhatsApp tab state
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [zipDragging, setZipDragging] = useState(false);
@@ -249,14 +252,14 @@ export default function NewCall() {
       if (audioBlob && call.id) {
         const duration = audioDuration || recordingTime || 0;
         await uploadAudioMultipart(call.id, audioBlob, duration);
-        toast.success("Ligação registrada e áudio enviado com sucesso!");
+        toast.success(activeTab === "upload" ? "Interação registrada e áudio enviado com sucesso!" : "Ligação registrada e áudio enviado com sucesso!");
       } else {
         toast.success("Ligação registrada!");
       }
 
       setLocation(`/calls/${call.id}`);
     } catch (err: any) {
-      toast.error(err.message || "Erro ao registrar ligação");
+      toast.error(err.message || (activeTab === "upload" ? "Erro ao registrar interação" : "Erro ao registrar ligação"));
     } finally {
       setUploading(false);
       setUploadProgress(0);
@@ -378,8 +381,12 @@ export default function NewCall() {
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-xl lg:text-3xl font-bold text-foreground">Nova Interação</h1>
-        <p className="text-sm text-muted-foreground">Registre uma ligação, envie áudio ou importe conversa do WhatsApp</p>
+        <h1 className="text-xl lg:text-3xl font-bold text-foreground">Nova interação comercial</h1>
+        <p className="text-sm text-muted-foreground">
+          {activeTab === "record" && "Grave a ligação com o microfone ou use outra aba para enviar áudio ou importar WhatsApp."}
+          {activeTab === "upload" && "Envie um arquivo de áudio da ligação ou use outra aba."}
+          {activeTab === "whatsapp" && "Importe o .zip exportado pelo WhatsApp (com _chat.txt e mídias, se houver)."}
+        </p>
       </div>
 
       {/* Select Lead */}
@@ -455,7 +462,7 @@ export default function NewCall() {
       <div className="bg-card border border-border rounded-xl p-6">
         <h2 className="text-lg font-semibold text-foreground mb-4">Registro da Interação</h2>
 
-        <Tabs defaultValue="record">
+        <Tabs defaultValue="record" value={activeTab} onValueChange={(v) => setActiveTab(v as "record" | "upload" | "whatsapp")}>
           <TabsList className="w-full mb-4">
             <TabsTrigger value="record" className="flex-1">
               <Mic className="h-4 w-4 mr-1.5" />
@@ -823,27 +830,33 @@ export default function NewCall() {
       )}
 
       {/* Submit (for audio tabs only - WhatsApp has its own button) */}
-      <Button
-        onClick={handleSubmit}
-        disabled={!leadId || uploading || createCall.isPending || (audioDuration !== null && audioDuration > MAX_DURATION_SECONDS)}
-        className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl"
-      >
-        {uploading || createCall.isPending ? (
-          <>
-            <Loader2 className="h-5 w-5 animate-spin mr-2" />
-            {uploading ? "Enviando áudio..." : "Registrando..."}
-          </>
-        ) : (
-          <>
-            <Upload className="h-5 w-5 mr-2" />
-            Registrar Ligação
-          </>
-        )}
-      </Button>
+      {activeTab !== "whatsapp" && (
+        <>
+          <Button
+            onClick={handleSubmit}
+            disabled={!leadId || uploading || createCall.isPending || (audioDuration !== null && audioDuration > MAX_DURATION_SECONDS)}
+            className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl"
+          >
+            {uploading || createCall.isPending ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                {uploading ? "Enviando áudio..." : "Registrando..."}
+              </>
+            ) : (
+              <>
+                {activeTab === "upload" ? <Upload className="h-5 w-5 mr-2" /> : <Mic className="h-5 w-5 mr-2" />}
+                {activeTab === "upload" ? "Registrar interação com áudio" : "Registrar ligação"}
+              </>
+            )}
+          </Button>
 
-      <p className="text-xs text-muted-foreground text-center mt-3">
-        A gravação será transcrita e analisada automaticamente pela IA
-      </p>
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            {activeTab === "upload"
+              ? "O áudio será transcrito e analisado automaticamente pela IA"
+              : "A gravação será transcrita e analisada automaticamente pela IA"}
+          </p>
+        </>
+      )}
     </div>
   );
 }

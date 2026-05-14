@@ -73,7 +73,7 @@ const clinicDentistMenuItems: MenuItem[] = [
 const crcMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: "Dashboard CRC", path: "/crc" },
   { icon: UsersRound, label: "Leads", path: "/leads" },
-  { icon: Phone, label: "Ligações", path: "/calls" },
+  { icon: Phone, label: "Interações", path: "/calls" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
 ];
 
@@ -82,7 +82,7 @@ const gestorMenuItems: MenuItem[] = [
   { icon: UsersRound, label: "Meu Time", path: "/team" },
   { icon: FileText, label: "Consultas", path: "/consultations" },
   { icon: Users, label: "Pacientes", path: "/patients" },
-  { icon: PhoneCall, label: "Ligações", path: "/calls" },
+  { icon: PhoneCall, label: "Interações", path: "/calls" },
   { icon: Target, label: "Leads", path: "/leads" },
   { icon: UserCircle, label: "Meu Perfil", path: "/profile" },
   { icon: CreditCard, label: "Assinatura", path: "/subscription" },

@@ -1300,3 +1300,16 @@
 - [x] Implementar upload .zip com validação e progresso
 - [x] Adaptar CallDetail.tsx para exibir sourceType WhatsApp (título, badge, info de importação)
 - [x] Adaptar calls.analyzeNeurovendas para contexto WhatsApp (já tinha suporte no prompt)
+
+## Task: Ajustar UX/UI Copy de Interações Comerciais
+- [x] NewCall.tsx: título da página → "Nova interação comercial"
+- [x] NewCall.tsx: subtítulo dinâmico por aba ativa
+- [x] NewCall.tsx: botão primário dinâmico por aba (record/upload/whatsapp)
+- [x] NewCall.tsx: texto de progresso dinâmico por aba
+- [x] NewCall.tsx: toasts e mensagens de erro contextuais por aba
+- [x] Calls.tsx: botão "Nova Ligação" → "Nova Interação"
+- [x] Calls.tsx: título da listagem alinhado (Ligações → Interações)
+- [x] CallDetail.tsx: títulos, botões e toasts diferenciados para WhatsApp vs Ligação
+- [x] LeadDetail.tsx: link para criar interação e textos da lista com vocabulário consistente
+- [x] Validar TypeScript sem erros
+- [x] Validar todos os testes passando (484/484)
