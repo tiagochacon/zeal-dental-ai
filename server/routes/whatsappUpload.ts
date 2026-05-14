@@ -1,6 +1,6 @@
 /**
  * WhatsApp Export Upload Route
- * Accepts .zip files exported from WhatsApp, extracts _chat.txt,
+ * Accepts .zip files exported from WhatsApp, extracts the chat text file,
  * transcribes audio files, and builds a unified transcript.
  */
 import { Router, Request, Response } from "express";
@@ -112,13 +112,14 @@ router.post(
         return res.status(400).json({ error: "Arquivo ZIP inválido ou corrompido" });
       }
 
-      // Find _chat.txt
+      // Collect all files from ZIP, categorized
       let chatContent: string | null = null;
       let chatFileName: string | null = null;
       const audioFiles: Array<{ name: string; buffer: Buffer; ext: string }> = [];
       const imageFiles: string[] = [];
       const skippedFiles: Array<{ fileName: string; reason: string }> = [];
       const unsupportedFiles: string[] = [];
+      const txtCandidates: Array<{ name: string; entry: JSZip.JSZipObject }> = [];
 
       for (const [entryName, entry] of Object.entries(zip.files)) {
         if (entry.dir) continue;
@@ -137,28 +138,9 @@ router.post(
           continue;
         }
 
-        // Find chat file
-        if (
-          (safeName.includes("_chat") && ext === ".txt") ||
-          safeName === "chat.txt" ||
-          safeName.toLowerCase() === "_chat.txt"
-        ) {
-          try {
-            const buf = await entry.async("nodebuffer");
-            // Try UTF-8 first, fallback to latin1
-            try {
-              chatContent = buf.toString("utf-8");
-              // Check for BOM and encoding issues
-              if (chatContent.startsWith("\ufeff")) {
-                chatContent = chatContent.slice(1);
-              }
-            } catch {
-              chatContent = buf.toString("latin1");
-            }
-            chatFileName = safeName;
-          } catch {
-            skippedFiles.push({ fileName: safeName, reason: "Erro ao ler arquivo de chat" });
-          }
+        // Collect .txt files as chat candidates
+        if (ext === ".txt") {
+          txtCandidates.push({ name: safeName, entry });
           continue;
         }
 
@@ -184,14 +166,79 @@ router.post(
         }
 
         // Skip other files
-        if (ext !== ".txt") {
-          unsupportedFiles.push(safeName);
+        unsupportedFiles.push(safeName);
+      }
+
+      // Identify the chat file among .txt candidates
+      // Strategy: if only 1 .txt → use it; if multiple → score by WhatsApp message patterns
+      if (txtCandidates.length === 0) {
+        return res.status(400).json({
+          error: "Nenhum arquivo de texto (.txt) encontrado no ZIP. Certifique-se de exportar a conversa pelo WhatsApp.",
+        });
+      }
+
+      // WhatsApp message line pattern for scoring
+      const WA_MSG_PATTERN = /^\[?\d{1,2}\/\d{1,2}\/\d{2,4}[,\s]+\d{1,2}:\d{2}/;
+
+      const readTxtEntry = async (entry: JSZip.JSZipObject): Promise<string> => {
+        const buf = await entry.async("nodebuffer");
+        let content = buf.toString("utf-8");
+        if (content.startsWith("\ufeff")) {
+          content = content.slice(1);
+        }
+        return content;
+      }
+
+      const scoreWhatsAppContent = (content: string): number => {
+        // Sample the first 50 lines and count how many match WhatsApp message patterns
+        const lines = content.split(/\r?\n/).slice(0, 50);
+        let matches = 0;
+        for (const line of lines) {
+          if (WA_MSG_PATTERN.test(line.trim())) matches++;
+        }
+        return matches;
+      }
+
+      if (txtCandidates.length === 1) {
+        // Single .txt file — use it directly
+        try {
+          chatContent = await readTxtEntry(txtCandidates[0].entry);
+          chatFileName = txtCandidates[0].name;
+          console.log(`[WhatsApp] Single .txt found: ${chatFileName}`);
+        } catch {
+          skippedFiles.push({ fileName: txtCandidates[0].name, reason: "Erro ao ler arquivo de chat" });
+        }
+      } else {
+        // Multiple .txt files — score each by WhatsApp message patterns
+        console.log(`[WhatsApp] Multiple .txt files found (${txtCandidates.length}), scoring by content...`);
+        let bestScore = -1;
+        for (const candidate of txtCandidates) {
+          try {
+            const content = await readTxtEntry(candidate.entry);
+            const score = scoreWhatsAppContent(content);
+            console.log(`[WhatsApp]   ${candidate.name}: score=${score}`);
+            if (score > bestScore) {
+              bestScore = score;
+              chatContent = content;
+              chatFileName = candidate.name;
+            }
+          } catch {
+            skippedFiles.push({ fileName: candidate.name, reason: "Erro ao ler arquivo .txt" });
+          }
         }
       }
 
       if (!chatContent || !chatFileName) {
         return res.status(400).json({
-          error: "Arquivo _chat.txt não encontrado no ZIP. Certifique-se de exportar a conversa pelo WhatsApp.",
+          error: "Não foi possível localizar o arquivo de mensagens da conversa dentro do ZIP. Certifique-se de exportar a conversa pelo WhatsApp.",
+        });
+      }
+
+      // Validate that the selected file actually looks like a WhatsApp chat
+      const chatScore = scoreWhatsAppContent(chatContent);
+      if (chatScore === 0) {
+        return res.status(400).json({
+          error: `O arquivo '${chatFileName}' não parece conter mensagens do WhatsApp. Verifique se você exportou a conversa corretamente.`,
         });
       }
 

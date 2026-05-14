@@ -1320,3 +1320,11 @@
 ## Task: Redesenhar aba Gravar igual à consulta
 - [x] Redesenhar aba "Gravar" no NewCall.tsx com layout centralizado (ícone mic, timer, botão "Iniciar gravação") igual à consulta
 - [x] Remover botão "Registrar ligação" da aba Gravar (botão "Usar gravação" inline após parar)
+
+## Task: Alterar lógica de identificação do arquivo de mensagens no ZIP do WhatsApp
+- [x] Substituir busca por nome '_chat' por busca por arquivos .txt com validação de padrão WhatsApp
+- [x] Lógica: 1 .txt → usar direto; múltiplos .txt → escolher pelo conteúdo; nenhum → erro claro
+- [x] Manter compatibilidade com ZIPs que contêm '_chat.txt'
+- [x] Manter processamento de mídias inalterado
+- [x] Atualizar testes existentes e adicionar cenários (11 novos testes, todos passando)
+- [x] Verificar TypeScript (0 erros) e rodar todos os testes (494/495, 1 timeout pré-existente em email.test.ts)
