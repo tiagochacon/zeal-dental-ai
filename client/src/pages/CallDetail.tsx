@@ -2,7 +2,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle, Lock, ClipboardList, HeartPulse, Target, Briefcase, MessageSquare, FileArchive } from "lucide-react";
+import { Loader2, ArrowLeft, Mic, FileText, Brain, CalendarCheck, PhoneOff, CheckCircle, ChevronRight, AlertTriangle, Lock, ClipboardList, HeartPulse, Target, Briefcase, MessageSquare, FileArchive, Info } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Link, useParams } from "wouter";
 import { useState } from "react";
@@ -159,18 +159,37 @@ export default function CallDetail() {
                   <p className="text-foreground font-semibold text-sm">{wd.imageFilesFound}</p>
                 </div>
               </div>
-              {wd.dateRange?.start && wd.dateRange?.end && (
-                <p className="text-xs text-muted-foreground mt-2">
-                  Período: {new Date(wd.dateRange.start).toLocaleDateString('pt-BR')} — {new Date(wd.dateRange.end).toLocaleDateString('pt-BR')}
-                </p>
-              )}
+              {wd.dateRange?.start && wd.dateRange?.end && (() => {
+                const startStr = wd.dateRange.start;
+                const endStr = wd.dateRange.end;
+                // WhatsApp dates come as "DD/MM/YYYY HH:MM" — parse manually
+                const parseWADate = (s: string) => {
+                  const m = s.match(/(\d{1,2})\/(\d{1,2})\/(\d{2,4})/);
+                  if (!m) return null;
+                  const [, day, month, year] = m;
+                  const fullYear = year.length === 2 ? `20${year}` : year;
+                  return `${day.padStart(2, '0')}/${month.padStart(2, '0')}/${fullYear}`;
+                };
+                const start = parseWADate(startStr);
+                const end = parseWADate(endStr);
+                if (!start && !end) return null;
+                return (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Período: {start ?? '?'} — {end ?? '?'}
+                  </p>
+                );
+              })()}
               {wd.warnings && wd.warnings.length > 0 && (
                 <div className="mt-2 space-y-1">
-                  {wd.warnings.map((w: string, i: number) => (
-                    <p key={i} className="text-xs text-amber-400 flex items-center gap-1">
-                      <AlertTriangle className="h-3 w-3 shrink-0" /> {w}
-                    </p>
-                  ))}
+                  {wd.warnings.map((w: string, i: number) => {
+                    const isInfo = w.startsWith('info:');
+                    const text = isInfo ? w.slice(5) : w;
+                    return (
+                      <p key={i} className={`text-xs flex items-center gap-1 ${isInfo ? 'text-muted-foreground' : 'text-amber-400'}`}>
+                        {isInfo ? <Info className="h-3 w-3 shrink-0" /> : <AlertTriangle className="h-3 w-3 shrink-0" />} {text}
+                      </p>
+                    );
+                  })}
                 </div>
               )}
             </div>

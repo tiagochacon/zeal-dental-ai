@@ -1340,3 +1340,10 @@
 - [x] Adicionar extensões de vídeo e outros formatos à lista de ignorados
 - [x] Atualizar frontend: limite de upload para 500MB na mensagem
 - [x] Verificar TypeScript (0 erros) e rodar todos os testes (495/495)
+
+## Task: Ajustar mensagens de warnings do WhatsApp e corrigir Invalid Date
+- [x] Trocar mensagem de vídeos ignorados para tom informativo (não parecer erro)
+- [x] Trocar mensagem de áudios ignorados para tom informativo
+- [x] Trocar mensagem de documentos ignorados para tom informativo
+- [x] Corrigir "Invalid Date" no período da importação WhatsApp (parse manual DD/MM/YYYY)
+- [x] Mudar ícone de warning (⚠) para ícone informativo (ℹ) nos warnings esperados (prefixo info:)

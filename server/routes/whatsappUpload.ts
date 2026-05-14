@@ -354,9 +354,9 @@ router.post(
         participants: parseResult.participants,
         warnings: [
           ...parseResult.warnings,
-          ...(videosIgnored > 0 ? [`${videosIgnored} vídeo(s) ignorado(s) — não processados`] : []),
-          ...(audiosSkipped > 0 ? [`${audiosSkipped} áudio(s) ignorado(s) por exceder ${MAX_AUDIO_SIZE / (1024 * 1024)}MB`] : []),
-          ...(docsIgnored > 0 ? [`${docsIgnored} documento(s) ignorado(s)`] : []),
+          ...(videosIgnored > 0 ? [`info:Vídeos não são considerados na análise comportamental. ${videosIgnored === 1 ? 'Foi detectado 1 vídeo' : `Foram detectados ${videosIgnored} vídeos`} na conversa.`] : []),
+          ...(audiosSkipped > 0 ? [`info:${audiosSkipped === 1 ? '1 áudio excedeu' : `${audiosSkipped} áudios excederam`} o limite de ${MAX_AUDIO_SIZE / (1024 * 1024)}MB e ${audiosSkipped === 1 ? 'não foi transcrito' : 'não foram transcritos'}.`] : []),
+          ...(docsIgnored > 0 ? [`info:${docsIgnored === 1 ? '1 documento detectado' : `${docsIgnored} documentos detectados`} na conversa. Documentos não são processados na análise.`] : []),
         ],
       };
 
