@@ -3,7 +3,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Mic, Square, Upload, Phone, FileAudio, Clock, AlertTriangle, CheckCircle, Volume2, MessageCircle, MessageSquare, FileArchive, Shield } from "lucide-react";
+import { Loader2, Mic, Square, Upload, Phone, FileAudio, Clock, AlertTriangle, CheckCircle, Volume2, MessageCircle, MessageSquare, FileArchive, Shield, Waves, RotateCcw } from "lucide-react";
 import { useLocation, Link } from "wouter";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
@@ -483,7 +483,7 @@ export default function NewCall() {
 
           {/* Tab: Gravar Agora */}
           <TabsContent value="record">
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col gap-4">
               {/* Dica de viva-voz antes de gravar */}
               {!isRecording && !audioBlob && (
                 <div className={`w-full rounded-lg p-4 ${isMac ? 'bg-amber-500/10 border border-amber-500/20' : 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border border-blue-500/20'}`}>
@@ -506,65 +506,110 @@ export default function NewCall() {
                 </div>
               )}
 
-              {!audioBlob || audioFileName ? (
-                <>
-                  <div className={`w-24 h-24 rounded-full flex items-center justify-center transition-all ${
-                    isRecording
-                      ? isNearLimit
-                        ? "bg-amber-500/20 border-2 border-amber-500 animate-pulse"
-                        : "bg-red-500/20 border-2 border-red-500 animate-pulse"
-                      : "bg-blue-600/20 border-2 border-blue-500 hover:bg-blue-600/30 cursor-pointer"
-                  }`}>
-                    {isRecording ? (
-                      <button onClick={stopRecording} className="w-full h-full flex items-center justify-center">
-                        <Square className="h-8 w-8 text-red-400" />
-                      </button>
-                    ) : (
-                      <button onClick={startRecording} className="w-full h-full flex items-center justify-center">
-                        <Mic className="h-8 w-8 text-blue-400" />
-                      </button>
-                    )}
-                  </div>
-
+              {/* Recording card — estilo igual ao AudioRecorder da consulta */}
+              <div className={`rounded-2xl border p-6 flex flex-col items-center gap-4 transition-all duration-300 ${
+                isRecording
+                  ? isNearLimit
+                    ? "border-amber-400 bg-amber-950/20"
+                    : "border-red-400 bg-red-950/20"
+                  : audioBlob && !audioFileName
+                    ? "border-green-400 bg-green-950/20"
+                    : "border-border bg-card"
+              }`}>
+                {/* Icon */}
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-colors ${
+                  isRecording ? "bg-red-900/40" : audioBlob && !audioFileName ? "bg-green-900/40" : "bg-muted"
+                }`}>
                   {isRecording ? (
-                    <div className="text-center space-y-2">
-                      <p className={`text-2xl font-mono ${isNearLimit ? "text-amber-400" : "text-red-400"}`}>
-                        {formatTime(recordingTime)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">Gravando...</p>
-
-                      <div className="w-64">
-                        <Progress
-                          value={(recordingTime / MAX_DURATION_SECONDS) * 100}
-                          className={`h-1.5 ${isNearLimit ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500"}`}
-                        />
-                        <div className="flex justify-between mt-1">
-                          <span className="text-[10px] text-muted-foreground">0:00</span>
-                          <span className={`text-[10px] ${isNearLimit ? "text-amber-400 font-semibold" : "text-muted-foreground"}`}>
-                            {isNearLimit && <AlertTriangle className="inline h-3 w-3 mr-0.5" />}
-                            Restam {formatTime(remainingTime)}
-                          </span>
-                          <span className="text-[10px] text-muted-foreground">{MAX_DURATION_MINUTES}:00</span>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-center gap-1.5 mt-1">
-                        <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
-                        <p className="text-xs text-muted-foreground">Microfone ativo</p>
-                      </div>
-                    </div>
+                    <Waves className="w-7 h-7 text-red-500 animate-pulse" />
+                  ) : audioBlob && !audioFileName ? (
+                    <CheckCircle className="w-7 h-7 text-green-500" />
                   ) : (
-                    <div className="text-center">
-                      <p className="text-sm text-muted-foreground">Clique para iniciar a gravação</p>
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center justify-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        Máximo: {MAX_DURATION_MINUTES} minutos
-                      </p>
-                    </div>
+                    <Mic className="w-7 h-7 text-muted-foreground" />
                   )}
-                </>
-              ) : (
-                <>
+                </div>
+
+                {/* Timer */}
+                <div className="text-center">
+                  <p className="text-3xl font-mono font-bold tabular-nums">
+                    {formatTime(recordingTime || audioDuration || 0)}
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {isRecording && "Gravando..."}
+                    {!isRecording && audioBlob && !audioFileName && "Gravação concluída"}
+                    {!isRecording && !audioBlob && "Pronto para gravar"}
+                  </p>
+                </div>
+
+                {/* Progress bar during recording */}
+                {isRecording && (
+                  <div className="w-64">
+                    <Progress
+                      value={(recordingTime / MAX_DURATION_SECONDS) * 100}
+                      className={`h-1.5 ${isNearLimit ? "[&>div]:bg-amber-500" : "[&>div]:bg-red-500"}`}
+                    />
+                    <div className="flex justify-between mt-1">
+                      <span className="text-[10px] text-muted-foreground">0:00</span>
+                      <span className={`text-[10px] ${isNearLimit ? "text-amber-400 font-semibold" : "text-muted-foreground"}`}>
+                        {isNearLimit && <AlertTriangle className="inline h-3 w-3 mr-0.5" />}
+                        Restam {formatTime(remainingTime)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">{MAX_DURATION_MINUTES}:00</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Controls */}
+                <div className="flex items-center gap-3">
+                  {!isRecording && !audioBlob && (
+                    <button
+                      onClick={startRecording}
+                      className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-2.5 rounded-full font-medium text-sm hover:bg-primary/90 transition-colors"
+                    >
+                      <Mic className="w-4 h-4" />
+                      Iniciar gravação
+                    </button>
+                  )}
+
+                  {isRecording && (
+                    <button
+                      onClick={stopRecording}
+                      className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-full text-sm font-medium hover:bg-red-600 transition-colors"
+                    >
+                      <Square className="w-4 h-4" />
+                      Parar
+                    </button>
+                  )}
+
+                  {!isRecording && audioBlob && !audioFileName && (
+                    <>
+                      <button
+                        onClick={() => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); setAudioDuration(null); setShowWavWarning(false); }}
+                        className="flex items-center gap-2 border border-input bg-background px-4 py-2 rounded-full text-sm font-medium hover:bg-accent transition-colors"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                        Regravar
+                      </button>
+                      <button
+                        onClick={handleSubmit}
+                        disabled={!leadId || uploading || createCall.isPending}
+                        className="flex items-center gap-2 bg-green-600 text-white px-5 py-2.5 rounded-full text-sm font-medium hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                      >
+                        {uploading || createCall.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <CheckCircle className="w-4 h-4" />
+                        )}
+                        {uploading ? "Enviando..." : createCall.isPending ? "Registrando..." : "Usar gravação"}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Audio preview when recording is done */}
+              {!isRecording && audioBlob && !audioFileName && (
+                <div className="w-full space-y-2">
                   <audio
                     ref={audioRef}
                     controls
@@ -572,20 +617,11 @@ export default function NewCall() {
                     className="w-full"
                     onLoadedMetadata={handleAudioLoaded}
                   />
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => { setAudioBlob(null); setAudioUrl(null); setRecordingTime(0); setAudioDuration(null); setShowWavWarning(false); }}
-                    >
-                      Gravar novamente
-                    </Button>
-                  </div>
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center justify-center gap-3 text-xs text-muted-foreground">
                     <span>Duração: {formatTime(recordingTime || audioDuration || 0)}</span>
                     {audioBlob && <span>Tamanho: {formatFileSize(audioBlob.size)}</span>}
                   </div>
-                </>
+                </div>
               )}
             </div>
           </TabsContent>
@@ -819,8 +855,35 @@ export default function NewCall() {
         </div>
       )}
 
-      {/* Submit button — all tabs */}
-      {activeTab === "whatsapp" ? (
+      {/* Submit button — upload tab */}
+      {activeTab === "upload" && (
+        <>
+          <Button
+            onClick={handleSubmit}
+            disabled={!leadId || uploading || createCall.isPending || (audioDuration !== null && audioDuration > MAX_DURATION_SECONDS)}
+            className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl"
+          >
+            {uploading || createCall.isPending ? (
+              <>
+                <Loader2 className="h-5 w-5 animate-spin mr-2" />
+                {uploading ? "Enviando áudio..." : "Registrando..."}
+              </>
+            ) : (
+              <>
+                <Upload className="h-5 w-5 mr-2" />
+                Registrar interação com áudio
+              </>
+            )}
+          </Button>
+
+          <p className="text-xs text-muted-foreground text-center mt-3">
+            O áudio será transcrito e analisado automaticamente pela IA
+          </p>
+        </>
+      )}
+
+      {/* Submit button — whatsapp tab */}
+      {activeTab === "whatsapp" && (
         <>
           <Button
             onClick={handleWhatsAppSubmit}
@@ -842,32 +905,6 @@ export default function NewCall() {
 
           <p className="text-xs text-muted-foreground text-center mt-3">
             As mensagens serão processadas e analisadas automaticamente pela IA
-          </p>
-        </>
-      ) : (
-        <>
-          <Button
-            onClick={handleSubmit}
-            disabled={!leadId || uploading || createCall.isPending || (audioDuration !== null && audioDuration > MAX_DURATION_SECONDS)}
-            className="w-full h-12 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-semibold rounded-xl"
-          >
-            {uploading || createCall.isPending ? (
-              <>
-                <Loader2 className="h-5 w-5 animate-spin mr-2" />
-                {uploading ? "Enviando áudio..." : "Registrando..."}
-              </>
-            ) : (
-              <>
-                {activeTab === "upload" ? <Upload className="h-5 w-5 mr-2" /> : <Mic className="h-5 w-5 mr-2" />}
-                {activeTab === "upload" ? "Registrar interação com áudio" : "Registrar ligação"}
-              </>
-            )}
-          </Button>
-
-          <p className="text-xs text-muted-foreground text-center mt-3">
-            {activeTab === "upload"
-              ? "O áudio será transcrito e analisado automaticamente pela IA"
-              : "A gravação será transcrita e analisada automaticamente pela IA"}
           </p>
         </>
       )}

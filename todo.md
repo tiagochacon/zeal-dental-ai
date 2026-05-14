@@ -1316,3 +1316,7 @@
 
 ## Task: Botão "Importar Conversa" na aba WhatsApp
 - [x] Mover botão submit da aba WhatsApp para fora do card (igual às outras abas), visível antes de selecionar arquivo
+
+## Task: Redesenhar aba Gravar igual à consulta
+- [x] Redesenhar aba "Gravar" no NewCall.tsx com layout centralizado (ícone mic, timer, botão "Iniciar gravação") igual à consulta
+- [x] Remover botão "Registrar ligação" da aba Gravar (botão "Usar gravação" inline após parar)
