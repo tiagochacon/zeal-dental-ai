@@ -1201,9 +1201,9 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
                       items: {
                         type: "object",
                         properties: {
-                          texto: { type: "string" },
-                          sinaisDetectados: { type: "string" },
-                          perguntaReveladora: { type: "string" }
+                          texto: { type: "string", description: "A objeção oculta identificada" },
+                          sinaisDetectados: { type: "string", description: "Sinais no texto que indicam essa objeção" },
+                          perguntaReveladora: { type: "string", description: "Pergunta direta para revelar a objeção. Modelo: 'Você já consultou outra clínica sobre isso? Se sim, o que faltou para você fechar lá?' — adapte ao contexto específico da objeção detectada, sempre direta e objetiva." }
                         },
                         required: ["texto", "sinaisDetectados", "perguntaReveladora"],
                         additionalProperties: false
