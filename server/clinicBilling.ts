@@ -10,6 +10,38 @@
 import { supabase } from "./lib/supabaseClient";
 import type { User } from "../drizzle/schema";
 
+function isActiveStatus(status: unknown): boolean {
+  return status === "active" || status === "trialing";
+}
+
+export function isUnlimitedBillingUser(user: Pick<User, "role" | "subscriptionTier" | "priceId" | "email">): boolean {
+  if (user.role === "admin") return true;
+  if (user.subscriptionTier === "unlimited") return true;
+  if (user.priceId === "unlimited") return true;
+  return false;
+}
+
+function scoreGestorCandidate(user: User): number {
+  if (isUnlimitedBillingUser(user)) return 100;
+  if (isActiveStatus(user.subscriptionStatus)) return 70;
+  if (user.subscriptionTier === "pro") return 60;
+  if (user.subscriptionTier === "basic") return 50;
+  if (user.subscriptionTier === "trial") return 40;
+  return 10;
+}
+
+export function normalizeEffectiveBillingUser(user: User): User {
+  if (!isUnlimitedBillingUser(user)) return user;
+  return {
+    ...user,
+    subscriptionStatus: "active",
+    subscriptionTier: "unlimited",
+    priceId: user.priceId ?? "unlimited",
+    trialStartedAt: null,
+    trialEndsAt: null,
+  } as User;
+}
+
 /**
  * Get the gestor (clinic owner) for a given clinic ID.
  * Returns the full User object of the gestor.
@@ -21,17 +53,28 @@ export async function getClinicGestor(clinicId: number): Promise<User | null> {
     .eq("id", clinicId)
     .limit(1)
     .maybeSingle();
-  if (clinicError || !clinic) return null;
+  if (!clinicError && clinic) {
+    const { data: owner, error: ownerError } = await supabase
+      .from("Users")
+      .select("*")
+      .eq("id", clinic.ownerId)
+      .limit(1)
+      .maybeSingle();
+    if (!ownerError && owner) {
+      return owner as User;
+    }
+  }
 
-  const { data: owner, error: ownerError } = await supabase
+  // Fallback: resolve gestor directly by clinicId + clinicRole
+  const { data: gestores, error: gestoresError } = await supabase
     .from("Users")
     .select("*")
-    .eq("id", clinic.ownerId)
-    .limit(1)
-    .maybeSingle();
-  if (ownerError || !owner) return null;
+    .eq("clinicId", clinicId)
+    .eq("clinicRole", "gestor");
+  if (gestoresError || !gestores || gestores.length === 0) return null;
 
-  return owner as User;
+  const ranked = (gestores as User[]).sort((a, b) => scoreGestorCandidate(b) - scoreGestorCandidate(a));
+  return ranked[0] ?? null;
 }
 
 /**
@@ -43,11 +86,21 @@ export async function getClinicGestor(clinicId: number): Promise<User | null> {
  * This allows CRC/Dentista to inherit the gestor's subscription limits.
  */
 export async function getEffectiveBillingUser(user: User): Promise<User> {
+  if (isUnlimitedBillingUser(user)) {
+    return normalizeEffectiveBillingUser(user);
+  }
+
+  if (user.clinicRole === "gestor") {
+    return normalizeEffectiveBillingUser(user);
+  }
+
   if (user.clinicId && (user.clinicRole === "crc" || user.clinicRole === "dentista")) {
     const gestor = await getClinicGestor(user.clinicId);
-    if (gestor) return gestor;
+    if (gestor) {
+      return normalizeEffectiveBillingUser(gestor);
+    }
   }
-  return user;
+  return normalizeEffectiveBillingUser(user);
 }
 
 /**

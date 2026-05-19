@@ -44,6 +44,12 @@ export function PaywallGuard({ children }: PaywallGuardProps) {
       return;
     }
 
+    // Effective unlimited access (e.g. CRC/Dentista inheriting from gestor admin)
+    if ((user as any).subscriptionTier === "unlimited" || (user as any).effectiveAccess?.isUnlimited) {
+      setIsChecking(false);
+      return;
+    }
+
     // For CRC/Dentista in a clinic: auth.me already enriches their data with gestor's subscription fields.
     // So we check the (possibly enriched) subscriptionStatus which reflects the gestor's plan.
     // This means if the gestor cancels, CRC/Dentista will also see subscriptionStatus as inactive.

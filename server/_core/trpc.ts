@@ -1,7 +1,7 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG, SUBSCRIPTION_REQUIRED_ERR_MSG } from '@shared/const';
 import { hasAccessToPremium, hasReachedConsultationLimit, getRemainingConsultations, hasNegotiationAccess, getUserTier } from '../billing';
 import { getConsultationCount } from '../db';
-import { getEffectiveBillingUser } from '../clinicBilling';
+import { getEffectiveBillingUser, isUnlimitedBillingUser } from '../clinicBilling';
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
@@ -61,7 +61,7 @@ const requireSubscription = t.middleware(async opts => {
   }
 
   // Allow admins to bypass subscription check
-  if (ctx.user.role === 'admin') {
+  if (isUnlimitedBillingUser(ctx.user)) {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 
@@ -69,7 +69,7 @@ const requireSubscription = t.middleware(async opts => {
   const billingUser = await getEffectiveBillingUser(ctx.user);
 
   // Allow admins (gestor might be admin) to bypass
-  if (billingUser.role === 'admin') {
+  if (isUnlimitedBillingUser(billingUser)) {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 
@@ -121,7 +121,7 @@ const enforceConsultationLimit = t.middleware(async opts => {
   }
 
   // Admins por role ou por email têm acesso ilimitado
-  if (ctx.user.role === 'admin' || ADMIN_EMAILS.includes(ctx.user.email || '')) {
+  if (isUnlimitedBillingUser(ctx.user) || ADMIN_EMAILS.includes(ctx.user.email || '')) {
     return next({ ctx: { ...ctx, user: ctx.user, isUnlimited: true } });
   }
 
@@ -129,7 +129,7 @@ const enforceConsultationLimit = t.middleware(async opts => {
   const billingUser = await getEffectiveBillingUser(ctx.user);
 
   // If the gestor is admin, bypass
-  if (billingUser.role === 'admin' || ADMIN_EMAILS.includes(billingUser.email || '')) {
+  if (isUnlimitedBillingUser(billingUser) || ADMIN_EMAILS.includes(billingUser.email || '')) {
     return next({ ctx: { ...ctx, user: ctx.user, isUnlimited: true } });
   }
 
@@ -176,7 +176,7 @@ const enforceNegotiationAccess = t.middleware(async opts => {
   }
 
   // Admins por role ou por email têm acesso total
-  if (ctx.user.role === 'admin' || ADMIN_EMAILS.includes(ctx.user.email || '')) {
+  if (isUnlimitedBillingUser(ctx.user) || ADMIN_EMAILS.includes(ctx.user.email || '')) {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 
@@ -184,7 +184,7 @@ const enforceNegotiationAccess = t.middleware(async opts => {
   const billingUser = await getEffectiveBillingUser(ctx.user);
 
   // If the gestor is admin, bypass
-  if (billingUser.role === 'admin' || ADMIN_EMAILS.includes(billingUser.email || '')) {
+  if (isUnlimitedBillingUser(billingUser) || ADMIN_EMAILS.includes(billingUser.email || '')) {
     return next({ ctx: { ...ctx, user: ctx.user } });
   }
 

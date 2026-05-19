@@ -23,21 +23,32 @@ export const authRouter = router({
     if (!user) return null;
 
     if (user.clinicId && (user.clinicRole === 'crc' || user.clinicRole === 'dentista')) {
-      const { getEffectiveBillingUser } = await import('../clinicBilling');
-      const gestor = await getEffectiveBillingUser(user);
-      if (gestor && gestor.id !== user.id) {
+      const { getEffectiveBillingUser, isUnlimitedBillingUser } = await import('../clinicBilling');
+      const effectiveBillingUser = await getEffectiveBillingUser(user);
+      if (effectiveBillingUser && effectiveBillingUser.id !== user.id) {
+        const effectiveTier = isUnlimitedBillingUser(effectiveBillingUser)
+          ? "unlimited"
+          : (effectiveBillingUser.subscriptionTier ?? null);
+        const effectiveStatus = isUnlimitedBillingUser(effectiveBillingUser)
+          ? "active"
+          : effectiveBillingUser.subscriptionStatus;
         return {
           ...user,
-          subscriptionStatus: gestor.subscriptionStatus,
-          subscriptionTier: gestor.subscriptionTier,
-          priceId: gestor.priceId,
-          subscriptionEndDate: gestor.subscriptionEndDate,
-          trialStartedAt: gestor.trialStartedAt,
-          trialEndsAt: gestor.trialEndsAt,
-          consultationCount: gestor.consultationCount,
-          consultationCountResetAt: gestor.consultationCountResetAt,
-          gestorName: gestor.name,
-          gestorEmail: gestor.email,
+          subscriptionStatus: effectiveStatus,
+          subscriptionTier: effectiveTier,
+          priceId: effectiveBillingUser.priceId ?? (effectiveTier === "unlimited" ? "unlimited" : null),
+          subscriptionEndDate: effectiveBillingUser.subscriptionEndDate,
+          trialStartedAt: effectiveBillingUser.trialStartedAt,
+          trialEndsAt: effectiveBillingUser.trialEndsAt,
+          consultationCount: effectiveBillingUser.consultationCount,
+          consultationCountResetAt: effectiveBillingUser.consultationCountResetAt,
+          gestorName: effectiveBillingUser.name,
+          gestorEmail: effectiveBillingUser.email,
+          effectiveAccess: {
+            inheritedFromGestor: true,
+            gestorId: effectiveBillingUser.id,
+            isUnlimited: effectiveTier === "unlimited",
+          },
         };
       }
     }
@@ -207,14 +218,21 @@ export const authRouter = router({
       }
 
       let effectiveSubscriptionStatus = user.subscriptionStatus;
+      let effectiveSubscriptionTier = (user as any).subscriptionTier ?? null;
+      let effectivePriceId = user.priceId;
+      let isUnlimitedAccess = user.role === 'admin' || effectiveSubscriptionTier === 'unlimited' || user.priceId === 'unlimited';
       let redirectTo = '/';
       if (user.clinicId && (user.clinicRole === 'crc' || user.clinicRole === 'dentista')) {
         const fullUser = await getUserById(user.id);
         if (fullUser) {
-          const { getEffectiveBillingUser } = await import('../clinicBilling');
+          const { getEffectiveBillingUser, isUnlimitedBillingUser } = await import('../clinicBilling');
           const gestor = await getEffectiveBillingUser(fullUser);
           if (gestor && gestor.id !== user.id) {
-            effectiveSubscriptionStatus = gestor.subscriptionStatus;
+            const unlimitedByGestor = isUnlimitedBillingUser(gestor);
+            effectiveSubscriptionStatus = unlimitedByGestor ? "active" : gestor.subscriptionStatus;
+            effectiveSubscriptionTier = unlimitedByGestor ? "unlimited" : gestor.subscriptionTier;
+            effectivePriceId = gestor.priceId ?? (unlimitedByGestor ? "unlimited" : null);
+            isUnlimitedAccess = unlimitedByGestor;
           }
         }
         if (user.clinicRole === 'crc') redirectTo = '/crc';
@@ -229,8 +247,14 @@ export const authRouter = router({
         name: user.name,
         role: user.role,
         subscriptionStatus: effectiveSubscriptionStatus,
+        subscriptionTier: effectiveSubscriptionTier,
+        priceId: effectivePriceId,
         clinicRole: user.clinicRole,
         clinicId: user.clinicId,
+        effectiveAccess: {
+          inheritedFromGestor: user.clinicRole === 'crc' || user.clinicRole === 'dentista',
+          isUnlimited: isUnlimitedAccess,
+        },
         redirectTo,
       };
     }),

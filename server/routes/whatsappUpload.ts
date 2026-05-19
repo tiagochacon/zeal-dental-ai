@@ -5,8 +5,11 @@
  */
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import JSZip from "jszip";
+import JSZip, { type JSZipObject } from "jszip";
 import { nanoid } from "nanoid";
+import path from "path";
+import os from "os";
+import { promises as fs } from "fs";
 import { storagePut } from "../storage";
 import { getCallById, updateCall, getUserById } from "../db";
 import { sdk } from "../_core/sdk";
@@ -14,8 +17,8 @@ import { parseWhatsAppChat, buildUnifiedTranscript } from "../helpers/whatsappEx
 import { transcribeAudio } from "../_core/voiceTranscription";
 import type { WhatsAppImportData, WhatsAppMediaSummary } from "../../drizzle/schema";
 
-const ZIP_MAX_SIZE = 500 * 1024 * 1024; // 500MB — conversas grandes com mídias
-const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB per audio file
+export const ZIP_MAX_SIZE = 100 * 1024 * 1024; // 100MB
+export const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB per audio file
 const AUDIO_EXTENSIONS = [".opus", ".ogg", ".m4a", ".mp3", ".wav", ".aac"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"];
 const VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi", ".mkv", ".webm", ".3gp"];
@@ -23,7 +26,13 @@ const DOCUMENT_EXTENSIONS = [".pdf", ".doc", ".docx", ".xls", ".xlsx", ".zip", "
 const DANGEROUS_EXTENSIONS = [".exe", ".bat", ".cmd", ".sh", ".ps1", ".msi", ".dll", ".com", ".vbs", ".js"];
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => cb(null, os.tmpdir()),
+    filename: (_req, file, cb) => {
+      const ext = path.extname(file.originalname) || ".zip";
+      cb(null, `zeal-wa-${Date.now()}-${nanoid(8)}${ext}`);
+    },
+  }),
   limits: { fileSize: ZIP_MAX_SIZE },
   fileFilter: (_req, file, cb) => {
     if (
@@ -71,6 +80,7 @@ router.post(
   "/",
   upload.single("file"),
   async (req: Request, res: Response) => {
+    let uploadedFilePath: string | null = null;
     try {
       // Authenticate
       let user;
@@ -89,6 +99,7 @@ router.post(
       if (!file) {
         return res.status(400).json({ error: "Nenhum arquivo enviado" });
       }
+      uploadedFilePath = file.path;
 
       const callId = parseInt(req.body.callId);
       if (!callId || isNaN(callId)) {
@@ -109,7 +120,8 @@ router.post(
       // Extract ZIP
       let zip: JSZip;
       try {
-        zip = await JSZip.loadAsync(file.buffer);
+        const zipBuffer = await fs.readFile(file.path);
+        zip = await JSZip.loadAsync(zipBuffer);
       } catch {
         return res.status(400).json({ error: "Arquivo ZIP inválido ou corrompido" });
       }
@@ -121,9 +133,10 @@ router.post(
       const imageFiles: string[] = [];
       const skippedFiles: Array<{ fileName: string; reason: string }> = [];
       const unsupportedFiles: string[] = [];
-      const txtCandidates: Array<{ name: string; entry: JSZip.JSZipObject }> = [];
+      const txtCandidates: Array<{ name: string; entry: JSZipObject }> = [];
 
-      for (const [entryName, entry] of Object.entries(zip.files)) {
+      const zipFiles = Object.entries(zip.files) as Array<[string, JSZipObject]>;
+      for (const [entryName, entry] of zipFiles) {
         if (entry.dir) continue;
 
         const safeName = sanitizePath(entryName);
@@ -203,7 +216,7 @@ router.post(
       // WhatsApp message line pattern for scoring
       const WA_MSG_PATTERN = /^\[?\d{1,2}\/\d{1,2}\/\d{2,4}[,\s]+\d{1,2}:\d{2}/;
 
-      const readTxtEntry = async (entry: JSZip.JSZipObject): Promise<string> => {
+      const readTxtEntry = async (entry: JSZipObject): Promise<string> => {
         const buf = await entry.async("nodebuffer");
         let content = buf.toString("utf-8");
         if (content.startsWith("\ufeff")) {
@@ -398,6 +411,10 @@ router.post(
       }
       console.error("[WhatsApp] Error:", error.message);
       return res.status(500).json({ error: error.message || "Erro ao processar arquivo WhatsApp" });
+    } finally {
+      if (uploadedFilePath) {
+        await fs.unlink(uploadedFilePath).catch(() => {});
+      }
     }
   }
 );
