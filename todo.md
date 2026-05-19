@@ -1347,3 +1347,10 @@
 - [x] Trocar mensagem de documentos ignorados para tom informativo
 - [x] Corrigir "Invalid Date" no período da importação WhatsApp (parse manual DD/MM/YYYY)
 - [x] Mudar ícone de warning (⚠) para ícone informativo (ℹ) nos warnings esperados (prefixo info:)
+
+## Sync GitHub: fix: heranca de acesso por gestor e importacao whatsapp grande
+- [x] Sincronizar com GitHub (commit f594141)
+- [x] Analisar mudanças: herança de acesso ilimitado (isUnlimitedBillingUser), disk storage para WhatsApp upload, module-shims.d.ts
+- [x] Verificar TypeScript (0 erros)
+- [x] Rodar testes (493 passando, 2 falhas pré-existentes de timeout Resend API)
+- [x] Criar testes para isUnlimitedBillingUser e normalizeEffectiveBillingUser (9 testes passando)
