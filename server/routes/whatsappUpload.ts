@@ -17,7 +17,7 @@ import { parseWhatsAppChat, buildUnifiedTranscript } from "../helpers/whatsappEx
 import { transcribeAudio } from "../_core/voiceTranscription";
 import type { WhatsAppImportData, WhatsAppMediaSummary } from "../../drizzle/schema";
 
-export const ZIP_MAX_SIZE = 100 * 1024 * 1024; // 100MB
+export const ZIP_MAX_SIZE = 500 * 1024 * 1024; // 500MB
 export const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB per audio file
 const AUDIO_EXTENSIONS = [".opus", ".ogg", ".m4a", ".mp3", ".wav", ".aac"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"];
