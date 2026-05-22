@@ -1,7 +1,7 @@
 import { trpc } from "@/lib/trpc";
 import { UNAUTHED_ERR_MSG } from '@shared/const';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { httpBatchLink, TRPCClientError } from "@trpc/client";
+import { httpBatchLink, httpLink, splitLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
@@ -78,17 +78,55 @@ queryClient.getMutationCache().subscribe(event => {
   }
 });
 
+const createRequestId = () =>
+  `web-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const tracedFetch: typeof globalThis.fetch = async (input, init) => {
+  const requestId = createRequestId();
+  const headers = new Headers(init?.headers);
+  headers.set("x-request-id", requestId);
+  const response = await globalThis.fetch(input, {
+    ...(init ?? {}),
+    credentials: "include",
+    headers,
+  });
+
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    try {
+      const snippet = (await response.clone().text()).slice(0, 300);
+      const safeUrl = typeof input === "string" ? input : input instanceof URL ? input.toString() : "unknown";
+      console.error("[API Non-JSON Response]", {
+        requestId,
+        url: safeUrl,
+        status: response.status,
+        contentType,
+        bodySnippet: snippet,
+      });
+    } catch (err) {
+      console.error("[API Non-JSON Response] failed to read body", { requestId, err });
+    }
+  }
+
+  return response;
+};
+
 const trpcClient = trpc.createClient({
   links: [
-    httpBatchLink({
-      url: "/api/trpc",
-      transformer: superjson,
-      fetch(input, init) {
-        return globalThis.fetch(input, {
-          ...(init ?? {}),
-          credentials: "include",
-        });
+    splitLink({
+      condition(op) {
+        return op.path === "calls.analyzeNeurovendas";
       },
+      true: httpLink({
+        url: "/api/trpc",
+        transformer: superjson,
+        fetch: tracedFetch,
+      }),
+      false: httpBatchLink({
+        url: "/api/trpc",
+        transformer: superjson,
+        fetch: tracedFetch,
+      }),
     }),
   ],
 });

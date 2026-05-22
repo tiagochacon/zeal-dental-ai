@@ -113,6 +113,30 @@ function getCallAnalysisTranscript(call: any): string {
   return truncateTranscript(transcript);
 }
 
+const MAX_ANALYSIS_TRANSCRIPT_CHARS = 55_000;
+function prepareTranscriptForLLM(rawTranscript: string): { transcript: string; truncated: boolean; originalLength: number } {
+  const transcript = rawTranscript?.trim() ?? "";
+  const originalLength = transcript.length;
+  if (originalLength <= MAX_ANALYSIS_TRANSCRIPT_CHARS) {
+    return { transcript, truncated: false, originalLength };
+  }
+
+  const reservedForMarker = 300;
+  const sliceSize = Math.floor((MAX_ANALYSIS_TRANSCRIPT_CHARS - reservedForMarker) / 2);
+  const head = transcript.slice(0, sliceSize);
+  const tail = transcript.slice(-sliceSize);
+  const omitted = originalLength - (head.length + tail.length);
+
+  return {
+    transcript:
+      `${head}\n\n` +
+      `[... trecho omitido para evitar timeout de inferência: ${omitted} caracteres ...]\n\n` +
+      `${tail}`,
+    truncated: true,
+    originalLength,
+  };
+}
+
 export const callsRouter = router({
   // Create a new call record
   create: protectedProcedure
@@ -277,6 +301,9 @@ export const callsRouter = router({
       callId: z.number(),
     }))
     .mutation(async ({ ctx, input }) => {
+      const startedAt = Date.now();
+      const requestId = String(ctx.req.headers["x-request-id"] || `no-reqid-${nanoid(6)}`);
+      console.log(`[Neurovendas][${requestId}] start callId=${input.callId}`);
       const user = await getUserById(ctx.user.id);
       if (!user || !user.clinicId) {
         throw new TRPCError({ code: "FORBIDDEN", message: "Acesso negado" });
@@ -287,13 +314,19 @@ export const callsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Ligação não encontrada" });
       }
 
-      const analysisTranscript = getCallAnalysisTranscript(call);
-      if (!analysisTranscript) {
+      const analysisSource = getCallAnalysisTranscript(call);
+      if (!analysisSource) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Esta ligação não possui transcrição para análise" });
       }
+      const transcriptPayload = prepareTranscriptForLLM(analysisSource);
+      const analysisTranscript = transcriptPayload.transcript;
+      console.log(
+        `[Neurovendas][${requestId}] transcript length=${transcriptPayload.originalLength} truncated=${transcriptPayload.truncated}`
+      );
 
       // Return cached analysis if exists
       if (call.neurovendasAnalysis) {
+        console.log(`[Neurovendas][${requestId}] cached=true durationMs=${Date.now() - startedAt}`);
         return { success: true, analysis: call.neurovendasAnalysis, cached: true };
       }
 
@@ -548,6 +581,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
         console.error('[NEUROVENDAS-CRC] Todas as tentativas falharam — usando fallback seguro');
         const fallback = getNeurovendasFallback();
         await updateCall(input.callId, { neurovendasAnalysis: fallback as any, status: "analyzed" });
+        console.log(`[Neurovendas][${requestId}] fallback=true durationMs=${Date.now() - startedAt}`);
         return { success: true, analysis: fallback, fallback: true };
       }
 
@@ -556,6 +590,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
         console.error('[NEUROVENDAS-CRC] Resposta vazia do LLM — usando fallback seguro');
         const fallback = getNeurovendasFallback();
         await updateCall(input.callId, { neurovendasAnalysis: fallback as any, status: "analyzed" });
+        console.log(`[Neurovendas][${requestId}] fallback=empty-content durationMs=${Date.now() - startedAt}`);
         return { success: true, analysis: fallback, fallback: true };
       }
 
@@ -566,6 +601,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
         console.error('[NEUROVENDAS-CRC] JSON inválido na resposta — usando fallback seguro');
         const fallback = getNeurovendasFallback();
         await updateCall(input.callId, { neurovendasAnalysis: fallback as any, status: "analyzed" });
+        console.log(`[Neurovendas][${requestId}] fallback=invalid-json durationMs=${Date.now() - startedAt}`);
         return { success: true, analysis: fallback, fallback: true };
       }
 
@@ -605,6 +641,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
         }
       }
 
+      console.log(`[Neurovendas][${requestId}] success durationMs=${Date.now() - startedAt}`);
       return { success: true, analysis };
     }),
 

@@ -3,6 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
+import { nanoid } from "nanoid";
 import { registerOAuthRoutes } from "./oauth";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -57,14 +58,35 @@ async function startServer() {
   app.use("/api/consultations/upload-audio", consultationAudioUploadRouter);
   // WhatsApp export upload route (multipart, .zip up to 100MB)
   app.use("/api/calls/upload-whatsapp-export", whatsappUploadRouter);
-  // tRPC API
+  // tRPC API with request tracing for RCA in proxy/CDN environments
   app.use(
     "/api/trpc",
+    (req, res, next) => {
+      const requestId = String(req.headers["x-request-id"] || `trpc-${nanoid(10)}`);
+      const startedAt = Date.now();
+      res.setHeader("x-request-id", requestId);
+      (req as any).requestId = requestId;
+      console.log(`[tRPC][${requestId}] ${req.method} ${req.originalUrl} start`);
+      res.on("finish", () => {
+        console.log(
+          `[tRPC][${requestId}] ${req.method} ${req.originalUrl} done status=${res.statusCode} durationMs=${Date.now() - startedAt}`
+        );
+      });
+      next();
+    },
     createExpressMiddleware({
       router: appRouter,
       createContext,
     })
   );
+  // Ensure every unknown API route returns JSON (never HTML fallback)
+  app.use("/api/*", (req, res) => {
+    res.status(404).json({
+      error: "API route not found",
+      path: req.originalUrl,
+      requestId: String((req as any).requestId || ""),
+    });
+  });
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
