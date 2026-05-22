@@ -15,10 +15,13 @@ import { getCallById, updateCall, getUserById } from "../db";
 import { sdk } from "../_core/sdk";
 import { parseWhatsAppChat, buildUnifiedTranscript } from "../helpers/whatsappExportParser";
 import { transcribeAudio } from "../_core/voiceTranscription";
+import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import type { WhatsAppImportData, WhatsAppMediaSummary } from "../../drizzle/schema";
 
-export const ZIP_MAX_SIZE = 500 * 1024 * 1024; // 500MB
+export const ZIP_MAX_SIZE = 100 * 1024 * 1024; // 100MB
 export const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB per audio file
+const LARGE_TXT_THRESHOLD = 10 * 1024 * 1024; // 10MB
+const LARGE_TXT_CHUNK_CHARS = 12000;
 const AUDIO_EXTENSIONS = [".opus", ".ogg", ".m4a", ".mp3", ".wav", ".aac"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"];
 const VIDEO_EXTENSIONS = [".mp4", ".mov", ".avi", ".mkv", ".webm", ".3gp"];
@@ -76,6 +79,76 @@ function getMimeForAudio(ext: string): string {
   return map[ext] || "audio/ogg";
 }
 
+function splitTranscriptIntoChunks(transcript: string, maxChars = LARGE_TXT_CHUNK_CHARS): string[] {
+  const lines = transcript.split("\n");
+  const chunks: string[] = [];
+  let current = "";
+
+  for (const line of lines) {
+    // Keep message boundaries (line-based) whenever possible.
+    if (!current) {
+      current = line;
+      continue;
+    }
+    if ((current.length + 1 + line.length) <= maxChars) {
+      current += `\n${line}`;
+      continue;
+    }
+    chunks.push(current);
+    current = line;
+  }
+  if (current) chunks.push(current);
+  return chunks;
+}
+
+function summarizeChunkHeuristically(chunk: string): string {
+  const lines = chunk.split("\n").map((l) => l.trim()).filter(Boolean);
+  const relevant = lines.filter((line) =>
+    /(dor|dói|doendo|urg|agendar|consulta|orçamento|preço|valor|caro|tempo|medo|confian|seguran|fechar|implante|clareamento|canal|aparelho|revisão|retorno)/i.test(line)
+  );
+  const picked = relevant.length > 0 ? relevant.slice(0, 10) : lines.slice(0, 10);
+  return picked.join(" ");
+}
+
+async function consolidateLargeTranscript(
+  chunkSummaries: string[],
+  leadName: string | null
+): Promise<string> {
+  if (chunkSummaries.length === 0) return "";
+  if (chunkSummaries.length > 12) {
+    // Avoid long-running LLM calls for very large files in a single request.
+    return chunkSummaries.join("\n\n");
+  }
+
+  const response = await invokeLLMWithRetry(
+    {
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você é um analista de conversas comerciais odontológicas. Consolide resumos parciais em um único resumo factual, sem inventar informações.",
+        },
+        {
+          role: "user",
+          content:
+            `Consolide os resumos parciais abaixo de uma conversa de WhatsApp com lead${leadName ? ` (${leadName})` : ""}.\n` +
+            "Retorne somente texto corrido com os pontos mais relevantes: dor/queixa, motivação, objeções, urgência, confiança/desconfiança e próximos passos.\n\n" +
+            chunkSummaries.map((s, i) => `Resumo ${i + 1}: ${s}`).join("\n\n"),
+        },
+      ],
+      temperature: 0.1,
+      seed: 42,
+    },
+    "WhatsAppLargeTXTConsolidation"
+  );
+
+  const content = response?.choices?.[0]?.message?.content;
+  if (!content || typeof content !== "string") {
+    return chunkSummaries.join("\n\n");
+  }
+  return content.trim();
+}
+
 router.post(
   "/",
   upload.single("file"),
@@ -128,6 +201,7 @@ router.post(
 
       // Collect all files from ZIP, categorized
       let chatContent: string | null = null;
+      let chatContentSizeBytes = 0;
       let chatFileName: string | null = null;
       const audioFiles: Array<{ name: string; buffer: Buffer; ext: string }> = [];
       const imageFiles: string[] = [];
@@ -216,13 +290,13 @@ router.post(
       // WhatsApp message line pattern for scoring
       const WA_MSG_PATTERN = /^\[?\d{1,2}\/\d{1,2}\/\d{2,4}[,\s]+\d{1,2}:\d{2}/;
 
-      const readTxtEntry = async (entry: JSZipObject): Promise<string> => {
+      const readTxtEntry = async (entry: JSZipObject): Promise<{ content: string; sizeBytes: number }> => {
         const buf = await entry.async("nodebuffer");
         let content = buf.toString("utf-8");
         if (content.startsWith("\ufeff")) {
           content = content.slice(1);
         }
-        return content;
+        return { content, sizeBytes: buf.length };
       }
 
       const scoreWhatsAppContent = (content: string): number => {
@@ -238,24 +312,30 @@ router.post(
       if (txtCandidates.length === 1) {
         // Single .txt file — use it directly
         try {
-          chatContent = await readTxtEntry(txtCandidates[0].entry);
+          const txtData = await readTxtEntry(txtCandidates[0].entry);
+          chatContent = txtData.content;
+          chatContentSizeBytes = txtData.sizeBytes;
           chatFileName = txtCandidates[0].name;
-          console.log(`[WhatsApp] Single .txt found: ${chatFileName}`);
+          console.log(`[WhatsApp] Single .txt found: ${chatFileName} (${(chatContentSizeBytes / (1024 * 1024)).toFixed(2)}MB)`);
         } catch {
           skippedFiles.push({ fileName: txtCandidates[0].name, reason: "Erro ao ler arquivo de chat" });
         }
       } else {
-        // Multiple .txt files — score each by WhatsApp message patterns
+        // Multiple .txt files — score by WhatsApp pattern first, then by file size.
         console.log(`[WhatsApp] Multiple .txt files found (${txtCandidates.length}), scoring by content...`);
         let bestScore = -1;
+        let bestSize = -1;
         for (const candidate of txtCandidates) {
           try {
-            const content = await readTxtEntry(candidate.entry);
-            const score = scoreWhatsAppContent(content);
-            console.log(`[WhatsApp]   ${candidate.name}: score=${score}`);
-            if (score > bestScore) {
+            const txtData = await readTxtEntry(candidate.entry);
+            const score = scoreWhatsAppContent(txtData.content);
+            const sizeMb = (txtData.sizeBytes / (1024 * 1024)).toFixed(2);
+            console.log(`[WhatsApp]   ${candidate.name}: score=${score} size=${sizeMb}MB`);
+            if (score > bestScore || (score === bestScore && txtData.sizeBytes > bestSize)) {
               bestScore = score;
-              chatContent = content;
+              bestSize = txtData.sizeBytes;
+              chatContent = txtData.content;
+              chatContentSizeBytes = txtData.sizeBytes;
               chatFileName = candidate.name;
             }
           } catch {
@@ -341,6 +421,24 @@ router.post(
 
       // Build unified transcript
       const transcript = buildUnifiedTranscript(parseResult, audioTranscriptMap);
+      const isLargeTxt = chatContentSizeBytes > LARGE_TXT_THRESHOLD;
+      let transcriptForAnalysis = transcript;
+      let chunkCount = 0;
+      if (isLargeTxt) {
+        const transcriptChunks = splitTranscriptIntoChunks(transcript);
+        chunkCount = transcriptChunks.length;
+        console.log(
+          `[WhatsApp] Large TXT detected (${(chatContentSizeBytes / (1024 * 1024)).toFixed(2)}MB) - using chunk flow with ${chunkCount} chunks`
+        );
+        const partials = transcriptChunks.map((chunk) => summarizeChunkHeuristically(chunk));
+        const consolidated = await consolidateLargeTranscript(partials, leadName);
+        transcriptForAnalysis =
+          `[WhatsApp Exportado - Resumo Consolidado]\n` +
+          `Arquivo de conversa: ${chatFileName}\n` +
+          `Tamanho TXT: ${(chatContentSizeBytes / (1024 * 1024)).toFixed(2)}MB\n` +
+          `Chunks processados: ${chunkCount}\n\n` +
+          consolidated;
+      }
 
       // Count messages by role
       const leadMessages = parseResult.messages.filter((m) => m.speakerRole === "lead").length;
@@ -367,6 +465,7 @@ router.post(
         participants: parseResult.participants,
         warnings: [
           ...parseResult.warnings,
+          ...(isLargeTxt ? [`info:Fluxo de arquivo grande ativado. TXT com ${(chatContentSizeBytes / (1024 * 1024)).toFixed(2)}MB processado em ${chunkCount} chunks.`] : []),
           ...(videosIgnored > 0 ? [`info:Vídeos não são considerados na análise comportamental. ${videosIgnored === 1 ? 'Foi detectado 1 vídeo' : `Foram detectados ${videosIgnored} vídeos`} na conversa.`] : []),
           ...(audiosSkipped > 0 ? [`info:${audiosSkipped === 1 ? '1 áudio excedeu' : `${audiosSkipped} áudios excederam`} o limite de ${MAX_AUDIO_SIZE / (1024 * 1024)}MB e ${audiosSkipped === 1 ? 'não foi transcrito' : 'não foram transcritos'}.`] : []),
           ...(docsIgnored > 0 ? [`info:${docsIgnored === 1 ? '1 documento detectado' : `${docsIgnored} documentos detectados`} na conversa. Documentos não são processados na análise.`] : []),
@@ -388,18 +487,20 @@ router.post(
       // Update call
       await updateCall(callId, {
         sourceType: "whatsapp_export",
-        transcript,
+        transcript: transcriptForAnalysis,
         status: "transcribed",
         whatsappImportData: importData,
         whatsappMediaSummary: mediaSummary,
       });
 
-      console.log(`[WhatsApp] Call ${callId} updated: ${parseResult.messages.length} msgs, ${audioTranscripts.filter((a) => a.status === "transcribed").length}/${audioFiles.length} audios transcribed, ${videosIgnored} videos ignored, ${imageFiles.length} images registered, ${docsIgnored} docs ignored`);
+      console.log(
+        `[WhatsApp] Call ${callId} updated: zip=${(file.size / (1024 * 1024)).toFixed(2)}MB txt=${(chatContentSizeBytes / (1024 * 1024)).toFixed(2)}MB msgs=${parseResult.messages.length} audios=${audioTranscripts.filter((a) => a.status === "transcribed").length}/${audioFiles.length} skippedVideos=${videosIgnored} skippedDocs=${docsIgnored} chunks=${chunkCount}`
+      );
 
       return res.json({
         success: true,
         callId,
-        transcript,
+        transcript: transcriptForAnalysis,
         importData,
         mediaSummary,
       });
