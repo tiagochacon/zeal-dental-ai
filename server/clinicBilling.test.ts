@@ -1,4 +1,19 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
+
+vi.mock("./lib/supabaseClient", () => ({
+  supabase: {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          limit: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+        }),
+      }),
+    }),
+  },
+}));
+
 import { isUnlimitedBillingUser, normalizeEffectiveBillingUser } from "./clinicBilling";
 
 describe("Clinic Billing - isUnlimitedBillingUser", () => {

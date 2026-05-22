@@ -187,6 +187,13 @@ export interface WhatsAppImportData {
     end: string | null;
   };
   participants: string[];
+  largeTextSummary?: string;
+  largeTextProcessing?: {
+    isLargeTxt: boolean;
+    txtSizeMb: number;
+    chunkCount: number;
+    strategy: string;
+  };
   warnings: string[];
 }
 

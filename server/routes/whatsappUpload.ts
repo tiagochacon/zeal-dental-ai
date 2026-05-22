@@ -422,7 +422,8 @@ router.post(
       // Build unified transcript
       const transcript = buildUnifiedTranscript(parseResult, audioTranscriptMap);
       const isLargeTxt = chatContentSizeBytes > LARGE_TXT_THRESHOLD;
-      let transcriptForAnalysis = transcript;
+      const transcriptForStorage = transcript;
+      let largeTextSummary: string | null = null;
       let chunkCount = 0;
       if (isLargeTxt) {
         const transcriptChunks = splitTranscriptIntoChunks(transcript);
@@ -432,7 +433,7 @@ router.post(
         );
         const partials = transcriptChunks.map((chunk) => summarizeChunkHeuristically(chunk));
         const consolidated = await consolidateLargeTranscript(partials, leadName);
-        transcriptForAnalysis =
+        largeTextSummary =
           `[WhatsApp Exportado - Resumo Consolidado]\n` +
           `Arquivo de conversa: ${chatFileName}\n` +
           `Tamanho TXT: ${(chatContentSizeBytes / (1024 * 1024)).toFixed(2)}MB\n` +
@@ -463,6 +464,17 @@ router.post(
         unsupportedFiles,
         dateRange: parseResult.dateRange,
         participants: parseResult.participants,
+        ...(largeTextSummary ? { largeTextSummary } : {}),
+        ...(isLargeTxt
+          ? {
+              largeTextProcessing: {
+                isLargeTxt: true,
+                txtSizeMb: Number((chatContentSizeBytes / (1024 * 1024)).toFixed(2)),
+                chunkCount,
+                strategy: "chunking_condicional",
+              },
+            }
+          : {}),
         warnings: [
           ...parseResult.warnings,
           ...(isLargeTxt ? [`info:Fluxo de arquivo grande ativado. TXT com ${(chatContentSizeBytes / (1024 * 1024)).toFixed(2)}MB processado em ${chunkCount} chunks.`] : []),
@@ -487,7 +499,7 @@ router.post(
       // Update call
       await updateCall(callId, {
         sourceType: "whatsapp_export",
-        transcript: transcriptForAnalysis,
+        transcript: transcriptForStorage,
         status: "transcribed",
         whatsappImportData: importData,
         whatsappMediaSummary: mediaSummary,
@@ -500,7 +512,7 @@ router.post(
       return res.json({
         success: true,
         callId,
-        transcript: transcriptForAnalysis,
+        transcript: transcriptForStorage,
         importData,
         mediaSummary,
       });

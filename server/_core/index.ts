@@ -55,7 +55,7 @@ async function startServer() {
   app.use("/api/calls/upload-audio", audioUploadRouter);
   // Audio upload route for consultations (multipart, supports large files up to 1.5GB)
   app.use("/api/consultations/upload-audio", consultationAudioUploadRouter);
-  // WhatsApp export upload route (multipart, .zip up to 500MB)
+  // WhatsApp export upload route (multipart, .zip up to 100MB)
   app.use("/api/calls/upload-whatsapp-export", whatsappUploadRouter);
   // tRPC API
   app.use(

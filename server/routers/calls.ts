@@ -88,6 +88,17 @@ async function extractAndSaveCallInsights(callId: number, transcript: string): P
   console.log("[CallInsights] Insights extraídos para call", callId);
 }
 
+function getCallAnalysisTranscript(call: any): string {
+  const sourceType = call?.sourceType ?? "phone_call";
+  if (sourceType === "whatsapp_export") {
+    const summary = call?.whatsappImportData?.largeTextSummary;
+    if (typeof summary === "string" && summary.trim().length > 0) {
+      return summary;
+    }
+  }
+  return call?.transcript ?? "";
+}
+
 export const callsRouter = router({
   // Create a new call record
   create: protectedProcedure
@@ -262,7 +273,8 @@ export const callsRouter = router({
         throw new TRPCError({ code: "NOT_FOUND", message: "Ligação não encontrada" });
       }
 
-      if (!call.transcript) {
+      const analysisTranscript = getCallAnalysisTranscript(call);
+      if (!analysisTranscript) {
         throw new TRPCError({ code: "BAD_REQUEST", message: "Esta ligação não possui transcrição para análise" });
       }
 
@@ -272,7 +284,7 @@ export const callsRouter = router({
       }
 
       const metodologiaContext = await getMetodologiaContext();
-      const leadWordCount = countPatientWords(call.transcript || '');
+      const leadWordCount = countPatientWords(analysisTranscript);
 
       const sourceType = call.sourceType ?? "phone_call";
       const sourceLabel =
@@ -328,7 +340,7 @@ SINAIS IMPORTANTES PARA WHATSAPP:
 - Não usar imagens como evidência comportamental neste ciclo (apenas contexto).
 
 TRANSCRIÇÃO DA LIGAÇÃO:
-${call.transcript}
+${analysisTranscript}
 
 INSTRUÇÕES ESPECÍFICAS:
 
@@ -547,9 +559,9 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
       const perfilPsicografico = (analysis as any)?.perfilPsicografico;
       if (perfilPsicografico?.discProfile) {
         const disc = perfilPsicografico.discProfile as any;
-        disc.motivadores = sanitizeUnsupportedClaims(call.transcript, disc.motivadores || []);
-        disc.medosOuResistencias = sanitizeUnsupportedClaims(call.transcript, disc.medosOuResistencias || []);
-        perfilPsicografico.discProfile = enforceLowConfidenceWhenSparse(disc, call.transcript);
+        disc.motivadores = sanitizeUnsupportedClaims(analysisTranscript, disc.motivadores || []);
+        disc.medosOuResistencias = sanitizeUnsupportedClaims(analysisTranscript, disc.medosOuResistencias || []);
+        perfilPsicografico.discProfile = enforceLowConfidenceWhenSparse(disc, analysisTranscript);
       }
       const warnings = validateNeurovendasAnalysis(analysis, 'crc');
       if (warnings.length > 0) {
