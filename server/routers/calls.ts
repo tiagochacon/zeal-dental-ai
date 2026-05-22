@@ -88,15 +88,29 @@ async function extractAndSaveCallInsights(callId: number, transcript: string): P
   console.log("[CallInsights] Insights extraídos para call", callId);
 }
 
+// Max characters to send to LLM (~60k chars ≈ ~15k tokens, safe for most models)
+const MAX_TRANSCRIPT_CHARS = 60000;
+
+function truncateTranscript(text: string): string {
+  if (text.length <= MAX_TRANSCRIPT_CHARS) return text;
+  // Keep first 80% and last 20% to preserve beginning context and recent messages
+  const headSize = Math.floor(MAX_TRANSCRIPT_CHARS * 0.8);
+  const tailSize = MAX_TRANSCRIPT_CHARS - headSize;
+  const head = text.slice(0, headSize);
+  const tail = text.slice(-tailSize);
+  return `${head}\n\n[... ${text.length - MAX_TRANSCRIPT_CHARS} caracteres omitidos por limite de contexto ...]\n\n${tail}`;
+}
+
 function getCallAnalysisTranscript(call: any): string {
   const sourceType = call?.sourceType ?? "phone_call";
   if (sourceType === "whatsapp_export") {
     const summary = call?.whatsappImportData?.largeTextSummary;
     if (typeof summary === "string" && summary.trim().length > 0) {
-      return summary;
+      return truncateTranscript(summary);
     }
   }
-  return call?.transcript ?? "";
+  const transcript = call?.transcript ?? "";
+  return truncateTranscript(transcript);
 }
 
 export const callsRouter = router({

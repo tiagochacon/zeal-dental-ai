@@ -1354,3 +1354,9 @@
 - [x] Verificar TypeScript (0 erros)
 - [x] Rodar testes (493 passando, 2 falhas pré-existentes de timeout Resend API)
 - [x] Criar testes para isUnlimitedBillingUser e normalizeEffectiveBillingUser (9 testes passando)
+
+## Task: Fix erro "Processamento falhou (413)" na análise de neurovendas
+- [x] Diagnosticar causa: LLM falha com "received bad response from upstream" por transcript muito grande → 3 retries + delays excedem timeout de 180s do Cloud Run → proxy retorna HTML
+- [x] Implementar truncateTranscript(): limita a 60k chars (~15k tokens), mantém 80% início + 20% fim
+- [x] Aplicar truncamento em getCallAnalysisTranscript() para WhatsApp e phone_call
+- [x] Verificar TypeScript (0 erros) e testes (31 passando)
