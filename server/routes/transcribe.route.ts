@@ -10,16 +10,13 @@ import {
 } from "../db";
 
 import { nanoid } from "nanoid";
-import { EXTENDED_HALLUCINATION_MARKERS } from "../helpers/antiHallucination";
+import {
+  buildConservativeChunkPrompt,
+  detectChunkHallucination,
+  resolveAudioExtensionForMimeType,
+} from "../helpers/chunkTranscription";
 
 export const transcribeRouter = Router();
-
-// Short prompt — frases longas causam alucinação no Whisper (ele repete o prompt)
-const DENTAL_PROMPT =
-  "Consulta odontológica. Português brasileiro. Termos: cárie, restauração, canal, extração, implante, prótese, anestesia, SOAP, diagnóstico, plano de tratamento.";
-
-// Markers de alucinação do Whisper — quando aparece isso, o transcript é inválido
-const HALLUCINATION_MARKERS = EXTENDED_HALLUCINATION_MARKERS;
 
 // ─── Context chaining ─────────────────────────────────────────────────────────
 // Busca as últimas 30 palavras do chunk anterior para usar como contexto no Whisper.
@@ -47,60 +44,19 @@ async function getPreviousChunkContext(
   }
 }
 
-// ─── Hallucination detection ─────────────────────────────────────────────────
-type WhisperSegmentLocal = {
-  no_speech_prob: number;
-  avg_logprob: number;
-  text: string;
-};
 type WhisperVerboseResponse = {
   text: string;
-  segments?: WhisperSegmentLocal[];
+  segments?: Array<{
+    no_speech_prob?: number;
+    avg_logprob?: number;
+    compression_ratio?: number;
+    text?: string;
+  }>;
 };
-
-function detectHallucination(
-  transcript: string,
-  segments: WhisperSegmentLocal[]
-): { isHallucination: boolean; reason: string } {
-  if (segments.length > 0) {
-    const avgNoSpeechProb =
-      segments.reduce((s, seg) => s + seg.no_speech_prob, 0) / segments.length;
-    const avgLogProb =
-      segments.reduce((s, seg) => s + seg.avg_logprob, 0) / segments.length;
-
-    if (avgNoSpeechProb > 0.8) {
-      return {
-        isHallucination: true,
-        reason: `silêncio (no_speech_prob=${avgNoSpeechProb.toFixed(2)})`,
-      };
-    }
-    if (avgLogProb < -1.0 && avgNoSpeechProb > 0.5) {
-      return {
-        isHallucination: true,
-        reason: `qualidade muito baixa (avg_logprob=${avgLogProb.toFixed(2)})`,
-      };
-    }
-  }
-
-  // Detectar repetição do prompt (alucinação clássica do Whisper)
-  if (
-    transcript.length < 400 &&
-    HALLUCINATION_MARKERS.some((marker) =>
-      transcript.toLowerCase().includes(marker)
-    )
-  ) {
-    return {
-      isHallucination: true,
-      reason: "repetição do prompt (alucinação do Whisper)",
-    };
-  }
-
-  return { isHallucination: false, reason: "" };
-}
 
 // ─── POST /api/transcribe-chunk ───────────────────────────────────────────────
 // Receives a single audio chunk (base64), uploads to S3, saves to DB,
-// normalizes to MP3, transcribes via Forge API (Whisper), and returns transcript.
+// keeps original MIME, transcribes via Forge API (Whisper), and returns transcript.
 // Called progressively while recording is still in progress.
 transcribeRouter.post("/", async (req, res) => {
   // Auth check
@@ -156,7 +112,7 @@ transcribeRouter.post("/", async (req, res) => {
   }
 
   // ─── STEP 1: Upload raw chunk to S3 (fatal — sem S3 não tem como recuperar) ─
-  const ext = mimeType.includes("mp4") ? "mp4" : "webm";
+  const ext = resolveAudioExtensionForMimeType(mimeType);
   const fileKey = `consultations/${user.id}/${consultationId}/chunks/${recordingSessionId}/chunk-${chunkIndex}-${nanoid(6)}.${ext}`;
   let chunkUrl: string;
   try {
@@ -218,9 +174,7 @@ transcribeRouter.post("/", async (req, res) => {
     recordingSessionId,
     chunkIndex
   );
-  const chunkPrompt = previousContext
-    ? `${previousContext} ${DENTAL_PROMPT}`
-    : DENTAL_PROMPT;
+  const chunkPrompt = buildConservativeChunkPrompt(previousContext);
 
   if (previousContext) {
     console.log(
@@ -229,7 +183,7 @@ transcribeRouter.post("/", async (req, res) => {
   }
 
   // ─── STEP 6: Call Whisper API (verbose_json for hallucination detection) ──────
-  const normalizedExt = normalizedMimeType.includes("mp4") ? "mp4" : "mp3";
+  const normalizedExt = resolveAudioExtensionForMimeType(normalizedMimeType);
   const formData = new FormData();
   const filename = `chunk_${chunkIndex}.${normalizedExt}`;
   const audioBlob = new Blob([new Uint8Array(audioBuffer)], {
@@ -318,7 +272,7 @@ transcribeRouter.post("/", async (req, res) => {
   let transcript = (whisperData.text || "").trim();
   const segments = whisperData.segments || [];
 
-  const { isHallucination, reason: hallucinationReason } = detectHallucination(
+  const { isHallucination, reason: hallucinationReason } = detectChunkHallucination(
     transcript,
     segments
   );

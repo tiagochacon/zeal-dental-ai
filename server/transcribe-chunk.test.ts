@@ -27,6 +27,7 @@ vi.mock("./_core/env", () => ({
 
 import { createAudioChunk, updateAudioChunkTranscript, updateAudioChunkStatus, getAudioChunksBySession } from "./db";
 import { storagePut } from "./storage";
+import { CONSERVATIVE_DENTAL_PROMPT } from "./helpers/chunkTranscription";
 
 describe("Transcribe Chunk System", () => {
   beforeEach(() => {
@@ -241,15 +242,10 @@ describe("Transcribe Chunk System", () => {
   });
 
   describe("Dental Prompt for Whisper", () => {
-    it("should include dental vocabulary in prompt", () => {
-      const DENTAL_PROMPT =
-        "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro.";
-
-      expect(DENTAL_PROMPT).toContain("cárie");
-      expect(DENTAL_PROMPT).toContain("restauração");
-      expect(DENTAL_PROMPT).toContain("SOAP");
-      expect(DENTAL_PROMPT).toContain("Português brasileiro");
-      expect(DENTAL_PROMPT).toContain("dente 16");
+    it("should use conservative anti-hallucination prompt", () => {
+      expect(CONSERVATIVE_DENTAL_PROMPT).toContain("apenas as falas audíveis");
+      expect(CONSERVATIVE_DENTAL_PROMPT).toContain("Não invente");
+      expect(CONSERVATIVE_DENTAL_PROMPT).toContain("silêncio");
     });
   });
 });

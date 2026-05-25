@@ -16,6 +16,7 @@ import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
+import { CONSERVATIVE_DENTAL_PROMPT } from "../helpers/chunkTranscription";
 
 const execFileAsync = promisify(execFile);
 
@@ -184,7 +185,9 @@ async function transcribeAudioDirect(
 
   const prompt = options.prompt || (
     options.language
-      ? `Transcribe the user's voice to text, the user's working language is ${getLanguageName(options.language)}`
+      ? options.language === "pt"
+        ? CONSERVATIVE_DENTAL_PROMPT
+        : `Transcribe the user's voice to text, the user's working language is ${getLanguageName(options.language)}`
       : "Transcribe the user's voice to text"
   );
   formData.append("prompt", prompt);
@@ -264,9 +267,9 @@ async function transcribeAudioChunked(
       console.log(`[Transcription] Transcribing chunk ${i + 1}/${chunkFiles.length} (${chunk.startSec}s - ${chunk.endSec}s)`);
 
       // Build prompt with context from previous chunk
-      let chunkPrompt = options.prompt || "Transcrição de consulta odontológica clínica. Português brasileiro.";
+      let chunkPrompt = options.prompt || CONSERVATIVE_DENTAL_PROMPT;
       if (i > 0 && previousChunkLastWords) {
-        chunkPrompt = `Continuação da transcrição. Contexto anterior: "${previousChunkLastWords}". ${chunkPrompt}`;
+        chunkPrompt = `${chunkPrompt}\nContexto do trecho anterior (apenas para continuidade, não retranscreva literalmente): "${previousChunkLastWords}"`;
       }
 
       // Read chunk file

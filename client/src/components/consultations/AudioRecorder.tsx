@@ -30,18 +30,25 @@ export function AudioRecorder({
   onError,
 }: AudioRecorderProps) {
   const [micError, setMicError] = useState<string | null>(null);
+  const [chunkErrorCount, setChunkErrorCount] = useState(0);
 
   const recorder = useProgressiveAudioRecorder({
     consultationId,
     chunkDurationMs: 60_000, // flush every 60s
     onChunkTranscribed: (c) => console.log(`[AudioRecorder] Chunk ${c.index} transcrito`),
-    onChunkError: (c) => console.warn(`[AudioRecorder] Chunk ${c.index} falhou:`, c.error),
+    onChunkError: (c) => {
+      console.warn(`[AudioRecorder] Chunk ${c.index} falhou:`, c.error);
+      const message = `Falha no segmento ${c.index + 1}. Você pode finalizar, mas revise a transcrição.`;
+      setChunkErrorCount((prev) => prev + 1);
+      onError?.(message);
+    },
   });
 
   const handleStart = async () => {
     setMicError(null);
     try {
       await recorder.start();
+      setChunkErrorCount(0);
       // Notify parent of the session ID after start
       if (onRecordingSessionId) {
         // Small delay to ensure sessionId is set
@@ -61,26 +68,35 @@ export function AudioRecorder({
   };
 
   const handleFinish = useCallback(async () => {
-    const transcript = await recorder.assembleTranscript();
-    if (!transcript) {
-      onError?.("Nenhuma fala detectada no áudio.");
-      return;
+    try {
+      const transcript = await recorder.assembleTranscript();
+      if (recorder.finalizationWarning) {
+        onError?.(recorder.finalizationWarning);
+      }
+      if (!transcript) {
+        onError?.("Nenhuma fala detectada no áudio.");
+        return;
+      }
+      onTranscriptReady(transcript);
+    } catch {
+      onError?.("Não foi possível finalizar a transcrição. Tente novamente.");
     }
-    onTranscriptReady(transcript);
   }, [recorder, onTranscriptReady, onError]);
 
   // Fix 4: Compute button disabled state and label
   const isFinishDisabled =
     recorder.isAssembling ||
     recorder.totalChunks === 0 ||
-    !recorder.isLastChunkQueued;
+    !recorder.isLastChunkQueued ||
+    !recorder.allChunksDone;
 
   const getFinishButtonLabel = (): string => {
-    if (recorder.isAssembling) return "Finalizando...";
+    if (recorder.isAssembling) return "Finalizando transcrição...";
     if (!recorder.isLastChunkQueued) return "Aguardando último segmento...";
     if (recorder.isLastChunkQueued && !recorder.allChunksDone && recorder.totalChunks > 0) {
       return `Transcrevendo ${recorder.completedChunks}/${recorder.totalChunks}...`;
     }
+    if (recorder.hasErrors) return "Erro em segmentos. Revisar transcrição";
     return "Usar transcrição";
   };
 
@@ -88,6 +104,7 @@ export function AudioRecorder({
     recorder.isAssembling ||
     !recorder.isLastChunkQueued ||
     (!recorder.allChunksDone && recorder.totalChunks > 0);
+  const errorCount = recorder.chunks.filter((chunk) => chunk.status === "error").length;
 
   return (
     <div className="flex flex-col gap-4">
@@ -268,7 +285,13 @@ export function AudioRecorder({
           {recorder.hasErrors && (
             <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
               <AlertCircle className="w-3 h-3" />
-              Alguns segmentos falharam. A transcrição final pode estar incompleta.
+              Erro em {errorCount || chunkErrorCount} segmento(s). Revise antes de continuar.
+            </p>
+          )}
+          {recorder.finalizationWarning && (
+            <p className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1">
+              <AlertCircle className="w-3 h-3" />
+              {recorder.finalizationWarning}
             </p>
           )}
         </div>

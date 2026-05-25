@@ -30,6 +30,7 @@ import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
 import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims, EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK } from "../helpers/antiHallucination";
+import { CONSERVATIVE_DENTAL_PROMPT } from "../helpers/chunkTranscription";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { SOAPNote, TreatmentPlan } from "../../drizzle/schema";
 import { incrementClinicConsultationCount } from "../clinicBilling";
@@ -427,12 +428,10 @@ export const consultationsRouter = router({
         throw new Error(`Chunk ${input.chunkIndex} não encontrado`);
       }
 
-      const DENTAL_PROMPT = "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro. Identifique e marque cada falante usando 'Dentista:' ou 'Paciente:'. Termos técnicos odontológicos precisam ser transcritos com exatidão.";
-
       const result = await transcribeLongAudio({
         audioUrl: chunk.url,
         language: "pt",
-        prompt: DENTAL_PROMPT,
+        prompt: CONSERVATIVE_DENTAL_PROMPT,
       });
 
       if ("error" in result) {
@@ -600,12 +599,10 @@ export const consultationsRouter = router({
         await deleteAudioChunksByConsultation(input.consultationId);
       }
 
-      const DENTAL_PROMPT = "Transcrição de consulta odontológica clínica. Vocabulário esperado: cárie, restauração, canal, extração, implante, prótese, periodontia, ortodontia, radiografia, anestesia, dente 16, dente 21, FDI, SOAP, diagnóstico, plano de tratamento, hipótese diagnóstica, gengivite, molar, incisivo, obturação, profilaxia, clareamento, bruxismo, oclusão, endodontia. Diálogo entre dentista e paciente. Português brasileiro. Identifique e marque cada falante usando 'Dentista:' ou 'Paciente:'. Termos técnicos odontológicos precisam ser transcritos com exatidão.";
-
       const result = await transcribeLongAudio({
         audioUrl,
         language: "pt",
-        prompt: DENTAL_PROMPT,
+        prompt: CONSERVATIVE_DENTAL_PROMPT,
       });
 
       if ('error' in result) {

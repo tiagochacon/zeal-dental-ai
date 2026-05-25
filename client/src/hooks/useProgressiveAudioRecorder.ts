@@ -9,6 +9,8 @@ export interface ChunkTranscription {
   error?: string;
 }
 
+export type ChunkStatus = ChunkTranscription["status"];
+
 export interface ProgressiveRecorderOptions {
   /** Consultation ID to associate chunks with */
   consultationId: number;
@@ -35,6 +37,9 @@ async function blobToBase64(blob: Blob): Promise<string> {
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000;
+const IN_FLIGHT_STATUSES: ChunkStatus[] = ["pending", "uploading", "transcribing"];
+const ASSEMBLE_MAX_WAIT_MS = 90_000;
+const ASSEMBLE_POLL_INTERVAL_MS = 250;
 
 // Textos que indicam alucinação do Whisper — filtrados na montagem final
 const HALLUCINATION_MARKERS = [
@@ -43,6 +48,30 @@ const HALLUCINATION_MARKERS = [
   "consulta odontológica. português brasileiro.",
   "vocabulário esperado",
 ];
+
+export function hasInFlightChunks(chunks: ChunkTranscription[]): boolean {
+  return chunks.some((chunk) => IN_FLIGHT_STATUSES.includes(chunk.status));
+}
+
+export function countErroredChunks(chunks: ChunkTranscription[]): number {
+  return chunks.filter((chunk) => chunk.status === "error").length;
+}
+
+export function buildTranscriptFromChunks(chunks: ChunkTranscription[]): string {
+  return [...chunks]
+    .sort((a, b) => a.index - b.index)
+    .filter((chunk) => chunk.status === "done")
+    .map((chunk) => chunk.text.trim())
+    .filter(Boolean)
+    .filter((text) => {
+      const lower = text.toLowerCase();
+      const isHallucination =
+        text.length < 300 &&
+        HALLUCINATION_MARKERS.some((marker) => lower.includes(marker));
+      return !isHallucination;
+    })
+    .join("\n\n");
+}
 
 /**
  * Send chunk to backend: uploads to S3 + transcribes via Forge API (Whisper)
@@ -151,6 +180,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
   const [chunks, setChunks] = useState<ChunkTranscription[]>([]);
   const [finalTranscript, setFinalTranscript] = useState<string | null>(null);
   const [isAssembling, setIsAssembling] = useState(false);
+  const [finalizationWarning, setFinalizationWarning] = useState<string | null>(null);
   // Fix 1+4: Track whether the last chunk from stop() has been queued
   const [isLastChunkQueued, setIsLastChunkQueued] = useState(true);
 
@@ -163,6 +193,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
   const chunkTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const sessionIdRef = useRef<string>("");
   const segmentStartTimeRef = useRef<number>(0);
+  const chunksRef = useRef<ChunkTranscription[]>([]);
   // Serial queue: transcriptions go in order
   const transcriptionQueueRef = useRef<Promise<void>>(Promise.resolve());
   const stateRef = useRef<RecordingState>("idle");
@@ -175,15 +206,44 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     setState(s);
   };
 
+  const setChunksSync = useCallback(
+    (updater: ChunkTranscription[] | ((prev: ChunkTranscription[]) => ChunkTranscription[])) => {
+      setChunks((prev) => {
+        const next = typeof updater === "function" ? updater(prev) : updater;
+        chunksRef.current = next;
+        return next;
+      });
+    },
+    []
+  );
+
   // ─── Update a chunk in state ─────────────────────────────────────────────────
-  const updateChunk = (index: number, update: Partial<ChunkTranscription>) => {
-    setChunks((prev) => prev.map((c) => (c.index === index ? { ...c, ...update } : c)));
-  };
+  const updateChunk = useCallback(
+    (index: number, update: Partial<ChunkTranscription>) => {
+      setChunksSync((prev) =>
+        prev.map((chunk) => (chunk.index === index ? { ...chunk, ...update } : chunk))
+      );
+    },
+    [setChunksSync]
+  );
+
+  const markInFlightChunksAsError = useCallback(
+    (reason: string) => {
+      setChunksSync((prev) =>
+        prev.map((chunk) =>
+          IN_FLIGHT_STATUSES.includes(chunk.status)
+            ? { ...chunk, status: "error", text: "", error: reason }
+            : chunk
+        )
+      );
+    },
+    [setChunksSync]
+  );
 
   // ─── Dispatch blob → queue upload + transcription ───────────────────────────
   const dispatchChunkBlob = useCallback(
     (blob: Blob, index: number, segmentDurationMs: number) => {
-      setChunks((prev) => [...prev, { index, status: "uploading", text: "" }]);
+      setChunksSync((prev) => [...prev, { index, status: "uploading", text: "" }]);
 
       const sessionId = sessionIdRef.current;
       const durationSec = Math.round(segmentDurationMs / 1000);
@@ -208,7 +268,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
         }
       });
     },
-    [consultationId, onChunkTranscribed, onChunkError]
+    [consultationId, onChunkTranscribed, onChunkError, setChunksSync, updateChunk]
   );
 
   // ─── Start a fresh MediaRecorder segment ────────────────────────────────────
@@ -266,8 +326,10 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
       stopCompletePromiseRef.current = Promise.resolve();
       stopCompleteResolveRef.current = null;
 
+      chunksRef.current = [];
       setChunks([]);
       setFinalTranscript(null);
+      setFinalizationWarning(null);
       setAudioBlob(null);
       setAudioUrl(null);
       setDuration(0);
@@ -311,6 +373,11 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
         const full = new Blob(allRawBlobsRef.current, { type: mimeTypeRef.current });
         setAudioBlob(full);
         setAudioUrl(URL.createObjectURL(full));
+
+        if (chunkIndexRef.current === 0) {
+          const segmentDuration = Math.max(1, Date.now() - segmentStartTimeRef.current);
+          dispatchChunkBlob(full, chunkIndexRef.current++, segmentDuration);
+        }
       }
       streamRef.current?.getTracks().forEach((t) => t.stop());
       // No last chunk to dispatch, mark as queued immediately
@@ -385,6 +452,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
   // ─── assembleTranscript() — Fix 2+3: waits for stop + in-flight chunks ──────
   const assembleTranscript = useCallback(async (): Promise<string> => {
     setIsAssembling(true);
+    setFinalizationWarning(null);
 
     // Fix 2: Wait for stop()'s onstop to finish dispatching the last chunk
     if (stateRef.current === "stopped") {
@@ -394,69 +462,37 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     // Fix 3: Now capture and await the transcription queue (includes the last chunk)
     await transcriptionQueueRef.current;
 
-    // Fix 3: Poll for in-flight chunks that may still be processing
-    const MAX_WAIT_MS = 60_000;
-    const POLL_INTERVAL_MS = 200;
+    // Aguarda fila estabilizar. Em caso extremo de timeout, marca in-flight como erro explícito.
     const startWait = Date.now();
+    while (hasInFlightChunks(chunksRef.current)) {
+      if (Date.now() - startWait > ASSEMBLE_MAX_WAIT_MS) {
+        const timeoutReason =
+          "Tempo limite excedido ao aguardar segmentos pendentes. Revise os segmentos com erro.";
+        markInFlightChunksAsError(timeoutReason);
+        setFinalizationWarning(timeoutReason);
+        break;
+      }
+      await transcriptionQueueRef.current;
+      await new Promise((resolve) => setTimeout(resolve, ASSEMBLE_POLL_INTERVAL_MS));
+    }
 
-    await new Promise<void>((resolve) => {
-      const checkChunks = () => {
-        setChunks((currentChunks) => {
-          const hasInFlight = currentChunks.some(
-            (c) => c.status === "uploading" || c.status === "transcribing"
-          );
+    const errorCount = countErroredChunks(chunksRef.current);
+    if (errorCount > 0) {
+      const warning = `Erro em ${errorCount} segmento(s). Revise antes de continuar.`;
+      setFinalizationWarning(warning);
+      console.warn(
+        `[assembleTranscript] ${warning}`,
+        chunksRef.current
+          .filter((chunk) => chunk.status === "error")
+          .map((chunk) => `Seg.${chunk.index + 1}: ${chunk.error ?? "Erro desconhecido"}`)
+      );
+    }
 
-          if (!hasInFlight || Date.now() - startWait > MAX_WAIT_MS) {
-            if (hasInFlight) {
-              console.warn("[assembleTranscript] Timeout waiting for in-flight chunks after 30s");
-            }
-            resolve();
-          } else {
-            // Re-await the queue (it may have grown) and poll again
-            transcriptionQueueRef.current.then(() => {
-              setTimeout(checkChunks, POLL_INTERVAL_MS);
-            });
-          }
-          return currentChunks; // Don't mutate state
-        });
-      };
-      checkChunks();
-    });
-
-    // Build final transcript from completed chunks only
-    return new Promise((resolve) => {
-      setChunks((currentChunks) => {
-        const sorted = [...currentChunks].sort((a, b) => a.index - b.index);
-
-        // Log warning for error chunks
-        const errorChunks = sorted.filter((c) => c.status === "error");
-        if (errorChunks.length > 0) {
-          console.warn(
-            `[assembleTranscript] ${errorChunks.length} chunk(s) com erro, excluídos da transcrição:`,
-            errorChunks.map((c) => `Seg.${c.index + 1}: ${c.error}`)
-          );
-        }
-
-        const text = sorted
-          .filter((c) => c.status === "done")
-          .map((c) => c.text.trim())
-          .filter(Boolean)
-          // Filtrar textos de alucinação do Whisper que possam ter escapado do servidor
-          .filter((t) => {
-            const lower = t.toLowerCase();
-            const isHallucination =
-              t.length < 300 &&
-              HALLUCINATION_MARKERS.some((marker) => lower.includes(marker));
-            return !isHallucination;
-          })
-          .join("\n\n");
-        setFinalTranscript(text);
-        setIsAssembling(false);
-        resolve(text);
-        return currentChunks;
-      });
-    });
-  }, []);
+    const text = buildTranscriptFromChunks(chunksRef.current);
+    setFinalTranscript(text);
+    setIsAssembling(false);
+    return text;
+  }, [markInFlightChunksAsError]);
 
   // ─── reset() ─────────────────────────────────────────────────────────────────
   const reset = useCallback(() => {
@@ -464,9 +500,11 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     setDuration(0);
     setAudioBlob(null);
     setAudioUrl(null);
+    chunksRef.current = [];
     setChunks([]);
     setFinalTranscript(null);
     setIsAssembling(false);
+    setFinalizationWarning(null);
     setIsLastChunkQueued(true); // Fix: reset to true (idle state has no pending stop)
     allRawBlobsRef.current = [];
     chunkIndexRef.current = 0;
@@ -498,6 +536,7 @@ export function useProgressiveAudioRecorder(options: ProgressiveRecorderOptions)
     chunks,
     finalTranscript,
     isAssembling,
+    finalizationWarning,
     isLastChunkQueued, // Fix 4: exposed for UI to disable button
     recordingSessionId: sessionIdRef.current,
     start,
