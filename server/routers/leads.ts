@@ -11,6 +11,8 @@ import {
   convertLeadToPatient,
   getUserById,
   getCallsByLead,
+  getCallsByClinic,
+  getCallsByCRC,
 } from "../db";
 import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
 import { EVIDENCE_REQUIRED_BLOCK } from "../helpers/antiHallucination";
@@ -228,9 +230,65 @@ export const leadsRouter = router({
       }
 
       if (user.clinicRole === "gestor") {
-        return await getLeadsByClinic(user.clinicId);
+        const [leads, calls] = await Promise.all([
+          getLeadsByClinic(user.clinicId),
+          getCallsByClinic(user.clinicId),
+        ]);
+        const lastInteractionByLead = new Map<number, number>();
+        for (const call of calls) {
+          const leadId = Number((call as any).leadId);
+          if (!leadId) continue;
+          const ts = new Date((call as any).createdAt || 0).getTime();
+          if (!Number.isFinite(ts)) continue;
+          const prev = lastInteractionByLead.get(leadId) ?? 0;
+          if (ts > prev) lastInteractionByLead.set(leadId, ts);
+        }
+        return [...leads]
+          .map((lead: any) => ({
+            ...lead,
+            lastInteractionAt: lastInteractionByLead.get(Number(lead.id))
+              ? new Date(lastInteractionByLead.get(Number(lead.id))!).toISOString()
+              : null,
+          }))
+          .sort((a: any, b: any) => {
+            const aTs = a.lastInteractionAt
+              ? new Date(a.lastInteractionAt).getTime()
+              : new Date(a.updatedAt || a.createdAt || 0).getTime();
+            const bTs = b.lastInteractionAt
+              ? new Date(b.lastInteractionAt).getTime()
+              : new Date(b.updatedAt || b.createdAt || 0).getTime();
+            return bTs - aTs;
+          });
       } else if (user.clinicRole === "crc") {
-        return await getLeadsByCRC(ctx.user.id);
+        const [leads, calls] = await Promise.all([
+          getLeadsByCRC(ctx.user.id),
+          getCallsByCRC(ctx.user.id),
+        ]);
+        const lastInteractionByLead = new Map<number, number>();
+        for (const call of calls) {
+          const leadId = Number((call as any).leadId);
+          if (!leadId) continue;
+          const ts = new Date((call as any).createdAt || 0).getTime();
+          if (!Number.isFinite(ts)) continue;
+          const prev = lastInteractionByLead.get(leadId) ?? 0;
+          if (ts > prev) lastInteractionByLead.set(leadId, ts);
+        }
+        return [...leads]
+          .map((lead: any) => ({
+            ...lead,
+            lastInteractionAt: lastInteractionByLead.get(Number(lead.id))
+              ? new Date(lastInteractionByLead.get(Number(lead.id))!).toISOString()
+              : null,
+          }))
+          .sort((a: any, b: any) => {
+            const aTs = a.lastInteractionAt
+              ? new Date(a.lastInteractionAt).getTime()
+              : new Date(a.updatedAt || a.createdAt || 0).getTime();
+            const bTs = b.lastInteractionAt
+              ? new Date(b.lastInteractionAt).getTime()
+              : new Date(b.updatedAt || b.createdAt || 0).getTime();
+            return bTs - aTs;
+          });
       }
 
       return [];

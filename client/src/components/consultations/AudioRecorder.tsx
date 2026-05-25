@@ -94,10 +94,10 @@ export function AudioRecorder({
       {/* Main recording card */}
       <div
         className={cn(
-          "rounded-2xl border p-6 flex flex-col items-center gap-4 transition-all duration-300",
-          recorder.isRecording && "border-red-400 bg-red-50 dark:bg-red-950/20",
-          recorder.isPaused && "border-yellow-400 bg-yellow-50 dark:bg-yellow-950/20",
-          recorder.isStopped && "border-green-400 bg-green-50 dark:bg-green-950/20",
+          "rounded-2xl border p-6 flex flex-col items-center gap-4 transition-all duration-300 bg-card",
+          recorder.isRecording && "border-red-400/70 bg-red-950/15",
+          recorder.isPaused && "border-yellow-400/70 bg-yellow-950/15",
+          recorder.isStopped && "border-green-400/70 bg-green-950/15",
           !recorder.isRecording &&
             !recorder.isPaused &&
             !recorder.isStopped &&
@@ -108,7 +108,7 @@ export function AudioRecorder({
         <div
           className={cn(
             "w-16 h-16 rounded-full flex items-center justify-center transition-colors",
-            recorder.isRecording ? "bg-red-100 dark:bg-red-900/40" : "bg-muted"
+            recorder.isRecording ? "bg-red-500/20" : recorder.isPaused ? "bg-yellow-500/20" : recorder.isStopped ? "bg-green-500/20" : "bg-muted"
           )}
         >
           {recorder.isRecording ? (

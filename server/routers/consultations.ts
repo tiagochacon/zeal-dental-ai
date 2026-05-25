@@ -20,6 +20,7 @@ import {
   deleteConsultation,
   getUserById,
   incrementConsultationCount,
+  getPatientById,
 } from "../db";
 import { storagePut, storageDelete } from "../storage";
 import { transcribeLongAudio } from "../_core/voiceTranscription";
@@ -153,6 +154,71 @@ export const consultationsRouter = router({
         return await getConsultationsByPatientAll(input.patientId);
       }
       return await getConsultationsByPatient(input.patientId, ctx.user.id);
+    }),
+
+  markAttendance: protectedProcedure
+    .input(z.object({
+      patientId: z.number(),
+      attendanceStatus: z.enum(["attended", "missed"]),
+      consultationId: z.number().optional(),
+    }))
+    .mutation(async ({ ctx, input }) => {
+      const patient = await getPatientById(input.patientId);
+      if (!patient) {
+        throw new Error("Paciente não encontrado");
+      }
+
+      const sameClinic = ctx.user.clinicId && patient.clinicId === ctx.user.clinicId;
+      const isOwnerDentist = patient.dentistId === ctx.user.id;
+      const isGestor = ctx.user.clinicRole === "gestor" || ctx.user.role === "admin";
+      if (!isOwnerDentist && !(sameClinic && isGestor)) {
+        throw new Error("Paciente não encontrado ou acesso negado");
+      }
+
+      const consultations = await getConsultationsByPatientAll(patient.id);
+      const hasRecordedEvaluation = consultations.some((c: any) => {
+        const hasTranscript = typeof c.transcript === "string" && c.transcript.trim().length > 0;
+        const hasAudio = typeof c.audioUrl === "string" && c.audioUrl.trim().length > 0;
+        return hasTranscript || hasAudio;
+      });
+      if (hasRecordedEvaluation) {
+        throw new Error("Este paciente já possui avaliação registrada. A marcação manual não é necessária.");
+      }
+
+      const now = new Date().toISOString();
+      const targetConsultationId = input.consultationId
+        ?? consultations[0]?.id
+        ?? null;
+
+      if (targetConsultationId) {
+        await updateConsultation(targetConsultationId, {
+          attendanceStatus: input.attendanceStatus,
+          attendanceMarkedAt: now,
+          attendanceMarkedByUserId: ctx.user.id,
+          status: "finalized",
+          finalizedAt: new Date(now),
+        });
+      } else {
+        const created = await createConsultation({
+          dentistId: patient.dentistId || ctx.user.id,
+          patientId: patient.id,
+          patientName: patient.name,
+          status: "finalized",
+          templateUsed: "attendance_manual",
+          attendanceStatus: input.attendanceStatus,
+          attendanceMarkedAt: now,
+          attendanceMarkedByUserId: ctx.user.id,
+        } as any);
+        await updateConsultation(created.id, {
+          attendanceStatus: input.attendanceStatus,
+          attendanceMarkedAt: now,
+          attendanceMarkedByUserId: ctx.user.id,
+          status: "finalized",
+          finalizedAt: new Date(now),
+        });
+      }
+
+      return { success: true };
     }),
 
   getTreatmentPlan: protectedProcedure

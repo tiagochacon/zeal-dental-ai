@@ -402,6 +402,7 @@ function PatientDetailSheet({
 }) {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
+  const utils = trpc.useUtils();
 
   const { data: patientConsultations = [] } = trpc.consultations.getByPatient.useQuery(
     { patientId: patient?.id ?? 0 },
@@ -447,6 +448,33 @@ function PatientDetailSheet({
   const displayPerfil = discPerfil ?? legacyPerfil ?? null;
   const crcCallProfile = crcCallProfileRaw as typeof crcCallProfileRaw;
   const crcNeurovendas = leadData?.neurovendasAnalysis as any;
+  const hasRecordedEvaluation = patientConsultations.some((c: any) => {
+    const hasTranscript = typeof c?.transcript === "string" && c.transcript.trim().length > 0;
+    const hasAudio = typeof c?.audioUrl === "string" && c.audioUrl.trim().length > 0;
+    return hasTranscript || hasAudio;
+  });
+
+  const markAttendanceMutation = trpc.consultations.markAttendance.useMutation({
+    onSuccess: () => {
+      toast.success("Comparecimento atualizado com sucesso.");
+      utils.consultations.getByPatient.invalidate({ patientId: patient?.id ?? 0 });
+      utils.patients.list.invalidate();
+      utils.clinic.getStats.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "Não foi possível atualizar comparecimento.");
+    },
+  });
+
+  const handleMarkAttendance = (attendanceStatus: "attended" | "missed") => {
+    if (!patient) return;
+    const label = attendanceStatus === "attended" ? "compareceu" : "não compareceu";
+    if (!confirm(`Confirmar que o paciente ${label}?`)) return;
+    markAttendanceMutation.mutate({
+      patientId: patient.id,
+      attendanceStatus,
+    });
+  };
 
   if (!patient) return null;
 
@@ -796,6 +824,34 @@ function PatientDetailSheet({
             </Button>
           </div>
 
+          {!hasRecordedEvaluation && (
+            <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-3">
+              <p className="text-xs text-amber-300 mb-2">
+                Sem avaliação gravada para este paciente. Marque o comparecimento manualmente para manter os indicadores corretos.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-green-500/40 text-green-400 hover:bg-green-500/10"
+                  disabled={markAttendanceMutation.isPending}
+                  onClick={() => handleMarkAttendance("attended")}
+                >
+                  Compareceu
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="border-red-500/40 text-red-400 hover:bg-red-500/10"
+                  disabled={markAttendanceMutation.isPending}
+                  onClick={() => handleMarkAttendance("missed")}
+                >
+                  Não compareceu
+                </Button>
+              </div>
+            </div>
+          )}
+
           {patientConsultations.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-8 text-center">
               <FileText className="h-8 w-8 text-muted-foreground mb-2" />
@@ -815,6 +871,12 @@ function PatientDetailSheet({
                       <p className="text-sm font-medium">
                         {new Date(consultation.createdAt).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' })}
                       </p>
+                      {(consultation as any).attendanceStatus === "attended" && (
+                        <p className="text-xs text-green-400 mt-0.5">Comparecimento manual: compareceu</p>
+                      )}
+                      {(consultation as any).attendanceStatus === "missed" && (
+                        <p className="text-xs text-red-400 mt-0.5">Comparecimento manual: não compareceu</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {statusCfg && (
@@ -882,8 +944,8 @@ export default function Patients() {
       toast.success("Paciente removido com sucesso!");
       utils.patients.list.invalidate();
     },
-    onError: () => {
-      toast.error("Erro ao remover paciente. Tente novamente.");
+    onError: (err) => {
+      toast.error(err.message || "Erro ao remover paciente. Tente novamente.");
     },
   });
 

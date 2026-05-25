@@ -294,6 +294,10 @@ export const consultations = mysqlTable("consultations", {
   // Treatment closed tracking
   treatmentClosed: boolean("treatmentClosed"),
   treatmentClosedNotes: text("treatmentClosedNotes"),
+  // Manual attendance fallback when no recorded evaluation exists
+  attendanceStatus: mysqlEnum("attendanceStatus", ["unknown", "attended", "missed"]).default("unknown"),
+  attendanceMarkedAt: timestamp("attendanceMarkedAt"),
+  attendanceMarkedByUserId: int("attendanceMarkedByUserId"),
 
   // Odontogram data (stored as JSON in Supabase, text in schema for MySQL compat)
   odontogramData: text("odontogramData"),

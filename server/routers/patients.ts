@@ -83,7 +83,15 @@ export const patientsRouter = router({
         return `${yyyy}-${mm}-${dd}` === input.scheduledDate;
       });
     }
-    return filtered;
+    const sorted = [...filtered].sort((a: any, b: any) => {
+      const aTs = a?.scheduledAt ? new Date(a.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+      const bTs = b?.scheduledAt ? new Date(b.scheduledAt).getTime() : Number.POSITIVE_INFINITY;
+      if (aTs !== bTs) return aTs - bTs; // closest scheduled date first
+      const aUpdated = a?.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+      const bUpdated = b?.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+      return bUpdated - aUpdated;
+    });
+    return sorted;
   }),
 
   getById: protectedProcedure

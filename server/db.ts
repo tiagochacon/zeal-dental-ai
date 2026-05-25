@@ -342,16 +342,37 @@ export async function updatePatient(id: number, data: Partial<InsertPatient>): P
 
 export async function deletePatient(id: number): Promise<void> {
   // Get consultations first to cascade delete feedbacks and audioChunks
-  const { data: patientConsultations } = await supabase
+  const { data: patientConsultations, error: consultationsReadError } = await supabase
     .from("Consultations")
     .select("id")
     .eq("patientId", id);
+  assertNoError(consultationsReadError, "deletePatient.readConsultations");
 
   for (const c of patientConsultations ?? []) {
-    await supabase.from("Feedbacks").delete().eq("consultationId", c.id);
-    await supabase.from("AudioChunks").delete().eq("consultationId", c.id);
+    const { error: feedbackError } = await supabase.from("Feedbacks").delete().eq("consultationId", c.id);
+    assertNoError(feedbackError, "deletePatient.deleteFeedbacks");
+    const { error: chunksError } = await supabase.from("AudioChunks").delete().eq("consultationId", c.id);
+    assertNoError(chunksError, "deletePatient.deleteAudioChunks");
   }
-  await supabase.from("Consultations").delete().eq("patientId", id);
+
+  const { error: assignmentsError } = await supabase
+    .from("PatientDentistAssignments")
+    .delete()
+    .eq("patientId", id);
+  assertNoError(assignmentsError, "deletePatient.deleteAssignments");
+
+  const { error: consultationsDeleteError } = await supabase
+    .from("Consultations")
+    .delete()
+    .eq("patientId", id);
+  assertNoError(consultationsDeleteError, "deletePatient.deleteConsultations");
+
+  const { error: resetLeadsError } = await supabase
+    .from("Leads")
+    .update({ convertedPatientId: null, isConverted: false })
+    .eq("convertedPatientId", String(id));
+  assertNoError(resetLeadsError, "deletePatient.resetConvertedLeads");
+
   const { error } = await supabase.from("Patients").delete().eq("id", id);
   assertNoError(error, "deletePatient");
 }
@@ -455,6 +476,9 @@ export async function updateConsultation(
     odontogramData: unknown | null;
     treatmentClosed: boolean | null;
     status: "draft" | "transcribed" | "reviewed" | "finalized";
+    attendanceStatus: "unknown" | "attended" | "missed" | null;
+    attendanceMarkedAt: string | null;
+    attendanceMarkedByUserId: number | null;
     finalizedAt: Date | null;
   }>
 ): Promise<void> {
@@ -1193,12 +1217,18 @@ export async function getClinicStats(clinicId: number) {
   const { data: clinicPatients } = await supabase.from("Patients").select("id").eq("clinicId", clinicId);
   const clinicPatientIds = new Set((clinicPatients ?? []).map((p: { id: number }) => p.id));
 
-  const consultationMap = new Map<number, { id: number; treatmentClosed: boolean }>();
+  const consultationMap = new Map<number, {
+    id: number;
+    treatmentClosed: boolean;
+    transcript: string | null;
+    audioUrl: string | null;
+    attendanceStatus: "unknown" | "attended" | "missed" | null;
+  }>();
 
   if (memberIds.length > 0) {
     const { data: dentistConsultations } = await supabase
       .from("Consultations")
-      .select("id, treatmentClosed")
+      .select("id, treatmentClosed, transcript, audioUrl, attendanceStatus")
       .in("dentistId", memberIds);
     for (const c of dentistConsultations ?? []) consultationMap.set(c.id, c);
   }
@@ -1206,13 +1236,16 @@ export async function getClinicStats(clinicId: number) {
   if (clinicPatientIds.size > 0) {
     const { data: patientConsultations } = await supabase
       .from("Consultations")
-      .select("id, treatmentClosed")
+      .select("id, treatmentClosed, transcript, audioUrl, attendanceStatus")
       .in("patientId", Array.from(clinicPatientIds));
     for (const c of patientConsultations ?? []) consultationMap.set(c.id, c);
   }
 
   const allClinicConsultations = Array.from(consultationMap.values());
-  const totalConsultations = allClinicConsultations.length;
+  const totalConsultations = allClinicConsultations.filter((c) => {
+    const hasRecordedEvaluation = Boolean((c.transcript || "").trim()) || Boolean(c.audioUrl);
+    return hasRecordedEvaluation || c.attendanceStatus === "attended";
+  }).length;
 
   // Build a Set of consultationIds with treatmentClosed=true from the Feedbacks table
   // in a single query to avoid N+1 and to correctly merge both sources of truth
