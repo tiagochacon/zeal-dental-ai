@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildConservativeChunkPrompt,
   detectChunkHallucination,
+  isRecoverableWhisperChunkError,
   resolveAudioExtensionForMimeType,
 } from "./helpers/chunkTranscription";
 
@@ -34,5 +35,17 @@ describe("chunk transcription helpers", () => {
       []
     );
     expect(result.isHallucination).toBe(true);
+  });
+
+  it("classifies recoverable final-chunk whisper errors", () => {
+    expect(
+      isRecoverableWhisperChunkError(400, "Invalid file format: could not be decoded")
+    ).toBe(true);
+    expect(
+      isRecoverableWhisperChunkError(422, "unprocessable entity", 5)
+    ).toBe(true);
+    expect(
+      isRecoverableWhisperChunkError(500, "upstream timeout", 5)
+    ).toBe(false);
   });
 });

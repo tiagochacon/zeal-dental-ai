@@ -15,6 +15,16 @@ export type HallucinationResult = {
   reason: string;
 };
 
+const RECOVERABLE_WHISPER_ERROR_PATTERNS = [
+  "could not be decoded",
+  "format is not supported",
+  "invalid file format",
+  "invalid audio",
+  "failed to read",
+  "error while decoding",
+  "invalid data found when processing input",
+];
+
 export function resolveAudioExtensionForMimeType(mimeType: string): string {
   const normalized = mimeType.toLowerCase();
   if (normalized.includes("webm")) return "webm";
@@ -103,4 +113,26 @@ export function detectChunkHallucination(
   }
 
   return { isHallucination: false, reason: "" };
+}
+
+export function isRecoverableWhisperChunkError(
+  statusCode: number,
+  errorBody: string,
+  durationSeconds?: number
+): boolean {
+  const normalizedBody = (errorBody || "").toLowerCase();
+
+  const hasRecoverablePattern = RECOVERABLE_WHISPER_ERROR_PATTERNS.some((pattern) =>
+    normalizedBody.includes(pattern)
+  );
+  if (hasRecoverablePattern) {
+    return true;
+  }
+
+  const isClientFormatLikeError = statusCode === 400 || statusCode === 415 || statusCode === 422;
+  if (isClientFormatLikeError && typeof durationSeconds === "number" && durationSeconds <= 8) {
+    return true;
+  }
+
+  return false;
 }
