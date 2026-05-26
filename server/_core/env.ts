@@ -22,6 +22,13 @@ function getEnvVar(key: string, defaultValue?: string): string {
   return value.trim();
 }
 
+function getBooleanEnvVar(key: string, defaultValue: boolean): boolean {
+  const raw = process.env[key];
+  if (!raw || raw.trim() === "") return defaultValue;
+  const normalized = raw.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes";
+}
+
 // Validate all environment variables on startup
 export const ENV = {
   appId: getEnvVar("VITE_APP_ID"),
@@ -37,8 +44,10 @@ export const ENV = {
   forgeApiKey: getEnvVar("BUILT_IN_FORGE_API_KEY"),
   resendApiKey: getEnvVar("RESEND_API_KEY", ""),
   adminPassword: getEnvVar("ADMIN_PASSWORD"),
-  consultationStreamingAsrEnabled:
-    getEnvVar("CONSULTATION_STREAMING_ASR_ENABLED", "false") === "true",
+  consultationStreamingAsrEnabled: getBooleanEnvVar(
+    "CONSULTATION_STREAMING_ASR_ENABLED",
+    true
+  ),
   consultationStreamingAsrProvider: getEnvVar(
     "CONSULTATION_STREAMING_ASR_PROVIDER",
     "assemblyai"

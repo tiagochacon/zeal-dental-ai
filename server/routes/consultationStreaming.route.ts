@@ -2,6 +2,7 @@ import { createHash } from "crypto";
 import type { IncomingMessage } from "http";
 import type { Server as HttpServer } from "http";
 import type { Duplex } from "stream";
+import { ENV } from "../_core/env";
 import { sdk } from "../_core/sdk";
 import { getConsultationById, getUserById } from "../db";
 import { ConsultationStreamingSession } from "../ai/stt/streaming/consultationStreamingSession";
@@ -143,7 +144,7 @@ export function registerConsultationStreamingWs(server: HttpServer): void {
       const consultationId = parseConsultationId(pathname);
       if (!consultationId) return;
 
-      if (process.env.CONSULTATION_STREAMING_ASR_ENABLED !== "true") {
+      if (!ENV.consultationStreamingAsrEnabled) {
         socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
         socket.destroy();
         return;
@@ -175,7 +176,7 @@ export function registerConsultationStreamingWs(server: HttpServer): void {
       socket.write(responseHeaders.join("\r\n"));
 
       const provider =
-        (process.env.CONSULTATION_STREAMING_ASR_PROVIDER || "assemblyai") as
+        (ENV.consultationStreamingAsrProvider || "assemblyai") as
           | "assemblyai"
           | "deepgram"
           | "openai";
@@ -217,12 +218,32 @@ export function registerConsultationStreamingWs(server: HttpServer): void {
             };
 
             if (message.type === "start" && !started) {
-              started = true;
-              await session.start();
+              try {
+                await session.start();
+                started = true;
+              } catch (error) {
+                const details =
+                  error instanceof Error
+                    ? error.message
+                    : "Falha ao iniciar sessão de streaming";
+                sendJson(socket, {
+                  type: "error",
+                  sessionId: "unknown",
+                  consultationId,
+                  error: details,
+                  provider,
+                  createdAt: new Date().toISOString(),
+                });
+                sendClose(socket);
+              }
               continue;
             }
 
-            if (message.type === "stop") {
+            if (
+              message.type === "stop" ||
+              message.type === "client_stop_requested" ||
+              message.type === "client_final_flush"
+            ) {
               session.stop();
               continue;
             }

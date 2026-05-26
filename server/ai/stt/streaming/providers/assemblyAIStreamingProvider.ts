@@ -79,20 +79,51 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
     this.sampleRate = options?.sampleRate || 16000;
   }
 
+  private async createStreamingToken(): Promise<string> {
+    const maxDurationSeconds = 60 * 60;
+    const url = new URL("https://streaming.assemblyai.com/v3/token");
+    url.searchParams.set(
+      "max_session_duration_seconds",
+      String(maxDurationSeconds)
+    );
+
+    const response = await fetch(url.toString(), {
+      method: "GET",
+      headers: {
+        Authorization: this.apiKey,
+      },
+    });
+
+    if (!response.ok) {
+      const details = await response.text().catch(() => "");
+      throw new Error(
+        `Falha ao criar token temporário da AssemblyAI (${response.status}): ${details || "sem detalhes"}`
+      );
+    }
+
+    const body = (await response.json().catch(() => null)) as
+      | { token?: string }
+      | null;
+    const token = body?.token?.trim();
+    if (!token) {
+      throw new Error("AssemblyAI não retornou token temporário válido");
+    }
+    return token;
+  }
+
   public async start(): Promise<void> {
     if (!this.apiKey) {
       throw new Error("ASSEMBLYAI_API_KEY não configurada");
     }
 
+    const ephemeralToken = await this.createStreamingToken();
     const endpoint = new URL("wss://streaming.assemblyai.com/v3/ws");
     endpoint.searchParams.set("sample_rate", String(this.sampleRate));
     endpoint.searchParams.set("speech_model", this.model);
     endpoint.searchParams.set("speaker_labels", "true");
     endpoint.searchParams.set("format_turns", "true");
-
-    // AssemblyAI supports token query for browser/stream clients.
-    // We keep the key only on backend and never expose to frontend.
-    endpoint.searchParams.set("token", this.apiKey);
+    // Use an ephemeral token instead of sending the API key to the socket URL.
+    endpoint.searchParams.set("token", ephemeralToken);
 
     await new Promise<void>((resolve, reject) => {
       const ws = new WebSocket(endpoint.toString());

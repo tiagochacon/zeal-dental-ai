@@ -264,6 +264,20 @@ export function useConsultationLiveTranscription(consultationId: number) {
       const ws = new WebSocket(getSocketUrl(consultationId));
       socketRef.current = ws;
       ws.binaryType = "arraybuffer";
+      let startAcked = false;
+      let settled = false;
+
+      const settleResolve = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+
+      const settleReject = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
 
       ws.onopen = () => {
         ws.send(JSON.stringify({ type: "start" }));
@@ -274,7 +288,6 @@ export function useConsultationLiveTranscription(consultationId: number) {
         for (const packet of recentPackets) {
           ws.send(packet.payload);
         }
-        resolve();
       };
 
       ws.onmessage = (message) => {
@@ -284,6 +297,15 @@ export function useConsultationLiveTranscription(consultationId: number) {
               ? message.data
               : new TextDecoder().decode(message.data as ArrayBuffer);
           const event = JSON.parse(rawText) as LiveSocketEvent;
+          if (event.type === "session_started") {
+            startAcked = true;
+            settleResolve();
+          }
+          if (event.type === "error" && !startAcked) {
+            settleReject(
+              new Error(event.error || "Falha ao iniciar sessão de streaming.")
+            );
+          }
           handleSocketEvent(event);
         } catch {
           setWarnings((prev) =>
@@ -293,10 +315,19 @@ export function useConsultationLiveTranscription(consultationId: number) {
       };
 
       ws.onerror = () => {
-        reject(new Error("Não foi possível conectar ao streaming de consulta."));
+        settleReject(
+          new Error("Não foi possível conectar ao streaming de consulta.")
+        );
       };
 
       ws.onclose = () => {
+        if (!startAcked) {
+          settleReject(
+            new Error(
+              "Sessão de streaming foi encerrada antes de confirmar inicialização."
+            )
+          );
+        }
         const currentState = stateRef.current;
         const isActive =
           currentState === "recording" ||
@@ -463,7 +494,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
     clearTimer();
 
     if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify({ type: "stop" }));
+      socketRef.current.send(JSON.stringify({ type: "client_stop_requested" }));
     }
 
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
@@ -512,6 +543,10 @@ export function useConsultationLiveTranscription(consultationId: number) {
 
     if (connectionState === "reconnecting") {
       await attemptReconnect();
+    }
+
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({ type: "client_final_flush" }));
     }
 
     const startedWaitingAt = Date.now();

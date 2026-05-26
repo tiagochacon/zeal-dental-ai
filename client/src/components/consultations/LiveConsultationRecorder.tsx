@@ -43,8 +43,12 @@ export function LiveConsultationRecorder({
   const handleStart = async () => {
     try {
       await recorder.start();
-    } catch {
-      onError?.("Não foi possível iniciar o streaming da consulta.");
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Não foi possível iniciar o streaming da consulta.";
+      onError?.(message);
     }
   };
 
@@ -214,7 +218,10 @@ export function LiveConsultationRecorder({
         )}
       </div>
 
-      {(recorder.partialText || recorder.segments.length > 0) && (
+      {(recorder.partialText ||
+        recorder.segments.length > 0 ||
+        recorder.isRecording ||
+        recorder.isPaused) && (
         <div className="rounded-xl border bg-card p-4 space-y-3">
           <p className="text-sm font-medium">Legenda ao vivo</p>
 
@@ -234,6 +241,12 @@ export function LiveConsultationRecorder({
               <p className="text-xs font-medium text-muted-foreground mb-1">Parcial (mutável)</p>
               <p className="text-sm leading-relaxed">{recorder.partialText}</p>
             </div>
+          )}
+
+          {!recorder.partialText && recorder.segments.length === 0 && (
+            <p className="text-xs text-muted-foreground">
+              Aguardando primeiras falas para exibir a legenda em tempo real...
+            </p>
           )}
         </div>
       )}

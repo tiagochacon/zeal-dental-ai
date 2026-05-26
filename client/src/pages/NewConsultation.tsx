@@ -79,8 +79,12 @@ export default function NewConsultation() {
   const uploadAudioMutation = trpc.consultations.uploadAudio.useMutation();
   const updateTranscriptMutation = trpc.consultations.updateTranscript.useMutation();
   const transcribeConsultationMutation = trpc.consultations.transcribe.useMutation();
+  const forceLegacyConsultationRecorder =
+    String(import.meta.env.VITE_CONSULTATION_STREAMING_FORCE_LEGACY || "false").toLowerCase() ===
+    "true";
   const consultationStreamingEnabled =
-    String(import.meta.env.VITE_CONSULTATION_STREAMING_ASR_ENABLED || "false").toLowerCase() ===
+    !forceLegacyConsultationRecorder &&
+    String(import.meta.env.VITE_CONSULTATION_STREAMING_ASR_ENABLED || "true").toLowerCase() ===
     "true";
 
   // Cleanup on unmount

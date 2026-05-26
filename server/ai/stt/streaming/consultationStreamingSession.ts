@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import { ENV } from "../../../_core/env";
 import { AssemblyAIStreamingProvider } from "./providers/assemblyAIStreamingProvider";
 import type {
   ConsultationStreamingProvider,
@@ -116,12 +117,16 @@ export class ConsultationStreamingSession {
         `Provider ${this.providerKind} ainda não implementado para consulta streaming`
       );
     }
+    if (!ENV.assemblyAiApiKey) {
+      throw new Error(
+        "Streaming AssemblyAI indisponível: ASSEMBLYAI_API_KEY não configurada no backend."
+      );
+    }
     return new AssemblyAIStreamingProvider(this.buildProviderCallbacks(), {
-      model: (process.env.CONSULTATION_STREAMING_ASSEMBLYAI_MODEL ||
-        "universal-streaming-multilingual") as
+      model: ENV.consultationStreamingAssemblyAIModel as
         | "u3-rt-pro"
         | "universal-streaming-multilingual",
-      sampleRate: Number(process.env.CONSULTATION_STREAMING_SAMPLE_RATE || "16000"),
+      sampleRate: ENV.consultationStreamingSampleRate,
     });
   }
 
