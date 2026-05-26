@@ -17,7 +17,10 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { CONSERVATIVE_DENTAL_PROMPT } from "../helpers/chunkTranscription";
-import { transcribeAudio as transcribeWithProviders } from "../ai/stt";
+import {
+  postProcessTranscript,
+  transcribeAudio as transcribeWithProviders,
+} from "../ai/stt";
 
 const execFileAsync = promisify(execFile);
 
@@ -194,8 +197,14 @@ async function transcribeAudioDirect(
       enableDiarization: false,
       prompt,
     });
+    const processed = postProcessTranscript(result);
+    if (processed.warnings.length > 0) {
+      console.warn(
+        `[Transcription] pós-processamento conservador gerou warnings: ${processed.warnings.join(" | ")}`
+      );
+    }
 
-    const segments: WhisperSegment[] = result.segments.map((segment, index) => ({
+    const segments: WhisperSegment[] = processed.segments.map((segment, index) => ({
       id: index,
       seek: 0,
       start: segment.start ?? 0,
@@ -220,7 +229,7 @@ async function transcribeAudioDirect(
       task: "transcribe",
       language: options.language || "pt",
       duration,
-      text: result.transcript,
+      text: processed.processedTranscript || processed.transcript,
       segments,
     };
   } catch (error) {

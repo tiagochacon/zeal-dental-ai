@@ -16,6 +16,7 @@ import {
   isRecoverableWhisperChunkError,
   resolveAudioExtensionForMimeType,
 } from "../helpers/chunkTranscription";
+import { summarizeChunkIntegrity } from "../helpers/chunkIntegrity";
 
 export const transcribeRouter = Router();
 
@@ -76,6 +77,8 @@ transcribeRouter.post("/", async (req, res) => {
     recordingSessionId,
     chunkIndex,
     durationSeconds,
+    force,
+    expectedTotalChunks,
   } = req.body as {
     audioBase64: string;
     mimeType: string;
@@ -83,6 +86,8 @@ transcribeRouter.post("/", async (req, res) => {
     recordingSessionId: string;
     chunkIndex: number;
     durationSeconds?: number;
+    force?: boolean;
+    expectedTotalChunks?: number;
   };
 
   if (
@@ -104,12 +109,39 @@ transcribeRouter.post("/", async (req, res) => {
     `[TranscribeChunk] Chunk ${chunkIndex} for consultation ${consultationId}: ${(rawSizeBytes / 1024).toFixed(1)}KB, type: ${mimeType}`
   );
 
-  // Skip silence/noise (< 1KB)
-  if (rawSizeBytes < 1024) {
+  // Skip silence/noise (< 1KB) unless final flush forces upload.
+  if (rawSizeBytes < 1024 && !force) {
     console.log(
       `[TranscribeChunk] Chunk ${chunkIndex} too small (${rawSizeBytes}B), skipping`
     );
-    return res.json({ transcript: "", chunkIndex, status: "done" });
+    try {
+      await createAudioChunk({
+        consultationId,
+        recordingSessionId,
+        chunkIndex,
+        fileKey: `small-chunk-${chunkIndex}`,
+        url: "",
+        mimeType,
+        sizeBytes: rawSizeBytes,
+        durationSeconds: durationSeconds || null,
+        transcriptionStatus: "done",
+      });
+      await updateAudioChunkTranscript(
+        consultationId,
+        recordingSessionId,
+        chunkIndex,
+        ""
+      );
+    } catch {}
+    return res.json({
+      id: `chunk-${chunkIndex}`,
+      chunkIndex,
+      processed: true,
+      status: "done",
+      transcript: "",
+      warning: "Chunk pequeno tratado como vazio.",
+      force: false,
+    });
   }
 
   // ─── STEP 1: Upload raw chunk to S3 (fatal — sem S3 não tem como recuperar) ─
@@ -124,7 +156,9 @@ transcribeRouter.post("/", async (req, res) => {
     console.error(`[TranscribeChunk] S3 upload failed for chunk ${chunkIndex}:`, s3Err?.message);
     return res.status(500).json({
       error: `Falha no upload do áudio: ${s3Err?.message ?? "Erro S3"}`,
+      id: `chunk-${chunkIndex}`,
       chunkIndex,
+      processed: false,
       status: "error",
     });
   }
@@ -166,7 +200,13 @@ transcribeRouter.post("/", async (req, res) => {
         "Forge API not configured"
       );
     } catch {}
-    return res.status(500).json({ error: "Serviço de transcrição não configurado" });
+    return res.status(500).json({
+      error: "Serviço de transcrição não configurado",
+      id: `chunk-${chunkIndex}`,
+      chunkIndex,
+      processed: false,
+      status: "error",
+    });
   }
 
   // ─── STEP 5: Build prompt with context from previous chunk ────────────────────
@@ -223,7 +263,13 @@ transcribeRouter.post("/", async (req, res) => {
         errorMsg
       );
     } catch {}
-    return res.status(502).json({ error: errorMsg, chunkIndex, status: "error" });
+    return res.status(502).json({
+      error: errorMsg,
+      id: `chunk-${chunkIndex}`,
+      chunkIndex,
+      processed: false,
+      status: "error",
+    });
   }
 
   if (!whisperRes.ok) {
@@ -246,7 +292,14 @@ transcribeRouter.post("/", async (req, res) => {
       try {
         await updateAudioChunkTranscript(consultationId, recordingSessionId, chunkIndex, "");
       } catch {}
-      return res.json({ transcript: "", chunkIndex, status: "done" });
+      return res.json({
+        id: `chunk-${chunkIndex}`,
+        chunkIndex,
+        processed: true,
+        status: "done",
+        transcript: "",
+        warning: "Chunk final curto tratado como recuperável.",
+      });
     }
 
     try {
@@ -258,7 +311,13 @@ transcribeRouter.post("/", async (req, res) => {
         errorMsg
       );
     } catch {}
-    return res.status(502).json({ error: errorMsg, chunkIndex, status: "error" });
+    return res.status(502).json({
+      error: errorMsg,
+      id: `chunk-${chunkIndex}`,
+      chunkIndex,
+      processed: false,
+      status: "error",
+    });
   }
 
   // ─── STEP 7: Parse verbose_json + detect hallucination ────────────────────────
@@ -307,7 +366,19 @@ transcribeRouter.post("/", async (req, res) => {
     // NÃO bloquear resposta — o transcript já foi gerado
   }
 
-  return res.json({ transcript, chunkIndex, status: "done" });
+  if (typeof expectedTotalChunks === "number") {
+    console.log(
+      `[TranscribeChunk] expectedTotalChunks=${expectedTotalChunks}, chunkIndex=${chunkIndex}`
+    );
+  }
+  return res.json({
+    id: `chunk-${chunkIndex}`,
+    chunkIndex,
+    processed: true,
+    status: "done",
+    transcript,
+    force: !!force,
+  });
 });
 
 // ─── GET /api/transcribe-chunk/status ─────────────────────────────────────────
@@ -333,12 +404,51 @@ transcribeRouter.get("/status", async (req, res) => {
   try {
     const chunks = await getAudioChunksBySession(consultationId, recordingSessionId);
     const result = chunks.map((c) => ({
+      id: `chunk-${c.chunkIndex}`,
       chunkIndex: c.chunkIndex,
+      processed: c.transcriptionStatus === "done" || c.transcriptionStatus === "error",
       status: c.transcriptionStatus,
       transcript: c.transcriptText || "",
       error: c.transcriptionError || null,
     }));
-    return res.json({ chunks: result });
+    const expectedTotalChunks = Number(req.query.expectedTotalChunks);
+    const integrity = summarizeChunkIntegrity(
+      chunks,
+      Number.isFinite(expectedTotalChunks) ? expectedTotalChunks : undefined
+    );
+    return res.json({ chunks: result, integrity });
+  } catch (err: any) {
+    return res.status(500).json({ error: err?.message ?? "Erro interno" });
+  }
+});
+
+// ─── GET /api/transcribe-chunk/integrity ──────────────────────────────────────
+transcribeRouter.get("/integrity", async (req, res) => {
+  let user: any = null;
+  try {
+    user = await sdk.authenticateRequest(req);
+  } catch {
+    return res.status(401).json({ error: "Não autenticado" });
+  }
+  if (!user) return res.status(401).json({ error: "Não autenticado" });
+
+  const consultationId = Number(req.query.consultationId);
+  const recordingSessionId = req.query.recordingSessionId as string;
+  const expectedTotalChunks = Number(req.query.expectedTotalChunks);
+
+  if (!consultationId || !recordingSessionId) {
+    return res.status(400).json({
+      error: "consultationId e recordingSessionId são obrigatórios",
+    });
+  }
+
+  try {
+    const chunks = await getAudioChunksBySession(consultationId, recordingSessionId);
+    const integrity = summarizeChunkIntegrity(
+      chunks,
+      Number.isFinite(expectedTotalChunks) ? expectedTotalChunks : undefined
+    );
+    return res.json({ integrity });
   } catch (err: any) {
     return res.status(500).json({ error: err?.message ?? "Erro interno" });
   }

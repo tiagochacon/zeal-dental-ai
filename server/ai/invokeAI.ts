@@ -1,29 +1,15 @@
 import { invokeLLM, type InvokeParams, type InvokeResult } from "../_core/llm";
-
-export type AITaskType =
-  | "soap"
-  | "treatment_plan"
-  | "disc_profile"
-  | "neurovendas_consultation"
-  | "neurovendas_call"
-  | "neurovendas_whatsapp"
-  | "video_script"
-  | "call_insights"
-  | "whatsapp_summary";
-
-type Criticality = "HIGH" | "MEDIUM" | "LOW";
-
-export type AIValidationResult = {
-  passed: boolean;
-  issues: string[];
-};
+import { TASK_CONFIG, type AITaskType } from "./taskConfig";
+import { validateByProfile, type AIValidationResult } from "./validators";
 
 export type AIInvocationLogRecord = {
   invocationId: string;
   taskType: AITaskType;
   model: string;
   fallbackUsed: boolean;
+  retries: number;
   latencyMs: number;
+  confidence: number;
   validationPassed: boolean | null;
   warningsCount: number;
   inferredContentCount: number;
@@ -39,6 +25,7 @@ export type InvokeAIOptions = {
   leadId?: number;
   primaryModelOverride?: string;
   fallbackModelOverride?: string | null;
+  maxRetriesOverride?: number;
 };
 
 export type InvokeAIPayload = Omit<InvokeParams, "model">;
@@ -50,7 +37,9 @@ export type InvokeAIResult =
       invocationId: string;
       model: string;
       fallbackUsed: boolean;
+      retries: number;
       latencyMs: number;
+      confidence: number;
       response: InvokeResult;
       warnings: string[];
       inferredContent: string[];
@@ -63,7 +52,9 @@ export type InvokeAIResult =
       invocationId: string;
       model: string | null;
       fallbackUsed: boolean;
+      retries: number;
       latencyMs: number;
+      confidence: number;
       error: string;
       primaryError?: string;
       fallbackError?: string;
@@ -73,122 +64,14 @@ export type InvokeAIResult =
       createdAt: string;
     };
 
-type TaskConfig = {
-  criticality: Criticality;
-  primaryModel: string;
-  fallbackModel: string | null;
-  temperature: number;
-  requiresValidation: boolean;
-};
-
-const TASK_CONFIG: Record<AITaskType, TaskConfig> = {
-  soap: {
-    criticality: "HIGH",
-    primaryModel: process.env.AI_MODEL_SOAP || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_SOAP_FALLBACK || null,
-    temperature: 0,
-    requiresValidation: true,
-  },
-  treatment_plan: {
-    criticality: "HIGH",
-    primaryModel: process.env.AI_MODEL_TREATMENT_PLAN || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_TREATMENT_PLAN_FALLBACK || null,
-    temperature: 0,
-    requiresValidation: true,
-  },
-  disc_profile: {
-    criticality: "MEDIUM",
-    primaryModel: process.env.AI_MODEL_DISC_PROFILE || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_DISC_PROFILE_FALLBACK || null,
-    temperature: 0.3,
-    requiresValidation: true,
-  },
-  neurovendas_consultation: {
-    criticality: "MEDIUM",
-    primaryModel: process.env.AI_MODEL_NEUROVENDAS_CONSULTATION || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_NEUROVENDAS_CONSULTATION_FALLBACK || null,
-    temperature: 0.3,
-    requiresValidation: false,
-  },
-  neurovendas_call: {
-    criticality: "MEDIUM",
-    primaryModel: process.env.AI_MODEL_NEUROVENDAS_CALL || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_NEUROVENDAS_CALL_FALLBACK || null,
-    temperature: 0.3,
-    requiresValidation: false,
-  },
-  neurovendas_whatsapp: {
-    criticality: "MEDIUM",
-    primaryModel: process.env.AI_MODEL_NEUROVENDAS_WHATSAPP || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_NEUROVENDAS_WHATSAPP_FALLBACK || null,
-    temperature: 0.3,
-    requiresValidation: false,
-  },
-  video_script: {
-    criticality: "LOW",
-    primaryModel: process.env.AI_MODEL_VIDEO_SCRIPT || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_VIDEO_SCRIPT_FALLBACK || null,
-    temperature: 0.7,
-    requiresValidation: false,
-  },
-  call_insights: {
-    criticality: "LOW",
-    primaryModel: process.env.AI_MODEL_CALL_INSIGHTS || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_CALL_INSIGHTS_FALLBACK || null,
-    temperature: 0.2,
-    requiresValidation: false,
-  },
-  whatsapp_summary: {
-    criticality: "LOW",
-    primaryModel: process.env.AI_MODEL_WHATSAPP_SUMMARY || "gemini-2.5-flash",
-    fallbackModel: process.env.AI_MODEL_WHATSAPP_SUMMARY_FALLBACK || null,
-    temperature: 0.2,
-    requiresValidation: false,
-  },
-};
-
 function generateInvocationId(): string {
   return `ai_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 }
 
-export function validateClinicalOutput(
+export const validateClinicalOutput = (
   rawContent: string,
   taskType: AITaskType
-): AIValidationResult {
-  const content = rawContent.trim();
-  const issues: string[] = [];
-
-  if (!content) {
-    issues.push("Conteúdo vazio");
-  }
-
-  if (taskType === "soap") {
-    const hasEvidence = /evid[eê]ncia|não documentado na consulta/i.test(content);
-    if (!hasEvidence) {
-      issues.push("SOAP sem evidência explícita ou marcação de não documentado");
-    }
-  }
-
-  if (taskType === "treatment_plan") {
-    const hasProcedureSignal =
-      /procedimento|tratamento|nenhum procedimento discutido/i.test(content);
-    if (!hasProcedureSignal) {
-      issues.push("Plano sem indicação de procedimentos ou marcação de ausência");
-    }
-  }
-
-  if (taskType === "disc_profile") {
-    const hasAnyDimension = /domin|influ|estab|conform/i.test(content);
-    if (!hasAnyDimension) {
-      issues.push("DISC sem dimensões identificáveis");
-    }
-  }
-
-  return {
-    passed: issues.length === 0,
-    issues,
-  };
-}
+): AIValidationResult => validateByProfile(rawContent, TASK_CONFIG[taskType].validationProfile);
 
 function extractTextContent(response: InvokeResult): string {
   const content = response.choices?.[0]?.message?.content;
@@ -207,6 +90,24 @@ function logAIInvocation(record: AIInvocationLogRecord): void {
   console.log(`[AIInvocationLog] ${JSON.stringify(record)}`);
 }
 
+function computeOperationalConfidence(params: {
+  criticality: "HIGH" | "MEDIUM" | "LOW";
+  retries: number;
+  fallbackUsed: boolean;
+  validation?: AIValidationResult;
+}): number {
+  const baseByCriticality = {
+    HIGH: 0.9,
+    MEDIUM: 0.82,
+    LOW: 0.75,
+  } as const;
+  let score = baseByCriticality[params.criticality];
+  if (params.retries > 0) score -= Math.min(0.2, params.retries * 0.08);
+  if (params.fallbackUsed) score -= 0.1;
+  if (params.validation && !params.validation.passed) score -= 0.2;
+  return Number(Math.max(0.1, Math.min(0.99, score)).toFixed(2));
+}
+
 async function callModel(
   model: string,
   payload: InvokeAIPayload,
@@ -217,6 +118,27 @@ async function callModel(
     model,
     temperature: payload.temperature ?? temperature,
   });
+}
+
+async function callModelWithRetry(
+  model: string,
+  payload: InvokeAIPayload,
+  temperature: number,
+  maxRetries: number
+): Promise<{ response: InvokeResult; retries: number }> {
+  let retries = 0;
+  let lastError: unknown = null;
+  while (retries <= maxRetries) {
+    try {
+      const response = await callModel(model, payload, temperature);
+      return { response, retries };
+    } catch (error) {
+      lastError = error;
+      if (retries >= maxRetries) break;
+      retries += 1;
+    }
+  }
+  throw lastError;
 }
 
 export async function invokeAI(
@@ -234,31 +156,51 @@ export async function invokeAI(
     options.fallbackModelOverride !== undefined
       ? options.fallbackModelOverride
       : config.fallbackModel;
+  const maxRetries =
+    typeof options.maxRetriesOverride === "number"
+      ? options.maxRetriesOverride
+      : config.maxRetries;
 
   try {
-    const primaryResponse = await callModel(primaryModel, payload, config.temperature);
+    const primaryRun = await callModelWithRetry(
+      primaryModel,
+      payload,
+      config.temperature,
+      maxRetries
+    );
+    const primaryResponse = primaryRun.response;
     const primaryContent = extractTextContent(primaryResponse);
-    const validation =
-      config.requiresValidation && config.criticality === "HIGH"
-        ? validateClinicalOutput(primaryContent, taskType)
-        : undefined;
+    const validation = validateByProfile(primaryContent, config.validationProfile);
 
     if (validation && !validation.passed && fallbackModel) {
-      const fallbackResponse = await callModel(
+      const fallbackRun = await callModelWithRetry(
         fallbackModel,
         payload,
-        config.temperature
+        config.temperature,
+        maxRetries
       );
+      const fallbackResponse = fallbackRun.response;
       const fallbackContent = extractTextContent(fallbackResponse);
-      const fallbackValidation = validateClinicalOutput(fallbackContent, taskType);
+      const fallbackValidation = validateByProfile(
+        fallbackContent,
+        config.validationProfile
+      );
       const fallbackLatency = Date.now() - startedAt;
+      const confidence = computeOperationalConfidence({
+        criticality: config.criticality,
+        retries: primaryRun.retries + fallbackRun.retries,
+        fallbackUsed: true,
+        validation: fallbackValidation,
+      });
 
       logAIInvocation({
         invocationId,
         taskType,
         model: fallbackModel,
         fallbackUsed: true,
+        retries: primaryRun.retries + fallbackRun.retries,
         latencyMs: fallbackLatency,
+        confidence,
         validationPassed: fallbackValidation.passed,
         warningsCount: fallbackValidation.issues.length,
         inferredContentCount: 0,
@@ -274,7 +216,9 @@ export async function invokeAI(
         invocationId,
         model: fallbackModel,
         fallbackUsed: true,
+        retries: primaryRun.retries + fallbackRun.retries,
         latencyMs: fallbackLatency,
+        confidence,
         response: fallbackResponse,
         warnings: fallbackValidation.issues,
         inferredContent: [],
@@ -284,12 +228,20 @@ export async function invokeAI(
     }
 
     const latencyMs = Date.now() - startedAt;
+    const confidence = computeOperationalConfidence({
+      criticality: config.criticality,
+      retries: primaryRun.retries,
+      fallbackUsed: false,
+      validation,
+    });
     logAIInvocation({
       invocationId,
       taskType,
       model: primaryModel,
       fallbackUsed: false,
+      retries: primaryRun.retries,
       latencyMs,
+      confidence,
       validationPassed: validation ? validation.passed : null,
       warningsCount: validation?.issues.length ?? 0,
       inferredContentCount: 0,
@@ -305,7 +257,9 @@ export async function invokeAI(
       invocationId,
       model: primaryModel,
       fallbackUsed: false,
+      retries: primaryRun.retries,
       latencyMs,
+      confidence,
       response: primaryResponse,
       warnings: validation?.issues ?? [],
       inferredContent: [],
@@ -323,7 +277,13 @@ export async function invokeAI(
         taskType,
         model: primaryModel,
         fallbackUsed: false,
+        retries: 0,
         latencyMs,
+        confidence: computeOperationalConfidence({
+          criticality: config.criticality,
+          retries: 0,
+          fallbackUsed: false,
+        }),
         validationPassed: null,
         warningsCount: 1,
         inferredContentCount: 0,
@@ -339,7 +299,13 @@ export async function invokeAI(
         invocationId,
         model: primaryModel,
         fallbackUsed: false,
+        retries: 0,
         latencyMs,
+        confidence: computeOperationalConfidence({
+          criticality: config.criticality,
+          retries: 0,
+          fallbackUsed: false,
+        }),
         error: "Falha no modelo primário e fallback não configurado",
         primaryError: primaryErrorMessage,
         warnings: [primaryErrorMessage],
@@ -349,18 +315,27 @@ export async function invokeAI(
     }
 
     try {
-      const fallbackResponse = await callModel(
+      const fallbackRun = await callModelWithRetry(
         fallbackModel,
         payload,
-        config.temperature
+        config.temperature,
+        maxRetries
       );
+      const fallbackResponse = fallbackRun.response;
       const fallbackLatency = Date.now() - startedAt;
+      const confidence = computeOperationalConfidence({
+        criticality: config.criticality,
+        retries: fallbackRun.retries,
+        fallbackUsed: true,
+      });
       logAIInvocation({
         invocationId,
         taskType,
         model: fallbackModel,
         fallbackUsed: true,
+        retries: fallbackRun.retries,
         latencyMs: fallbackLatency,
+        confidence,
         validationPassed: null,
         warningsCount: 1,
         inferredContentCount: 0,
@@ -376,7 +351,9 @@ export async function invokeAI(
         invocationId,
         model: fallbackModel,
         fallbackUsed: true,
+        retries: fallbackRun.retries,
         latencyMs: fallbackLatency,
+        confidence,
         response: fallbackResponse,
         warnings: [primaryErrorMessage],
         inferredContent: [],
@@ -392,7 +369,13 @@ export async function invokeAI(
         taskType,
         model: fallbackModel,
         fallbackUsed: true,
+        retries: maxRetries + 1,
         latencyMs,
+        confidence: computeOperationalConfidence({
+          criticality: config.criticality,
+          retries: maxRetries + 1,
+          fallbackUsed: true,
+        }),
         validationPassed: null,
         warningsCount: 2,
         inferredContentCount: 0,
@@ -408,7 +391,13 @@ export async function invokeAI(
         invocationId,
         model: fallbackModel,
         fallbackUsed: true,
+        retries: maxRetries + 1,
         latencyMs,
+        confidence: computeOperationalConfidence({
+          criticality: config.criticality,
+          retries: maxRetries + 1,
+          fallbackUsed: true,
+        }),
         error: "Todos os modelos falharam",
         primaryError: primaryErrorMessage,
         fallbackError: fallbackErrorMessage,

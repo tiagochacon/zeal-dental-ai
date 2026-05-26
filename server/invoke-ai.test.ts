@@ -29,6 +29,29 @@ describe("invokeAI", () => {
     if (result.success) {
       expect(result.fallbackUsed).toBe(false);
       expect(result.taskType).toBe("call_insights");
+      expect(result.retries).toBe(0);
+      expect(result.confidence).toBeGreaterThan(0);
+    }
+  });
+
+  it("retries once then succeeds on primary", async () => {
+    (invokeLLM as any)
+      .mockRejectedValueOnce(new Error("temporary fail"))
+      .mockResolvedValue({
+        id: "r2",
+        created: Date.now(),
+        model: "gemini-2.5-flash",
+        choices: [{ index: 0, message: { role: "assistant", content: '{"ok":true}' }, finish_reason: "stop" }],
+      });
+
+    const result = await invokeAI("call_insights", {
+      messages: [{ role: "user", content: "oi" }],
+      response_format: { type: "json_object" },
+    }, { callId: 10, maxRetriesOverride: 1 });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.retries).toBe(1);
     }
   });
 
@@ -56,5 +79,13 @@ describe("validateClinicalOutput", () => {
     const validation = validateClinicalOutput("Resumo sem citação", "soap");
     expect(validation.passed).toBe(false);
     expect(validation.issues.length).toBeGreaterThan(0);
+  });
+
+  it("passes valid JSON for call insights profile", () => {
+    const validation = validateClinicalOutput(
+      JSON.stringify({ dor: "", busca: "", trabalha: "" }),
+      "call_insights"
+    );
+    expect(validation.passed).toBe(true);
   });
 });
