@@ -1,3 +1,8 @@
+import { ENV } from "../../../../_core/env";
+import {
+  buildAssemblyAITokenRequestUrl,
+  formatAssemblyAITokenError,
+} from "../assemblyAIToken";
 import type {
   ConsultationStreamingProvider,
   ProviderCallbacks,
@@ -65,29 +70,33 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
   private readonly callbacks: ProviderCallbacks;
   private readonly apiKey: string;
   private readonly sampleRate: number;
+  private readonly tokenExpiresSeconds: number;
+  private readonly maxSessionDurationSeconds: number;
 
   constructor(
     callbacks: ProviderCallbacks,
     options?: {
       model?: "u3-rt-pro" | "universal-streaming-multilingual";
       sampleRate?: number;
+      tokenExpiresSeconds?: number;
+      maxSessionDurationSeconds?: number;
     }
   ) {
     this.callbacks = callbacks;
     this.apiKey = process.env.ASSEMBLYAI_API_KEY || "";
     this.model = options?.model || "universal-streaming-multilingual";
     this.sampleRate = options?.sampleRate || 16000;
+    this.tokenExpiresSeconds = options?.tokenExpiresSeconds ?? 600;
+    this.maxSessionDurationSeconds = options?.maxSessionDurationSeconds ?? 3600;
   }
 
   private async createStreamingToken(): Promise<string> {
-    const maxDurationSeconds = 60 * 60;
-    const url = new URL("https://streaming.assemblyai.com/v3/token");
-    url.searchParams.set(
-      "max_session_duration_seconds",
-      String(maxDurationSeconds)
-    );
+    const tokenUrl = buildAssemblyAITokenRequestUrl({
+      expiresInSeconds: this.tokenExpiresSeconds,
+      maxSessionDurationSeconds: this.maxSessionDurationSeconds,
+    });
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(tokenUrl, {
       method: "GET",
       headers: {
         Authorization: this.apiKey,
@@ -96,8 +105,15 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
 
     if (!response.ok) {
       const details = await response.text().catch(() => "");
+      console.error(
+        `[AssemblyAIStreaming] Token request failed (${response.status}): ${details}`
+      );
       throw new Error(
-        `Falha ao criar token temporário da AssemblyAI (${response.status}): ${details || "sem detalhes"}`
+        formatAssemblyAITokenError(
+          response.status,
+          details,
+          ENV.isProduction
+        )
       );
     }
 
@@ -122,7 +138,6 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
     endpoint.searchParams.set("speech_model", this.model);
     endpoint.searchParams.set("speaker_labels", "true");
     endpoint.searchParams.set("format_turns", "true");
-    // Use an ephemeral token instead of sending the API key to the socket URL.
     endpoint.searchParams.set("token", ephemeralToken);
 
     await new Promise<void>((resolve, reject) => {

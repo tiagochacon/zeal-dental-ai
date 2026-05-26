@@ -59,5 +59,11 @@ export const ENV = {
     "CONSULTATION_STREAMING_ASSEMBLYAI_MODEL",
     "universal-streaming-multilingual"
   ),
+  consultationStreamingTokenExpiresSeconds: Number(
+    getEnvVar("CONSULTATION_STREAMING_TOKEN_EXPIRES_SECONDS", "600")
+  ),
+  consultationStreamingMaxSessionSeconds: Number(
+    getEnvVar("CONSULTATION_STREAMING_MAX_SESSION_SECONDS", "3600")
+  ),
   assemblyAiApiKey: getEnvVar("ASSEMBLYAI_API_KEY", ""),
 } as const;

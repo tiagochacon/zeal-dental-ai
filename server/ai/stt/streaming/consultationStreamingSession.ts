@@ -130,6 +130,8 @@ export class ConsultationStreamingSession {
         | "u3-rt-pro"
         | "universal-streaming-multilingual",
       sampleRate: ENV.consultationStreamingSampleRate,
+      tokenExpiresSeconds: ENV.consultationStreamingTokenExpiresSeconds,
+      maxSessionDurationSeconds: ENV.consultationStreamingMaxSessionSeconds,
     });
   }
 

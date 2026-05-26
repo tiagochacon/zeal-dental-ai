@@ -120,6 +120,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
   const stateRef = useRef<RecorderState>("idle");
   const fallbackNeededRef = useRef(false);
   const sessionClosedRef = useRef(false);
+  const sessionStartedRef = useRef(false);
   const providerRef = useRef<"assemblyai" | "deepgram" | "openai" | null>(null);
   const modelRef = useRef<string | null>(null);
   const startTsRef = useRef<number | null>(null);
@@ -180,6 +181,18 @@ export function useConsultationLiveTranscription(consultationId: number) {
     streamRef.current = null;
   }, []);
 
+  const flushRecentAudioPackets = useCallback(() => {
+    const socket = socketRef.current;
+    if (!socket || socket.readyState !== WebSocket.OPEN) return;
+    const now = Date.now();
+    const recentPackets = recentPacketsRef.current.filter(
+      (packet) => now - packet.sentAt <= maxRecentMs
+    );
+    for (const packet of recentPackets) {
+      socket.send(packet.payload);
+    }
+  }, []);
+
   const handleSocketEvent = useCallback((event: LiveSocketEvent) => {
     const eventLatency = Date.now() - new Date(event.createdAt).getTime();
     if (Number.isFinite(eventLatency) && eventLatency >= 0) {
@@ -190,6 +203,8 @@ export function useConsultationLiveTranscription(consultationId: number) {
     if (event.model) modelRef.current = event.model;
 
     if (event.type === "session_started") {
+      sessionStartedRef.current = true;
+      flushRecentAudioPackets();
       setConnectionState("connected");
       if (event.warnings?.length) {
         setWarnings((prev) =>
@@ -256,7 +271,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
       );
       return;
     }
-  }, []);
+  }, [flushRecentAudioPackets]);
 
   const connectSocket = useCallback(async (): Promise<void> => {
     setConnectionState((prev) => (prev === "connected" ? prev : "connecting"));
@@ -281,13 +296,6 @@ export function useConsultationLiveTranscription(consultationId: number) {
 
       ws.onopen = () => {
         ws.send(JSON.stringify({ type: "start" }));
-        const now = Date.now();
-        const recentPackets = recentPacketsRef.current.filter(
-          (packet) => now - packet.sentAt <= maxRecentMs
-        );
-        for (const packet of recentPackets) {
-          ws.send(packet.payload);
-        }
       };
 
       ws.onmessage = (message) => {
@@ -354,6 +362,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
       );
       return;
     }
+    sessionStartedRef.current = false;
     try {
       await connectSocket();
     } catch {
@@ -373,7 +382,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
     gain.gain.value = 0;
 
     processor.onaudioprocess = (event) => {
-      if (!captureActiveRef.current) return;
+      if (!captureActiveRef.current || !sessionStartedRef.current) return;
       const channelData = event.inputBuffer.getChannelData(0);
       const pcmBuffer = pcmFloat32ToInt16(channelData);
       const packet: RecentPacket = { sentAt: Date.now(), payload: pcmBuffer };
@@ -422,6 +431,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
       shouldStopRef.current = false;
       fallbackNeededRef.current = false;
       sessionClosedRef.current = false;
+      sessionStartedRef.current = false;
       providerRef.current = null;
       modelRef.current = null;
       setWarnings([]);
@@ -456,11 +466,17 @@ export function useConsultationLiveTranscription(consultationId: number) {
         setDurationSec(elapsed);
       }, 1000);
     } catch (error) {
+      captureActiveRef.current = false;
+      sessionStartedRef.current = false;
+      closeSocket();
+      await clearAudioGraph();
+      stopTracks();
+      clearTimer();
       setState("error");
       setConnectionState("disconnected");
       throw error;
     }
-  }, [attachAudioCapture, clearTimer, connectSocket, startRawRecorder]);
+  }, [attachAudioCapture, clearAudioGraph, clearTimer, closeSocket, connectSocket, startRawRecorder, stopTracks]);
 
   const pause = useCallback(async () => {
     if (state !== "recording") return;
@@ -509,6 +525,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
   const reset = useCallback(async () => {
     shouldStopRef.current = true;
     captureActiveRef.current = false;
+    sessionStartedRef.current = false;
     clearTimer();
     closeSocket();
     await clearAudioGraph();
