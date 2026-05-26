@@ -17,6 +17,7 @@ import * as fs from "fs";
 import * as path from "path";
 import * as os from "os";
 import { CONSERVATIVE_DENTAL_PROMPT } from "../helpers/chunkTranscription";
+import { transcribeAudio as transcribeWithProviders } from "../ai/stt";
 
 const execFileAsync = promisify(execFile);
 
@@ -24,6 +25,7 @@ export type TranscribeOptions = {
   audioUrl: string; // URL to the audio file (e.g., S3 URL)
   language?: string; // Optional: specify language code (e.g., "en", "es", "zh")
   prompt?: string; // Optional: custom prompt for the transcription
+  audioType?: "consultation" | "call" | "whatsapp" | "progressive_chunk";
 };
 
 // Native Whisper API segment format
@@ -176,54 +178,58 @@ async function transcribeAudioDirect(
   mimeType: string,
   options: TranscribeOptions
 ): Promise<TranscriptionResponse | TranscriptionError> {
-  const formData = new FormData();
-  const filename = `audio.${getFileExtension(mimeType)}`;
-  const audioBlob = new Blob([new Uint8Array(audioBuffer)], { type: mimeType });
-  formData.append("file", audioBlob, filename);
-  formData.append("model", "whisper-1");
-  formData.append("response_format", "verbose_json");
-
-  const prompt = options.prompt || (
-    options.language
+  const prompt = options.prompt ||
+    (options.language
       ? options.language === "pt"
         ? CONSERVATIVE_DENTAL_PROMPT
         : `Transcribe the user's voice to text, the user's working language is ${getLanguageName(options.language)}`
-      : "Transcribe the user's voice to text"
-  );
-  formData.append("prompt", prompt);
+      : "Transcribe the user's voice to text");
 
-  const baseUrl = ENV.forgeApiUrl!.endsWith("/") ? ENV.forgeApiUrl! : `${ENV.forgeApiUrl!}/`;
-  const fullUrl = new URL("v1/audio/transcriptions", baseUrl).toString();
+  try {
+    const result = await transcribeWithProviders({
+      audioBuffer,
+      mimeType,
+      audioType: options.audioType || "consultation",
+      language: (options.language as "pt" | "pt-BR" | undefined) ?? "pt",
+      enableDiarization: false,
+      prompt,
+    });
 
-  const response = await fetch(fullUrl, {
-    method: "POST",
-    headers: {
-      authorization: `Bearer ${ENV.forgeApiKey}`,
-      "Accept-Encoding": "identity",
-    },
-    body: formData,
-  });
+    const segments: WhisperSegment[] = result.segments.map((segment, index) => ({
+      id: index,
+      seek: 0,
+      start: segment.start ?? 0,
+      end: segment.end ?? segment.start ?? 0,
+      text: segment.text,
+      tokens: [],
+      temperature: 0,
+      avg_logprob:
+        typeof segment.confidence === "number"
+          ? Number((segment.confidence * 2 - 2).toFixed(3))
+          : 0,
+      compression_ratio: 0,
+      no_speech_prob: segment.text.trim().length > 0 ? 0 : 1,
+    }));
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "");
+    const duration =
+      segments.length > 0
+        ? Math.max(...segments.map((segment) => segment.end || 0))
+        : 0;
+
+    return {
+      task: "transcribe",
+      language: options.language || "pt",
+      duration,
+      text: result.transcript,
+      segments,
+    };
+  } catch (error) {
     return {
       error: "Transcription service request failed",
       code: "TRANSCRIPTION_FAILED",
-      details: `${response.status} ${response.statusText}${errorText ? `: ${errorText}` : ""}`
+      details: error instanceof Error ? error.message : String(error),
     };
   }
-
-  const whisperResponse = await response.json() as WhisperResponse;
-
-  if (!whisperResponse.text || typeof whisperResponse.text !== 'string') {
-    return {
-      error: "Invalid transcription response",
-      code: "SERVICE_ERROR",
-      details: "Transcription service returned an invalid response format"
-    };
-  }
-
-  return whisperResponse;
 }
 
 // ============================================

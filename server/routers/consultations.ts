@@ -25,8 +25,7 @@ import {
 import { storagePut, storageDelete } from "../storage";
 import { transcribeLongAudio } from "../_core/voiceTranscription";
 import { concatenateAudioChunksWithFfmpeg } from "../helpers/concatenateAudioChunks";
-import { invokeLLM } from "../_core/llm";
-import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
+import { invokeAI } from "../ai/invokeAI";
 import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
 import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims, EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK } from "../helpers/antiHallucination";
@@ -273,7 +272,7 @@ export const consultationsRouter = router({
 
       const prompt = `Você é um assistente de IA odontológico especializado em planos de tratamento detalhados.\n\nGere um plano estruturado em JSON estritamente no formato abaixo, em português, com linguagem clínica clara e instruções detalhadas:\n\n{\n  \"summary\": \"...\",\n  \"steps\": [\n    {\n      \"title\": \"...\",\n      \"description\": \"...\",\n      \"duration\": \"...\",\n      \"frequency\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"medications\": [\n    {\n      \"name\": \"...\",\n      \"dose\": \"...\",\n      \"frequency\": \"...\",\n      \"duration\": \"...\",\n      \"notes\": \"...\"\n    }\n  ],\n  \"postOpInstructions\": [\"...\"],\n  \"warnings\": [\"...\"]\n}\n\nContexto:\n- Paciente: ${patient.name}\n- Histórico médico: ${patient.medicalHistory || "Não informado"}\n- Alergias: ${patient.allergies || "Não informado"}\n- Medicações em uso: ${patient.medications || "Não informado"}\n- Achados clínicos (SOAP): ${JSON.stringify(soapNote)}\n\nRegras:\n- Inclua cronogramas precisos (ex: \"a cada 12h por 8 dias\").\n- Inclua instruções pós-operatórias quando aplicável.\n- Não invente dados fora do contexto clínico fornecido.\n- Se os achados clínicos não incluem indicação para medicamentos, retorne "medications": [].\n- Se os achados clínicos não incluem procedimento cirúrgico, retorne "postOpInstructions": [].\n- Cada step do plano deve mapear diretamente a um tratamento listado nos achados do SOAP.\n- Se não houver medicamento, deixe medications como array vazio.\n- Retorne apenas JSON válido.`;
 
-      const response = await invokeLLM({
+      const response = await invokeAI("treatment_plan", {
         messages: [
           { role: "system", content: "Você é um assistente especializado em planos odontológicos. REGRAS OBRIGATÓRIAS:\n1. O plano deve ser derivado EXCLUSIVAMENTE dos dados clínicos fornecidos (nota SOAP, histórico médico, alergias, medicações).\n2. Nunca adicione procedimentos não citados ou inferidos da nota SOAP.\n3. Medicações: inclua APENAS se houver indicação clínica direta nos achados. Se não houver, retorne array vazio.\n4. Instruções pós-operatórias: inclua APENAS se houver procedimento cirúrgico ou invasivo no plano.\n5. Cronogramas (ex: 'a cada 12h por 8 dias') devem seguir protocolos odontológicos padrão para o procedimento indicado — nunca invente posologia.\n6. Se os dados clínicos forem insuficientes para gerar um passo, não o inclua." },
           { role: "user", content: prompt }
@@ -327,9 +326,13 @@ export const consultationsRouter = router({
             }
           }
         }
-      });
+      }, { consultationId: input.consultationId });
 
-      const content = response.choices[0]?.message?.content;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      const content = response.response.choices[0]?.message?.content;
       if (!content) {
         throw new Error("Resposta vazia da IA");
       }
@@ -839,7 +842,7 @@ ${EVIDENCE_REQUIRED_BLOCK}
 
 ${DISC_EVIDENCE_BLOCK}`;
 
-      const response = await invokeLLM({
+      const response = await invokeAI("soap", {
         messages: [
           { role: "system", content: "Você é um assistente especializado em documentação odontológica brasileira. REGRAS OBRIGATÓRIAS DE FIDELIDADE:\n1. NUNCA invente, presuma ou complete dados que não aparecem literalmente na transcrição.\n2. Se uma informação não foi mencionada na transcrição, use string vazia '' para campos de texto, [] para arrays, e para classificações de dentes use exclusivamente 'not_evaluated'.\n3. Use aspas ou paráfrase próxima ao relatar queixas — não reescreva com suas próprias palavras.\n4. Diagnósticos devem ser prefixados com 'Hipótese:' quando não confirmados explicitamente pelo dentista na transcrição.\n5. Nunca adicione orientações, lembretes ou tratamentos que não foram discutidos na consulta.\n6. Sua função é EXTRAIR e ESTRUTURAR, não interpretar ou complementar." },
           { role: "user", content: prompt }
@@ -978,9 +981,13 @@ ${DISC_EVIDENCE_BLOCK}`;
             }
           }
         }
-      });
+      }, { consultationId: input.consultationId });
 
-      const content = response.choices[0]?.message?.content;
+      if (!response.success) {
+        throw new Error(response.error);
+      }
+
+      const content = response.response.choices[0]?.message?.content;
       if (!content) {
         throw new Error("Resposta vazia da IA");
       }
@@ -1200,7 +1207,7 @@ INSTRUÇÕES ESPECÍFICAS:
 
 RETORNE APENAS O JSON, sem explicações adicionais.`;
 
-      const response = await invokeLLMWithRetry({
+      const response = await invokeAI("neurovendas_consultation", {
         messages: [
           { role: "system", content: systemMessage },
           { role: "user", content: prompt }
@@ -1350,16 +1357,16 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
             }
           }
         }
-      });
+      }, { consultationId: input.consultationId });
 
-      if (!response) {
+      if (!response.success) {
         console.error('[NEUROVENDAS] Todas as tentativas falharam — usando fallback seguro');
         const fallback = getNeurovendasFallback();
         await updateConsultation(input.consultationId, { neurovendasAnalysis: fallback as any });
         return { success: true, analysis: fallback, fallback: true };
       }
 
-      const analysisContent = response.choices[0]?.message?.content;
+      const analysisContent = response.response.choices[0]?.message?.content;
       if (!analysisContent || typeof analysisContent !== 'string') {
         console.error('[NEUROVENDAS] Resposta vazia do LLM — usando fallback seguro');
         const fallback = getNeurovendasFallback();

@@ -14,7 +14,7 @@ import {
   getCallsByClinic,
   getCallsByCRC,
 } from "../db";
-import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
+import { invokeAI } from "../ai/invokeAI";
 import { EVIDENCE_REQUIRED_BLOCK } from "../helpers/antiHallucination";
 import type { AttendanceVideoScript } from "../../drizzle/schema";
 import type { Lead, Call, User } from "../../drizzle/schema";
@@ -120,58 +120,55 @@ ${EVIDENCE_REQUIRED_BLOCK}`;
 
   const userPrompt = `Contexto do paciente e ligação:\n${contextLines.join("\n")}\n\nGere o roteiro de vídeo no formato JSON solicitado.`;
 
-  const response = await invokeLLMWithRetry(
-    {
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      temperature: 0.3,
-      response_format: {
-        type: "json_schema",
-        json_schema: {
-          name: "attendance_video_script",
-          strict: true,
-          schema: {
-            type: "object",
-            properties: {
-              title: { type: "string" },
-              durationSeconds: { type: "number" },
-              discProfileUsed: { type: "string", enum: ["dominancia", "influencia", "estabilidade", "conformidade", "unknown"] },
-              profileUsed: { type: "string", enum: ["neocortex", "limbico", "reptiliano", "unknown"] },
-              objective: { type: "string" },
-              script: { type: "string" },
-              opening: { type: "string" },
-              personalConnection: { type: "string" },
-              trustBuilder: { type: "string" },
-              cta: { type: "string" },
-              toneGuidance: { type: "array", items: { type: "string" } },
-              keyPointsToMention: { type: "array", items: { type: "string" } },
-              avoidSaying: { type: "array", items: { type: "string" } },
-              sourceCallId: { type: ["number", "null"] },
-              confidence: { type: "string", enum: ["high", "medium", "low"] },
-              generatedAt: { type: "string" },
-            },
-            required: [
-              "title", "durationSeconds", "discProfileUsed", "profileUsed", "objective", "script",
-              "opening", "personalConnection", "trustBuilder", "cta",
-              "toneGuidance", "keyPointsToMention", "avoidSaying",
-              "sourceCallId", "confidence", "generatedAt",
-            ],
-            additionalProperties: false,
+  const response = await invokeAI("video_script", {
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: userPrompt },
+    ],
+    temperature: 0.3,
+    response_format: {
+      type: "json_schema",
+      json_schema: {
+        name: "attendance_video_script",
+        strict: true,
+        schema: {
+          type: "object",
+          properties: {
+            title: { type: "string" },
+            durationSeconds: { type: "number" },
+            discProfileUsed: { type: "string", enum: ["dominancia", "influencia", "estabilidade", "conformidade", "unknown"] },
+            profileUsed: { type: "string", enum: ["neocortex", "limbico", "reptiliano", "unknown"] },
+            objective: { type: "string" },
+            script: { type: "string" },
+            opening: { type: "string" },
+            personalConnection: { type: "string" },
+            trustBuilder: { type: "string" },
+            cta: { type: "string" },
+            toneGuidance: { type: "array", items: { type: "string" } },
+            keyPointsToMention: { type: "array", items: { type: "string" } },
+            avoidSaying: { type: "array", items: { type: "string" } },
+            sourceCallId: { type: ["number", "null"] },
+            confidence: { type: "string", enum: ["high", "medium", "low"] },
+            generatedAt: { type: "string" },
           },
+          required: [
+            "title", "durationSeconds", "discProfileUsed", "profileUsed", "objective", "script",
+            "opening", "personalConnection", "trustBuilder", "cta",
+            "toneGuidance", "keyPointsToMention", "avoidSaying",
+            "sourceCallId", "confidence", "generatedAt",
+          ],
+          additionalProperties: false,
         },
       },
     },
-    "AttendanceVideoScript"
-  );
+  });
 
-  if (!response) {
+  if (!response.success) {
     console.warn("[AttendanceVideoScript] LLM não retornou resposta — usando fallback");
     return buildVideoScriptFallback(lead);
   }
 
-  const content = response.choices?.[0]?.message?.content;
+  const content = response.response.choices?.[0]?.message?.content;
   if (!content || typeof content !== "string") {
     console.warn("[AttendanceVideoScript] Conteúdo vazio — usando fallback");
     return buildVideoScriptFallback(lead);

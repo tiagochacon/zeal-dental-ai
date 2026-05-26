@@ -14,8 +14,7 @@ import {
 } from "../db";
 import { storagePut } from "../storage";
 import { transcribeAudio } from "../_core/voiceTranscription";
-import { invokeLLM } from "../_core/llm";
-import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
+import { invokeAI } from "../ai/invokeAI";
 import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnalysis";
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
 import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims, EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK } from "../helpers/antiHallucination";
@@ -23,7 +22,7 @@ import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { nanoid } from "nanoid";
 
 async function extractAndSaveCallInsights(callId: number, transcript: string): Promise<void> {
-  const response = await invokeLLM({
+  const response = await invokeAI("call_insights", {
     messages: [
       {
         role: "system",
@@ -67,9 +66,13 @@ async function extractAndSaveCallInsights(callId: number, transcript: string): P
         },
       },
     },
-  });
+  }, { callId });
 
-  const raw = response?.choices?.[0]?.message?.content;
+  if (!response.success) {
+    throw new Error(response.error);
+  }
+
+  const raw = response.response.choices?.[0]?.message?.content;
   let parsed: { dor?: string; busca?: string; trabalha?: string };
   try {
     parsed = typeof raw === "string" ? JSON.parse(raw) : (raw ?? {});
@@ -266,6 +269,7 @@ export const callsRouter = router({
 
       const result = await transcribeAudio({
         audioUrl: call.audioUrl,
+        audioType: "call",
         language: "pt",
         prompt: "Transcrição de ligação comercial odontológica. Vocabulário esperado: consulta, agendamento, avaliação gratuita, ortodontia, implante, clareamento, extração, limpeza, canal, prótese, dentista, CRC, clínica, paciente, plano de tratamento, urgência, dor de dente, sangramento. Nomes brasileiros. Tom informal de atendimento telefônico.",
       });
@@ -426,7 +430,9 @@ INSTRUÇÕES ESPECÍFICAS:
 
 RETORNE APENAS O JSON, sem explicações adicionais.`;
 
-      const response = await invokeLLMWithRetry({
+      const response = await invokeAI(
+        sourceType === "whatsapp_export" ? "neurovendas_whatsapp" : "neurovendas_call",
+        {
         messages: [
           { role: "system", content: systemMessage },
           { role: "user", content: prompt }
@@ -574,10 +580,12 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
             }
           }
         }
-      });
+        },
+        { callId: input.callId }
+      );
 
       // Se retry falhou completamente, usar fallback
-      if (!response) {
+      if (!response.success) {
         console.error('[NEUROVENDAS-CRC] Todas as tentativas falharam — usando fallback seguro');
         const fallback = getNeurovendasFallback();
         await updateCall(input.callId, { neurovendasAnalysis: fallback as any, status: "analyzed" });
@@ -585,7 +593,7 @@ RETORNE APENAS O JSON, sem explicações adicionais.`;
         return { success: true, analysis: fallback, fallback: true };
       }
 
-      const analysisContent = response.choices?.[0]?.message?.content;
+      const analysisContent = response.response.choices?.[0]?.message?.content;
       if (!analysisContent || typeof analysisContent !== 'string') {
         console.error('[NEUROVENDAS-CRC] Resposta vazia do LLM — usando fallback seguro');
         const fallback = getNeurovendasFallback();

@@ -15,7 +15,7 @@ import { getCallById, updateCall, getUserById } from "../db";
 import { sdk } from "../_core/sdk";
 import { parseWhatsAppChat, buildUnifiedTranscript } from "../helpers/whatsappExportParser";
 import { transcribeAudio } from "../_core/voiceTranscription";
-import { invokeLLMWithRetry } from "../helpers/invokeLLMWithRetry";
+import { invokeAI } from "../ai/invokeAI";
 import type { WhatsAppImportData, WhatsAppMediaSummary } from "../../drizzle/schema";
 
 export const ZIP_MAX_SIZE = 100 * 1024 * 1024; // 100MB
@@ -120,29 +120,30 @@ async function consolidateLargeTranscript(
     return chunkSummaries.join("\n\n");
   }
 
-  const response = await invokeLLMWithRetry(
-    {
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um analista de conversas comerciais odontológicas. Consolide resumos parciais em um único resumo factual, sem inventar informações.",
-        },
-        {
-          role: "user",
-          content:
-            `Consolide os resumos parciais abaixo de uma conversa de WhatsApp com lead${leadName ? ` (${leadName})` : ""}.\n` +
-            "Retorne somente texto corrido com os pontos mais relevantes: dor/queixa, motivação, objeções, urgência, confiança/desconfiança e próximos passos.\n\n" +
-            chunkSummaries.map((s, i) => `Resumo ${i + 1}: ${s}`).join("\n\n"),
-        },
-      ],
-      temperature: 0.1,
-      seed: 42,
-    },
-    "WhatsAppLargeTXTConsolidation"
-  );
+  const response = await invokeAI("whatsapp_summary", {
+    messages: [
+      {
+        role: "system",
+        content:
+          "Você é um analista de conversas comerciais odontológicas. Consolide resumos parciais em um único resumo factual, sem inventar informações.",
+      },
+      {
+        role: "user",
+        content:
+          `Consolide os resumos parciais abaixo de uma conversa de WhatsApp com lead${leadName ? ` (${leadName})` : ""}.\n` +
+          "Retorne somente texto corrido com os pontos mais relevantes: dor/queixa, motivação, objeções, urgência, confiança/desconfiança e próximos passos.\n\n" +
+          chunkSummaries.map((s, i) => `Resumo ${i + 1}: ${s}`).join("\n\n"),
+      },
+    ],
+    temperature: 0.1,
+    seed: 42,
+  });
 
-  const content = response?.choices?.[0]?.message?.content;
+  if (!response.success) {
+    return chunkSummaries.join("\n\n");
+  }
+
+  const content = response.response.choices?.[0]?.message?.content;
   if (!content || typeof content !== "string") {
     return chunkSummaries.join("\n\n");
   }
@@ -381,6 +382,7 @@ router.post(
 
           const result = await transcribeAudio({
             audioUrl,
+            audioType: "whatsapp",
             language: "pt",
             prompt: "Transcrição de áudio de conversa WhatsApp. Português brasileiro. Diálogo entre atendente de clínica odontológica e paciente/lead.",
           });
