@@ -12,6 +12,7 @@ import { SERVER_CONFIG, HTTP_STATUS } from "../constants";
 import stripeWebhook from "../stripe/webhook";
 import audioUploadRouter from "../routes/audioUpload";
 import consultationAudioUploadRouter from "../routes/consultationAudioUpload";
+import { registerConsultationStreamingWs } from "../routes/consultationStreaming.route";
 import { transcribeRouter } from "../routes/transcribe.route";
 import whatsappUploadRouter from "../routes/whatsappUpload";
 
@@ -37,6 +38,7 @@ async function findAvailablePort(startPort: number = SERVER_CONFIG.DEFAULT_PORT)
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  registerConsultationStreamingWs(server);
   
   // Stripe webhook needs raw body for signature verification
   // MUST be registered BEFORE express.json()

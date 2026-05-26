@@ -37,4 +37,18 @@ export const ENV = {
   forgeApiKey: getEnvVar("BUILT_IN_FORGE_API_KEY"),
   resendApiKey: getEnvVar("RESEND_API_KEY", ""),
   adminPassword: getEnvVar("ADMIN_PASSWORD"),
+  consultationStreamingAsrEnabled:
+    getEnvVar("CONSULTATION_STREAMING_ASR_ENABLED", "false") === "true",
+  consultationStreamingAsrProvider: getEnvVar(
+    "CONSULTATION_STREAMING_ASR_PROVIDER",
+    "assemblyai"
+  ),
+  consultationStreamingSampleRate: Number(
+    getEnvVar("CONSULTATION_STREAMING_SAMPLE_RATE", "16000")
+  ),
+  consultationStreamingAssemblyAIModel: getEnvVar(
+    "CONSULTATION_STREAMING_ASSEMBLYAI_MODEL",
+    "universal-streaming-multilingual"
+  ),
+  assemblyAiApiKey: getEnvVar("ASSEMBLYAI_API_KEY", ""),
 } as const;

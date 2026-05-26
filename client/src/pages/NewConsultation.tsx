@@ -16,6 +16,10 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AudioRecorder } from "@/components/consultations/AudioRecorder";
+import {
+  LiveConsultationRecorder,
+} from "@/components/consultations/LiveConsultationRecorder";
+import type { LiveTranscriptionResult } from "@/hooks/useConsultationLiveTranscription";
 
 const STEPS = [
   { id: 1, label: "Paciente", icon: User },
@@ -74,6 +78,10 @@ export default function NewConsultation() {
   const createConsultationMutation = trpc.consultations.create.useMutation();
   const uploadAudioMutation = trpc.consultations.uploadAudio.useMutation();
   const updateTranscriptMutation = trpc.consultations.updateTranscript.useMutation();
+  const transcribeConsultationMutation = trpc.consultations.transcribe.useMutation();
+  const consultationStreamingEnabled =
+    String(import.meta.env.VITE_CONSULTATION_STREAMING_ASR_ENABLED || "false").toLowerCase() ===
+    "true";
 
   // Cleanup on unmount
   useEffect(() => {
@@ -157,6 +165,48 @@ export default function NewConsultation() {
     } catch (error: any) {
       console.error("Error saving transcript:", error);
       toast.error("Erro ao salvar transcrição.");
+    }
+  };
+
+  const handleLiveTranscriptReady = async (result: LiveTranscriptionResult) => {
+    if (!consultationId) {
+      toast.error("Erro: consulta não encontrada.");
+      return;
+    }
+    try {
+      setIsUploading(true);
+      setUploadProgress(0);
+      await uploadAudioMultipart(
+        consultationId,
+        result.rawAudioBlob,
+        Math.max(1, Math.round(result.audioDurationMs / 1000))
+      );
+
+      if (result.warnings.length > 0) {
+        toast.warning(result.warnings[0]);
+      }
+
+      if (result.fallbackUsed || !result.transcript.trim()) {
+        toast.info("Streaming incompleto. Executando fallback batch no áudio completo...");
+        await transcribeConsultationMutation.mutateAsync({ consultationId });
+        toast.success("Transcrição finalizada com fallback batch.");
+        setLocation(`/consultation/${consultationId}/review`);
+        return;
+      }
+
+      await updateTranscriptMutation.mutateAsync({
+        consultationId,
+        transcript: result.transcript,
+        transcriptSegments: result.segments,
+      });
+      toast.success("Transcrição ao vivo concluída!");
+      setLocation(`/consultation/${consultationId}/review`);
+    } catch (error: any) {
+      console.error("Error finalizing live transcript:", error);
+      toast.error("Erro ao finalizar transcrição ao vivo.");
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -617,12 +667,19 @@ export default function NewConsultation() {
                   <TabsContent value="audio" className="mt-4 lg:mt-6">
                     {consultationId ? (
                       <div className="space-y-4">
-                        {/* Progressive AudioRecorder */}
-                        <AudioRecorder
-                          consultationId={consultationId}
-                          onTranscriptReady={handleTranscriptReady}
-                          onError={(msg) => toast.error(msg)}
-                        />
+                        {consultationStreamingEnabled ? (
+                          <LiveConsultationRecorder
+                            consultationId={consultationId}
+                            onComplete={handleLiveTranscriptReady}
+                            onError={(msg) => toast.error(msg)}
+                          />
+                        ) : (
+                          <AudioRecorder
+                            consultationId={consultationId}
+                            onTranscriptReady={handleTranscriptReady}
+                            onError={(msg) => toast.error(msg)}
+                          />
+                        )}
 
                         {/* File upload alternative */}
                         {!audioBlob && (

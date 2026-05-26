@@ -527,6 +527,7 @@ export const consultationsRouter = router({
     .input(z.object({
       consultationId: z.number(),
       transcript: z.string(),
+      transcriptSegments: z.array(z.any()).optional(),
     }))
     .mutation(async ({ ctx, input }) => {
       await assertConsultationAccess(
@@ -535,6 +536,7 @@ export const consultationsRouter = router({
 
       await updateConsultation(input.consultationId, {
         transcript: input.transcript,
+        transcriptSegments: input.transcriptSegments ?? undefined,
         status: "reviewed",
       });
 
