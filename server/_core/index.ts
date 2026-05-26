@@ -13,6 +13,7 @@ import stripeWebhook from "../stripe/webhook";
 import audioUploadRouter from "../routes/audioUpload";
 import consultationAudioUploadRouter from "../routes/consultationAudioUpload";
 import { registerConsultationStreamingWs } from "../routes/consultationStreaming.route";
+import { getConsultationStreamingStatus } from "../helpers/consultationStreamingAvailability";
 import { transcribeRouter } from "../routes/transcribe.route";
 import whatsappUploadRouter from "../routes/whatsappUpload";
 
@@ -123,6 +124,20 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`✅ Server running on http://localhost:${port}/`);
     console.log(`📝 Environment: ${process.env.NODE_ENV || "development"}`);
+
+    const streamingStatus = getConsultationStreamingStatus();
+    if (streamingStatus.enabled && !streamingStatus.ready) {
+      console.warn(
+        `[ConsultationStreaming] Live ASR indisponível (${streamingStatus.provider}): ${streamingStatus.reason}`
+      );
+      console.warn(
+        "[ConsultationStreaming] Consultas usarão gravação progressiva até o provider estar configurado."
+      );
+    } else if (streamingStatus.ready) {
+      console.log(
+        `[ConsultationStreaming] Live ASR ativo (${streamingStatus.provider}).`
+      );
+    }
 
     // Verificação de conexão Supabase (não-blocante — roda após o servidor subir)
     (async () => {

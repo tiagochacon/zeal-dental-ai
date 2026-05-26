@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import { ENV } from "../../../_core/env";
+import { getConsultationStreamingStatus } from "../../../helpers/consultationStreamingAvailability";
 import { AssemblyAIStreamingProvider } from "./providers/assemblyAIStreamingProvider";
 import type {
   ConsultationStreamingProvider,
@@ -117,9 +118,11 @@ export class ConsultationStreamingSession {
         `Provider ${this.providerKind} ainda não implementado para consulta streaming`
       );
     }
-    if (!ENV.assemblyAiApiKey) {
+    const streamingStatus = getConsultationStreamingStatus();
+    if (!streamingStatus.ready) {
       throw new Error(
-        "Streaming AssemblyAI indisponível: ASSEMBLYAI_API_KEY não configurada no backend."
+        streamingStatus.reason ||
+          "Streaming de consulta indisponível no momento."
       );
     }
     return new AssemblyAIStreamingProvider(this.buildProviderCallbacks(), {

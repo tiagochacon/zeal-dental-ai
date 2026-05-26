@@ -3,6 +3,7 @@ import type { IncomingMessage } from "http";
 import type { Server as HttpServer } from "http";
 import type { Duplex } from "stream";
 import { ENV } from "../_core/env";
+import { getConsultationStreamingStatus } from "../helpers/consultationStreamingAvailability";
 import { sdk } from "../_core/sdk";
 import { getConsultationById, getUserById } from "../db";
 import { ConsultationStreamingSession } from "../ai/stt/streaming/consultationStreamingSession";
@@ -146,6 +147,13 @@ export function registerConsultationStreamingWs(server: HttpServer): void {
 
       if (!ENV.consultationStreamingAsrEnabled) {
         socket.write("HTTP/1.1 404 Not Found\r\n\r\n");
+        socket.destroy();
+        return;
+      }
+
+      const streamingStatus = getConsultationStreamingStatus();
+      if (!streamingStatus.ready) {
+        socket.write("HTTP/1.1 503 Service Unavailable\r\n\r\n");
         socket.destroy();
         return;
       }

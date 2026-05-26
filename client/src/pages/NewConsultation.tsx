@@ -16,6 +16,7 @@ import { useLocation } from "wouter";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { AudioRecorder } from "@/components/consultations/AudioRecorder";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   LiveConsultationRecorder,
 } from "@/components/consultations/LiveConsultationRecorder";
@@ -60,6 +61,10 @@ export default function NewConsultation() {
     { search: patientSearch || undefined },
     { enabled: !!user }
   );
+  const { data: streamingAsrStatus, isLoading: streamingStatusLoading } =
+    trpc.consultations.streamingAsrStatus.useQuery(undefined, {
+      enabled: !!user,
+    });
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -82,10 +87,18 @@ export default function NewConsultation() {
   const forceLegacyConsultationRecorder =
     String(import.meta.env.VITE_CONSULTATION_STREAMING_FORCE_LEGACY || "false").toLowerCase() ===
     "true";
-  const consultationStreamingEnabled =
+  const consultationStreamingPreferred =
     !forceLegacyConsultationRecorder &&
     String(import.meta.env.VITE_CONSULTATION_STREAMING_ASR_ENABLED || "true").toLowerCase() ===
     "true";
+  const useLiveConsultationRecorder =
+    consultationStreamingPreferred && streamingAsrStatus?.ready === true;
+  const streamingFallbackReason =
+    consultationStreamingPreferred &&
+    streamingAsrStatus &&
+    !streamingAsrStatus.ready
+      ? streamingAsrStatus.reason
+      : null;
 
   // Cleanup on unmount
   useEffect(() => {
@@ -671,18 +684,40 @@ export default function NewConsultation() {
                   <TabsContent value="audio" className="mt-4 lg:mt-6">
                     {consultationId ? (
                       <div className="space-y-4">
-                        {consultationStreamingEnabled ? (
-                          <LiveConsultationRecorder
-                            consultationId={consultationId}
-                            onComplete={handleLiveTranscriptReady}
-                            onError={(msg) => toast.error(msg)}
-                          />
+                        {streamingStatusLoading && consultationStreamingPreferred ? (
+                          <div className="flex flex-col items-center gap-4 py-8">
+                            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                            <p className="text-sm text-muted-foreground">
+                              Verificando transcrição ao vivo...
+                            </p>
+                          </div>
                         ) : (
-                          <AudioRecorder
-                            consultationId={consultationId}
-                            onTranscriptReady={handleTranscriptReady}
-                            onError={(msg) => toast.error(msg)}
-                          />
+                          <>
+                            {streamingFallbackReason && (
+                              <Alert>
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>
+                                  Transcrição ao vivo indisponível ({streamingFallbackReason}).
+                                  Usando gravação progressiva enquanto a chave do provider não
+                                  estiver configurada no servidor.
+                                </AlertDescription>
+                              </Alert>
+                            )}
+
+                            {useLiveConsultationRecorder ? (
+                              <LiveConsultationRecorder
+                                consultationId={consultationId}
+                                onComplete={handleLiveTranscriptReady}
+                                onError={(msg) => toast.error(msg)}
+                              />
+                            ) : (
+                              <AudioRecorder
+                                consultationId={consultationId}
+                                onTranscriptReady={handleTranscriptReady}
+                                onError={(msg) => toast.error(msg)}
+                              />
+                            )}
+                          </>
                         )}
 
                         {/* File upload alternative */}

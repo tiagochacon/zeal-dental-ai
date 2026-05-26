@@ -30,6 +30,7 @@ import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnaly
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
 import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims, EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK } from "../helpers/antiHallucination";
 import { CONSERVATIVE_DENTAL_PROMPT } from "../helpers/chunkTranscription";
+import { getConsultationStreamingStatus } from "../helpers/consultationStreamingAvailability";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { SOAPNote, TreatmentPlan } from "../../drizzle/schema";
 import { incrementClinicConsultationCount } from "../clinicBilling";
@@ -109,6 +110,10 @@ async function assertConsultationAccess<T extends { dentistId: number }>(
 }
 
 export const consultationsRouter = router({
+  streamingAsrStatus: protectedProcedure.query(() => {
+    return getConsultationStreamingStatus();
+  }),
+
   create: protectedProcedure
     .input(z.object({
       patientId: z.number(),
