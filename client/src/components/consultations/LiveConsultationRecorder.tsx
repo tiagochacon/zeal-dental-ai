@@ -16,6 +16,7 @@ import {
   type LiveTranscriptionResult,
   useConsultationLiveTranscription,
 } from "@/hooks/useConsultationLiveTranscription";
+import { isInternalTranscriptWarning } from "@shared/transcriptDisplay";
 
 type LiveConsultationRecorderProps = {
   consultationId: number;
@@ -31,6 +32,10 @@ function connectionLabel(
   if (state === "reconnecting") return "Reconectando";
   return "Desconectado";
 }
+
+const showSpeakerLabels =
+  String(import.meta.env.VITE_LIVE_SHOW_SPEAKER_LABELS || "false").toLowerCase() ===
+  "true";
 
 export function LiveConsultationRecorder({
   consultationId,
@@ -267,7 +272,9 @@ export function LiveConsultationRecorder({
               <div className="space-y-2">
                 {recorder.segments.map((segment) => (
                   <p key={segment.turnId} className="leading-relaxed">
-                    {segment.speakerLabel ? `[${segment.speakerLabel}] ` : ""}
+                    {showSpeakerLabels && segment.speakerLabel
+                      ? `[${segment.speakerLabel}] `
+                      : ""}
                     {segment.text}
                   </p>
                 ))}
@@ -290,9 +297,12 @@ export function LiveConsultationRecorder({
         </div>
       )}
 
-      {(recorder.warnings.length > 0) && (
+      {(recorder.warnings.some((warning) => !isInternalTranscriptWarning(warning))) && (
         <div className="rounded-xl border bg-card p-4 space-y-2">
-          {recorder.warnings.slice(0, 3).map((warning) => (
+          {recorder.warnings
+            .filter((warning) => !isInternalTranscriptWarning(warning))
+            .slice(0, 3)
+            .map((warning) => (
             <p
               key={warning}
               className="text-xs text-yellow-600 dark:text-yellow-400 flex items-center gap-1"

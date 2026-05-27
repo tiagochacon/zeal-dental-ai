@@ -1,4 +1,5 @@
 import { CONSERVATIVE_DENTAL_PROMPT } from "../../helpers/chunkTranscription";
+import { DENTAL_VOCABULARY_PT_BR } from "@shared/dentalVocabulary";
 import { DeepgramProvider } from "./providers/deepgramProvider";
 import { OpenAITranscribeProvider } from "./providers/openAITranscribeProvider";
 import { WhisperProvider } from "./providers/whisperProvider";
@@ -8,35 +9,6 @@ import type {
   TranscribeInput,
   TranscribeResult,
 } from "./types";
-
-const DENTAL_VOCABULARY_PT_BR = [
-  "bruxismo",
-  "ATM",
-  "periodontite",
-  "endodontia",
-  "gengivite",
-  "oclusão",
-  "retratamento",
-  "implante",
-  "prótese",
-  "canal",
-  "exodontia",
-  "clareamento",
-  "faceta",
-  "Invisalign",
-  "aparelho",
-  "contenção",
-  "radiografia",
-  "tomografia",
-  "cirurgia",
-  "anestesia",
-  "lidocaína",
-  "articaína",
-  "profilaxia",
-  "raspagem",
-  "curetagem",
-  "enxerto",
-];
 
 function getProviders(): Record<string, SpeechToTextProvider> {
   return {

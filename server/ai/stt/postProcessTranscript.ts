@@ -7,29 +7,26 @@ export type PostProcessedTranscriptResult = TranscribeResult & {
   warnings: string[];
 };
 
+const LOW_CONFIDENCE_THRESHOLD = 0.5;
+const UNCERTAIN_CONFIDENCE_THRESHOLD = 0.75;
+
 function normalizeSpacing(text: string): string {
   return text.replace(/\s+/g, " ").trim();
 }
 
-function wrapUncertainty(text: string, confidence: number | null): string {
-  const normalized = normalizeSpacing(text);
-  if (!normalized) {
-    return "[INAUDIVEL]";
-  }
+function isUncertainSegment(confidence: number | null): boolean {
+  if (confidence === null) return false;
+  return confidence < UNCERTAIN_CONFIDENCE_THRESHOLD;
+}
 
-  if (confidence === null) {
-    return normalized;
-  }
+function isLowConfidenceSegment(confidence: number | null): boolean {
+  if (confidence === null) return false;
+  return confidence < LOW_CONFIDENCE_THRESHOLD;
+}
 
-  if (confidence < 0.5) {
-    return `[BAIXA_CONFIANCA: "${normalized}"]`;
-  }
-
-  if (confidence < 0.75) {
-    return `[INCERTO: "${normalized}"]`;
-  }
-
-  return normalized;
+/** Texto limpo para UI; incerteza fica em segment.confidence e uncertainSegmentIds. */
+function displaySegmentText(text: string): string {
+  return normalizeSpacing(text);
 }
 
 export function postProcessTranscript(
@@ -40,25 +37,23 @@ export function postProcessTranscript(
   const warnings = [...transcriptResult.warnings];
 
   const processedLines = transcriptResult.segments.map((segment) => {
-    const transformed = wrapUncertainty(segment.text, segment.confidence);
-    if (transformed !== segment.text) {
-      processingLog.push(`Segmento ${segment.id} normalizado/conservado.`);
-    }
-    if (
-      transformed.startsWith("[INCERTO:") ||
-      transformed.startsWith("[BAIXA_CONFIANCA:")
-    ) {
+    const displayText = displaySegmentText(segment.text);
+
+    if (isUncertainSegment(segment.confidence)) {
       uncertainSegmentIds.push(segment.id);
+      processingLog.push(`Segmento ${segment.id} marcado como incerto (confiança interna).`);
     }
-    if (transformed.startsWith("[BAIXA_CONFIANCA:")) {
+
+    if (isLowConfidenceSegment(segment.confidence)) {
       warnings.push(`Segmento ${segment.id} com baixa confiança (<0.50).`);
     }
-    return transformed;
+
+    return displayText;
   });
 
   const processedTranscript = processedLines.filter(Boolean).join("\n\n").trim();
   if (!processedTranscript && transcriptResult.transcript.trim().length > 0) {
-    processingLog.push("Transcript vazio após marcações; preservando transcript original.");
+    processingLog.push("Transcript vazio após normalização; preservando transcript original.");
   }
 
   return {

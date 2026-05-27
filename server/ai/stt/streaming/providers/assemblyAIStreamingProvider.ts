@@ -1,4 +1,5 @@
 import { ENV } from "../../../../_core/env";
+import { ASSEMBLYAI_STREAMING_KEYTERMS } from "@shared/dentalVocabulary";
 import {
   buildAssemblyAITokenRequestUrl,
   formatAssemblyAITokenError,
@@ -134,11 +135,16 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
     }
 
     const ephemeralToken = await this.createStreamingToken();
+    // Live streaming: keyterms odontológicos (batch/chunks usam CONSERVATIVE_DENTAL_PROMPT separadamente).
     const endpoint = new URL("wss://streaming.assemblyai.com/v3/ws");
     endpoint.searchParams.set("sample_rate", String(this.sampleRate));
     endpoint.searchParams.set("speech_model", this.model);
     endpoint.searchParams.set("speaker_labels", "true");
     endpoint.searchParams.set("format_turns", "true");
+    endpoint.searchParams.set(
+      "keyterms_prompt",
+      JSON.stringify(ASSEMBLYAI_STREAMING_KEYTERMS)
+    );
     endpoint.searchParams.set("token", ephemeralToken);
 
     await new Promise<void>((resolve, reject) => {

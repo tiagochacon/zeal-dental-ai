@@ -3,7 +3,7 @@ import { postProcessTranscript } from "./ai/stt/postProcessTranscript";
 import type { TranscribeResult } from "./ai/stt";
 
 describe("postProcessTranscript", () => {
-  it("marks uncertain and low confidence segments conservatively", () => {
+  it("keeps clean display text while tracking uncertain segments internally", () => {
     const input: TranscribeResult = {
       transcript: "texto bruto",
       provider: "whisper",
@@ -45,8 +45,10 @@ describe("postProcessTranscript", () => {
     };
 
     const output = postProcessTranscript(input);
-    expect(output.processedTranscript).toContain("[INCERTO:");
-    expect(output.processedTranscript).toContain("[BAIXA_CONFIANCA:");
+    expect(output.processedTranscript).toContain("fala com boa confiança");
+    expect(output.processedTranscript).toContain("fala duvidosa");
+    expect(output.processedTranscript).not.toContain("[INCERTO:");
+    expect(output.processedTranscript).not.toContain("[BAIXA_CONFIANCA:");
     expect(output.uncertainSegmentIds).toEqual(["s2", "s3"]);
     expect(output.warnings.some((warning) => warning.includes("baixa confiança"))).toBe(true);
   });

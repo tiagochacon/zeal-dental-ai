@@ -14,6 +14,7 @@ import { UpgradeModal, type UpgradeModalTrigger } from "@/components/UpgradeModa
 import { useUsageLimit, getTriggerFromError } from "@/hooks/useUsageLimit";
 import { useLocation } from "wouter";
 import { toast } from "sonner";
+import { isInternalTranscriptWarning } from "@shared/transcriptDisplay";
 import { cn } from "@/lib/utils";
 import { AudioRecorder } from "@/components/consultations/AudioRecorder";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -199,8 +200,11 @@ export default function NewConsultation() {
         Math.max(1, Math.round(result.audioDurationMs / 1000))
       );
 
-      if (result.warnings.length > 0) {
-        toast.warning(result.warnings[0]);
+      const userWarnings = result.warnings.filter(
+        (warning) => !isInternalTranscriptWarning(warning)
+      );
+      if (userWarnings.length > 0) {
+        toast.warning(userWarnings[0]);
       }
 
       if (result.fallbackUsed || !result.transcript.trim()) {

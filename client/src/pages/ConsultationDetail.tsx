@@ -25,6 +25,7 @@ import type { SOAPNote, TreatmentPlan } from "../../../drizzle/schema";
 import { AdaptiveNegotiationTab } from "@/components/negotiation";
 import { UpgradeModal } from "@/components/UpgradeModal";
 import type { PatientProfile, NeurovendasAnalysis } from "../../../drizzle/schema";
+import { stripUncertaintyMarkers } from "@shared/transcriptDisplay";
 
 export default function ConsultationDetail() {
   const [, setLocation] = useLocation();
@@ -694,7 +695,7 @@ export default function ConsultationDetail() {
                       </div>
                     )}
                     <div className="whitespace-pre-wrap text-sm leading-relaxed bg-muted/50 p-4 rounded-lg">
-                      {consultation.transcript}
+                      {stripUncertaintyMarkers(consultation.transcript)}
                     </div>
                   </CardContent>
                 </Card>

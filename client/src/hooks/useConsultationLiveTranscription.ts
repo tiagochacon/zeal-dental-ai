@@ -3,6 +3,8 @@ import {
   collapsePrefixDuplicateSegments,
   mergeFinalSegment,
 } from "@shared/liveTranscriptSegments";
+import { shouldUseBatchFallback } from "@shared/liveTranscriptFallback";
+import { isInternalTranscriptWarning } from "@shared/transcriptDisplay";
 
 export type LiveSpeakerRole = "DENTIST" | "PATIENT" | "UNKNOWN";
 
@@ -580,39 +582,38 @@ export function useConsultationLiveTranscription(consultationId: number) {
     const sanitizedSegments = collapsePrefixDuplicateSegments(segments);
     const transcriptText = sanitizedSegments.map((segment) => segment.text).join("\n").trim();
 
-    let computedCoverageRatio: number | null = null;
     if (sanitizedSegments.length > 0 && audioDurationMs > 0) {
       const maxEnd = sanitizedSegments
         .map((segment) => segment.endMs)
         .filter((value): value is number => typeof value === "number")
         .reduce((max, value) => Math.max(max, value), 0);
-      if (maxEnd > 0) computedCoverageRatio = maxEnd / audioDurationMs;
-      if (computedCoverageRatio !== null && computedCoverageRatio < 0.75) {
-        const coveragePct = Math.round((computedCoverageRatio ?? 0) * 100);
-        fallbackNeededRef.current = true;
-        setWarnings((prev) =>
-          pushUniqueWarning(
-            prev,
-            `Cobertura da transcrição baixa (${coveragePct}%).`
-          )
-        );
+      if (maxEnd > 0) {
+        const computedCoverageRatio = maxEnd / audioDurationMs;
+        if (computedCoverageRatio < 0.75) {
+          console.debug(
+            "[LiveTranscription] Cobertura de timestamps baixa (métrica interna):",
+            Math.round(computedCoverageRatio * 100) + "%"
+          );
+        }
       }
     }
 
-    const finalWarnings =
-      computedCoverageRatio !== null && computedCoverageRatio < 0.75
-        ? pushUniqueWarning(
-            warnings,
-            `Cobertura da transcrição baixa (${Math.round((computedCoverageRatio || 0) * 100)}%).`
-          )
-        : warnings;
+    const useBatchFallback = shouldUseBatchFallback(
+      transcriptText,
+      sanitizedSegments.length,
+      fallbackNeededRef.current
+    );
+
+    const finalWarnings = warnings.filter(
+      (warning) => !isInternalTranscriptWarning(warning)
+    );
 
     return {
       transcript: transcriptText,
       segments: sanitizedSegments,
       rawAudioBlob,
       warnings: finalWarnings,
-      fallbackUsed: fallbackNeededRef.current || !transcriptText,
+      fallbackUsed: useBatchFallback,
       provider: providerRef.current,
       model: modelRef.current,
       integrity,

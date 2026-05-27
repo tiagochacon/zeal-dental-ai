@@ -11,6 +11,7 @@ import { useLocation, useParams } from "wouter";
 import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { DashboardLayoutSkeleton } from "@/components/DashboardLayoutSkeleton";
+import { stripUncertaintyMarkers } from "@shared/transcriptDisplay";
 
 export default function TranscriptionReview() {
   const [, setLocation] = useLocation();
@@ -74,7 +75,7 @@ export default function TranscriptionReview() {
 
   useEffect(() => {
     if (consultation?.transcript) {
-      setEditedTranscript(consultation.transcript);
+      setEditedTranscript(stripUncertaintyMarkers(consultation.transcript));
     }
   }, [consultation?.transcript]);
 
@@ -287,7 +288,7 @@ export default function TranscriptionReview() {
           ) : (
             <div className="prose prose-sm dark:prose-invert max-w-none">
               <div className="whitespace-pre-wrap text-xs lg:text-sm leading-relaxed bg-muted/50 p-3 lg:p-4 rounded-lg max-h-[400px] overflow-y-auto">
-                {consultation.transcript}
+                {stripUncertaintyMarkers(consultation.transcript)}
               </div>
             </div>
           )}
