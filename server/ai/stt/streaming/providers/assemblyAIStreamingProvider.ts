@@ -3,6 +3,7 @@ import {
   buildAssemblyAITokenRequestUrl,
   formatAssemblyAITokenError,
 } from "../assemblyAIToken";
+import { isAssemblyAITurnFinal } from "../assemblyAITurnClassification";
 import type {
   ConsultationStreamingProvider,
   ProviderCallbacks,
@@ -166,7 +167,16 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
             const confidence = normalizeConfidence(parsed);
             const speakerLabel = normalizeSpeakerLabel(parsed);
 
-            if (parsed.end_of_turn || parsed.turn_is_formatted) {
+            if (!ENV.isProduction) {
+              console.debug("[AssemblyAIStreaming] Turn", {
+                end_of_turn: parsed.end_of_turn,
+                turn_is_formatted: parsed.turn_is_formatted,
+                transcriptPreview: transcript.slice(0, 80),
+              });
+            }
+
+            // Only end_of_turn marks a completed turn; turn_is_formatted can be true on partials.
+            if (isAssemblyAITurnFinal(parsed)) {
               this.callbacks.onFinal({
                 text: transcript,
                 speakerLabel,

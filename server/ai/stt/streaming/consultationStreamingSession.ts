@@ -28,6 +28,10 @@ export class ConsultationStreamingSession {
   private closedByProvider = false;
   private closed = false;
 
+  private get currentTurnId(): string {
+    return `turn_${this.finalTurns + 1}`;
+  }
+
   constructor(options: SessionOptions) {
     this.sessionId = `live_${nanoid(10)}`;
     this.consultationId = options.consultationId;
@@ -52,7 +56,7 @@ export class ConsultationStreamingSession {
       onPartial: ({ text, speakerLabel, startMs, endMs, confidence }) => {
         this.emit({
           type: "partial",
-          turnId: `turn_${this.finalTurns + 1}`,
+          turnId: this.currentTurnId,
           text,
           isFinal: false,
           speakerLabel: speakerLabel ?? null,

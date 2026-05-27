@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -39,6 +39,13 @@ export function LiveConsultationRecorder({
 }: LiveConsultationRecorderProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const recorder = useConsultationLiveTranscription(consultationId);
+  const captionScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = captionScrollRef.current;
+    if (!container) return;
+    container.scrollTo({ top: container.scrollHeight, behavior: "smooth" });
+  }, [recorder.partialText, recorder.segments.length]);
 
   const handleStart = async () => {
     try {
@@ -252,29 +259,34 @@ export function LiveConsultationRecorder({
         <div className="rounded-xl border bg-card p-4 space-y-3">
           <p className="text-sm font-medium">Legenda ao vivo</p>
 
-          {recorder.segments.length > 0 && (
-            <div className="max-h-40 overflow-auto space-y-2 text-sm">
-              {recorder.segments.map((segment) => (
-                <p key={segment.turnId} className="leading-relaxed">
-                  {segment.speakerLabel ? `[${segment.speakerLabel}] ` : ""}
-                  {segment.text}
+          <div
+            ref={captionScrollRef}
+            className="max-h-48 overflow-auto space-y-2 text-sm scroll-smooth"
+          >
+            {recorder.segments.length > 0 && (
+              <div className="space-y-2">
+                {recorder.segments.map((segment) => (
+                  <p key={segment.turnId} className="leading-relaxed">
+                    {segment.speakerLabel ? `[${segment.speakerLabel}] ` : ""}
+                    {segment.text}
+                  </p>
+                ))}
+              </div>
+            )}
+
+            {recorder.partialText && (
+              <div className="rounded-lg bg-muted/50 p-3">
+                <p className="text-xs font-medium text-muted-foreground mb-1">
+                  Parcial (mutável)
                 </p>
-              ))}
-            </div>
-          )}
+                <p className="text-sm leading-relaxed">{recorder.partialText}</p>
+              </div>
+            )}
 
-          {recorder.partialText && (
-            <div className="rounded-lg bg-muted/50 p-3">
-              <p className="text-xs font-medium text-muted-foreground mb-1">Parcial (mutável)</p>
-              <p className="text-sm leading-relaxed">{recorder.partialText}</p>
-            </div>
-          )}
-
-          {!recorder.partialText && recorder.segments.length === 0 && (
-            <p className="text-xs text-muted-foreground">
-              Aguardando fala...
-            </p>
-          )}
+            {!recorder.partialText && recorder.segments.length === 0 && (
+              <p className="text-xs text-muted-foreground">Aguardando fala...</p>
+            )}
+          </div>
         </div>
       )}
 

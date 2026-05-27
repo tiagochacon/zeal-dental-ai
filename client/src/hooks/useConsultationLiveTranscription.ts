@@ -1,4 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  collapsePrefixDuplicateSegments,
+  mergeFinalSegment,
+} from "@shared/liveTranscriptSegments";
 
 export type LiveSpeakerRole = "DENTIST" | "PATIENT" | "UNKNOWN";
 
@@ -129,7 +133,11 @@ export function useConsultationLiveTranscription(consultationId: number) {
   const maxReconnectAttempts = 2;
 
   const transcript = useMemo(
-    () => segments.map((segment) => segment.text).join("\n").trim(),
+    () =>
+      collapsePrefixDuplicateSegments(segments)
+        .map((segment) => segment.text)
+        .join("\n")
+        .trim(),
     [segments]
   );
 
@@ -236,7 +244,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
         model: event.model || "unknown",
         createdAt: event.createdAt,
       };
-      setSegments((prev) => [...prev, segment]);
+      setSegments((prev) => mergeFinalSegment(prev, segment));
       if (
         typeof segment.confidence === "number" &&
         segment.confidence !== null &&
@@ -585,11 +593,12 @@ export function useConsultationLiveTranscription(consultationId: number) {
 
     const rawAudioBlob = new Blob(rawChunksRef.current, { type: rawMimeTypeRef.current });
     const audioDurationMs = durationSec * 1000;
-    const transcriptText = segments.map((segment) => segment.text).join("\n").trim();
+    const sanitizedSegments = collapsePrefixDuplicateSegments(segments);
+    const transcriptText = sanitizedSegments.map((segment) => segment.text).join("\n").trim();
 
     let computedCoverageRatio: number | null = null;
-    if (segments.length > 0 && audioDurationMs > 0) {
-      const maxEnd = segments
+    if (sanitizedSegments.length > 0 && audioDurationMs > 0) {
+      const maxEnd = sanitizedSegments
         .map((segment) => segment.endMs)
         .filter((value): value is number => typeof value === "number")
         .reduce((max, value) => Math.max(max, value), 0);
@@ -616,7 +625,7 @@ export function useConsultationLiveTranscription(consultationId: number) {
 
     return {
       transcript: transcriptText,
-      segments,
+      segments: sanitizedSegments,
       rawAudioBlob,
       warnings: finalWarnings,
       fallbackUsed: fallbackNeededRef.current || !transcriptText,
