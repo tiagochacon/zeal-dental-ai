@@ -290,7 +290,7 @@ export function LiveConsultationRecorder({
         </div>
       )}
 
-      {(recorder.warnings.length > 0 || recorder.integrity) && (
+      {(recorder.warnings.length > 0) && (
         <div className="rounded-xl border bg-card p-4 space-y-2">
           {recorder.warnings.slice(0, 3).map((warning) => (
             <p
@@ -301,12 +301,6 @@ export function LiveConsultationRecorder({
               {warning}
             </p>
           ))}
-          {recorder.integrity && (
-            <p className="text-xs text-muted-foreground">
-              Integridade: {recorder.integrity.finalTurnsReceived} turnos finais,{" "}
-              {recorder.integrity.audioPacketsSent} pacotes de áudio.
-            </p>
-          )}
         </div>
       )}
     </div>

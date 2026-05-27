@@ -146,9 +146,6 @@ export class ConsultationStreamingSession {
       type: "session_started",
       provider: this.providerKind,
       model: this.provider.model,
-      warnings: [
-        "Streaming consultation-only ativo. SpeakerRole permanece UNKNOWN sem mapeamento explícito.",
-      ],
     });
   }
 

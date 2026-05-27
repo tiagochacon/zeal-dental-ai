@@ -72,8 +72,6 @@ type RecentPacket = {
   payload: ArrayBuffer;
 };
 
-const LOW_CONFIDENCE_THRESHOLD = 0.65;
-
 function pcmFloat32ToInt16(channelData: Float32Array): ArrayBuffer {
   const buffer = new ArrayBuffer(channelData.length * 2);
   const view = new DataView(buffer);
@@ -245,20 +243,6 @@ export function useConsultationLiveTranscription(consultationId: number) {
         createdAt: event.createdAt,
       };
       setSegments((prev) => mergeFinalSegment(prev, segment));
-      if (
-        typeof segment.confidence === "number" &&
-        segment.confidence !== null &&
-        segment.confidence > 0 &&
-        segment.confidence < LOW_CONFIDENCE_THRESHOLD
-      ) {
-        const confidencePct = Math.round((segment.confidence ?? 0) * 100);
-        setWarnings((prev) =>
-          pushUniqueWarning(
-            prev,
-            `Baixa confiança detectada no trecho "${segment.turnId}" (${confidencePct}%).`
-          )
-        );
-      }
       return;
     }
 
