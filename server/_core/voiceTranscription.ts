@@ -147,14 +147,33 @@ export async function transcribeLongAudio(
       };
     }
 
-    // Route: small file → direct, large file → chunked
+    // Routing strategy:
+    // ≤25MB  → direct (any provider)
+    // 25-100MB → try direct first (Deepgram handles up to 2GB natively, no ffmpeg needed);
+    //            fall back to ffmpeg chunked if all direct providers fail
+    // >100MB  → ffmpeg chunked directly (only Deepgram could handle it directly but chunking is safer)
+    const LARGE_FILE_DIRECT_MAX = 100 * 1024 * 1024; // 100MB
+
     if (audioBuffer.length <= WHISPER_MAX_SIZE_BYTES) {
       console.log(`[Transcription] File ≤25MB, using direct transcription`);
       return await transcribeAudioDirect(audioBuffer, mimeType, options);
-    } else {
-      console.log(`[Transcription] File >25MB (${sizeMB.toFixed(0)}MB), using chunked transcription`);
+    }
+
+    if (audioBuffer.length <= LARGE_FILE_DIRECT_MAX) {
+      console.log(`[Transcription] File ${sizeMB.toFixed(0)}MB (25-100MB), trying direct transcription (Deepgram) first`);
+      const directResult = await transcribeAudioDirect(audioBuffer, mimeType, options);
+      if (!("error" in directResult)) {
+        return directResult;
+      }
+      console.warn(
+        `[Transcription] Direct transcription failed for ${sizeMB.toFixed(0)}MB file (${directResult.error}). ` +
+        `Falling back to ffmpeg chunked. Ensure ffmpeg is installed or configure DEEPGRAM_API_KEY + STT_ENABLE_DEEPGRAM=true.`
+      );
       return await transcribeAudioChunked(audioBuffer, mimeType, options);
     }
+
+    console.log(`[Transcription] File >100MB (${sizeMB.toFixed(0)}MB), using ffmpeg chunked transcription`);
+    return await transcribeAudioChunked(audioBuffer, mimeType, options);
   } catch (error) {
     console.error("[Transcription] Unexpected error:", error);
     return {

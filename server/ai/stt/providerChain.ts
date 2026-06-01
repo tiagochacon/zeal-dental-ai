@@ -34,9 +34,11 @@ export function resolveProviderChain(input: TranscribeInput): string[] {
     return chain;
   }
 
-  if (shouldUseOpenAIForGeneral(input)) {
-    return ["openai", "whisper"];
-  }
-
-  return ["whisper"];
+  // For calls and WhatsApp: include Deepgram first (handles files up to 2GB without ffmpeg),
+  // then OpenAI if configured, then Whisper as last resort.
+  const generalChain: string[] = [];
+  if (canUseDeepgram()) generalChain.push("deepgram");
+  if (shouldUseOpenAIForGeneral(input)) generalChain.push("openai");
+  generalChain.push("whisper");
+  return generalChain;
 }
