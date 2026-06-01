@@ -145,11 +145,8 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
       "keyterms_prompt",
       JSON.stringify(ASSEMBLYAI_STREAMING_KEYTERMS)
     );
-    // AssemblyAI domain prompting (beta) — provides richer contextual accuracy for dental pt-BR
-    endpoint.searchParams.set(
-      "prompt",
-      "Esta é uma consulta odontológica em português brasileiro. O dentista e o paciente estão conversando sobre tratamentos dentários como implantes, canais, extrações, próteses, ortodontia e procedimentos periodontais. O dentista pode mencionar medicamentos como amoxicilina, ibuprofeno e dipirona, além de procedimentos como extirpação pulpar, osseointegração e gengivoplastia. A conversa inclui termos técnicos odontológicos e clínicos."
-    );
+    // NOTE: AssemblyAI domain prompting ('prompt' param) is beta and not available on all plans.
+    // Removed to avoid "User Input Validation Error" that breaks the streaming connection.
     endpoint.searchParams.set("token", ephemeralToken);
 
     await new Promise<void>((resolve, reject) => {
