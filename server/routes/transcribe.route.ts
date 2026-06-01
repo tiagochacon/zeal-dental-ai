@@ -21,7 +21,7 @@ import { summarizeChunkIntegrity } from "../helpers/chunkIntegrity";
 export const transcribeRouter = Router();
 
 // ─── Context chaining ─────────────────────────────────────────────────────────
-// Busca as últimas 30 palavras do chunk anterior para usar como contexto no Whisper.
+// Busca as últimas 80 palavras do chunk anterior para usar como contexto no Whisper.
 // Isso evita alucinações no início de cada chunk e mantém continuidade no texto.
 async function getPreviousChunkContext(
   consultationId: number,
@@ -39,7 +39,7 @@ async function getPreviousChunkContext(
     );
     if (!prev?.transcriptText) return "";
     const words = prev.transcriptText.trim().split(/\s+/);
-    return words.slice(-30).join(" ");
+    return words.slice(-80).join(" ");
   } catch (err) {
     console.warn("[TranscribeChunk] Falha ao buscar contexto do chunk anterior:", err);
     return "";
@@ -215,7 +215,8 @@ transcribeRouter.post("/", async (req, res) => {
     recordingSessionId,
     chunkIndex
   );
-  const chunkPrompt = buildConservativeChunkPrompt(previousContext);
+  const DENTAL_CONTEXT_HINT = "Consulta odontológica em português brasileiro. Termos: implante, canal, extirpação, periodontite, oclusão, ortodontia, prótese, gengivoplastia.";
+  const chunkPrompt = `${DENTAL_CONTEXT_HINT} ${buildConservativeChunkPrompt(previousContext)}`;
 
   if (previousContext) {
     console.log(

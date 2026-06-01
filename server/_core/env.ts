@@ -57,7 +57,7 @@ export const ENV = {
   ),
   consultationStreamingAssemblyAIModel: getEnvVar(
     "CONSULTATION_STREAMING_ASSEMBLYAI_MODEL",
-    "universal-streaming-multilingual"
+    "u3-rt-pro"
   ),
   consultationStreamingTokenExpiresSeconds: Number(
     getEnvVar("CONSULTATION_STREAMING_TOKEN_EXPIRES_SECONDS", "600")

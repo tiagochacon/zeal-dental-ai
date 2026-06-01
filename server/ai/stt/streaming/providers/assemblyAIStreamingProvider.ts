@@ -86,7 +86,7 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
   ) {
     this.callbacks = callbacks;
     this.apiKey = process.env.ASSEMBLYAI_API_KEY || "";
-    this.model = options?.model || "universal-streaming-multilingual";
+    this.model = options?.model || "u3-rt-pro";
     this.sampleRate = options?.sampleRate || 16000;
     this.tokenExpiresSeconds = options?.tokenExpiresSeconds ?? 600;
     this.maxSessionDurationSeconds = options?.maxSessionDurationSeconds ?? 3600;
@@ -135,7 +135,7 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
     }
 
     const ephemeralToken = await this.createStreamingToken();
-    // Live streaming: keyterms odontológicos (batch/chunks usam CONSERVATIVE_DENTAL_PROMPT separadamente).
+    // Live streaming: keyterms + domain prompt odontológicos (batch/chunks usam CONSERVATIVE_DENTAL_PROMPT separadamente).
     const endpoint = new URL("wss://streaming.assemblyai.com/v3/ws");
     endpoint.searchParams.set("sample_rate", String(this.sampleRate));
     endpoint.searchParams.set("speech_model", this.model);
@@ -144,6 +144,11 @@ export class AssemblyAIStreamingProvider implements ConsultationStreamingProvide
     endpoint.searchParams.set(
       "keyterms_prompt",
       JSON.stringify(ASSEMBLYAI_STREAMING_KEYTERMS)
+    );
+    // AssemblyAI domain prompting (beta) — provides richer contextual accuracy for dental pt-BR
+    endpoint.searchParams.set(
+      "prompt",
+      "Esta é uma consulta odontológica em português brasileiro. O dentista e o paciente estão conversando sobre tratamentos dentários como implantes, canais, extrações, próteses, ortodontia e procedimentos periodontais. O dentista pode mencionar medicamentos como amoxicilina, ibuprofeno e dipirona, além de procedimentos como extirpação pulpar, osseointegração e gengivoplastia. A conversa inclui termos técnicos odontológicos e clínicos."
     );
     endpoint.searchParams.set("token", ephemeralToken);
 

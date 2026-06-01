@@ -19,8 +19,8 @@ import { invokeAI } from "../ai/invokeAI";
 import type { WhatsAppImportData, WhatsAppMediaSummary } from "../../drizzle/schema";
 
 export const ZIP_MAX_SIZE = 100 * 1024 * 1024; // 100MB
-export const MAX_AUDIO_SIZE = 25 * 1024 * 1024; // 25MB per audio file
-const LARGE_TXT_THRESHOLD = 10 * 1024 * 1024; // 10MB
+export const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB per audio file
+const LARGE_TXT_THRESHOLD = 20 * 1024 * 1024; // 20MB
 const LARGE_TXT_CHUNK_CHARS = 12000;
 const AUDIO_EXTENSIONS = [".opus", ".ogg", ".m4a", ".mp3", ".wav", ".aac"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"];
@@ -115,7 +115,7 @@ async function consolidateLargeTranscript(
   leadName: string | null
 ): Promise<string> {
   if (chunkSummaries.length === 0) return "";
-  if (chunkSummaries.length > 12) {
+  if (chunkSummaries.length > 30) {
     // Avoid long-running LLM calls for very large files in a single request.
     return chunkSummaries.join("\n\n");
   }

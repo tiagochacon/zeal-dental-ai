@@ -49,10 +49,9 @@ async function startServer() {
   // MUST be registered BEFORE the global express.json() to use its own parser
   app.use("/api/transcribe-chunk", express.json({ limit: "50mb" }), transcribeRouter);
   
-  // Configure body parser with reasonable limits for security
-  // 10MB for JSON (includes base64 audio chunks in tRPC), 10MB for other uploads
-  app.use(express.json({ limit: "10mb" }));
-  app.use(express.urlencoded({ limit: SERVER_CONFIG.MAX_UPLOAD_SIZE, extended: true }));
+  // Configure body parser limits (60MB to support large base64 payloads and WhatsApp uploads)
+  app.use(express.json({ limit: "60mb" }));
+  app.use(express.urlencoded({ limit: "60mb", extended: true }));
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // Audio upload route for calls (multipart, supports large files up to 100MB)
