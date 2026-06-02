@@ -34,10 +34,14 @@ async function buildDownloadUrl(
     ensureTrailingSlash(baseUrl)
   );
   downloadApiUrl.searchParams.set("path", normalizeKey(relKey));
-  const response = await fetch(downloadApiUrl, {
-    method: "GET",
-    headers: buildAuthHeaders(apiKey),
-  });
+  const response = await fetchStorageWithRetry(
+    downloadApiUrl,
+    {
+      method: "GET",
+      headers: buildAuthHeaders(apiKey),
+    },
+    "downloadUrl"
+  );
   return (await response.json()).url;
 }
 
@@ -67,6 +71,49 @@ function buildAuthHeaders(apiKey: string): HeadersInit {
   return { Authorization: `Bearer ${apiKey}` };
 }
 
+// Transient gateway/proxy failures (e.g. 502 Bad Gateway from openresty/APISIX in
+// front of the storage backend) are common and intermittent. Retry them with
+// exponential backoff so a single hiccup does not abort an audio upload.
+const TRANSIENT_STORAGE_STATUS = new Set([408, 425, 429, 500, 502, 503, 504]);
+const MAX_STORAGE_ATTEMPTS = 4;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function fetchStorageWithRetry(
+  url: URL,
+  init: RequestInit,
+  opName: string
+): Promise<Response> {
+  let lastError: unknown = null;
+  for (let attempt = 1; attempt <= MAX_STORAGE_ATTEMPTS; attempt++) {
+    try {
+      const response = await fetch(url, init);
+      if (
+        response.ok ||
+        !TRANSIENT_STORAGE_STATUS.has(response.status) ||
+        attempt === MAX_STORAGE_ATTEMPTS
+      ) {
+        return response;
+      }
+      console.warn(
+        `[Storage] ${opName} transient ${response.status} (tentativa ${attempt}/${MAX_STORAGE_ATTEMPTS}); repetindo...`
+      );
+    } catch (error) {
+      lastError = error;
+      if (attempt === MAX_STORAGE_ATTEMPTS) throw error;
+      console.warn(
+        `[Storage] ${opName} erro de rede (tentativa ${attempt}/${MAX_STORAGE_ATTEMPTS}); repetindo...`,
+        error
+      );
+    }
+    await sleep(Math.min(4000, 400 * 2 ** (attempt - 1)));
+  }
+  if (lastError) throw lastError;
+  throw new Error(`[Storage] ${opName} falhou após ${MAX_STORAGE_ATTEMPTS} tentativas`);
+}
+
 export async function storagePut(
   relKey: string,
   data: Buffer | Uint8Array | string,
@@ -76,11 +123,15 @@ export async function storagePut(
   const key = normalizeKey(relKey);
   const uploadUrl = buildUploadUrl(baseUrl, key);
   const formData = toFormData(data, contentType, key.split("/").pop() ?? key);
-  const response = await fetch(uploadUrl, {
-    method: "POST",
-    headers: buildAuthHeaders(apiKey),
-    body: formData,
-  });
+  const response = await fetchStorageWithRetry(
+    uploadUrl,
+    {
+      method: "POST",
+      headers: buildAuthHeaders(apiKey),
+      body: formData,
+    },
+    "upload"
+  );
 
   if (!response.ok) {
     const message = await response.text().catch(() => response.statusText);
