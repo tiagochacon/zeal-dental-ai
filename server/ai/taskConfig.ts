@@ -7,7 +7,8 @@ export type AITaskType =
   | "neurovendas_whatsapp"
   | "video_script"
   | "call_insights"
-  | "whatsapp_summary";
+  | "whatsapp_summary"
+  | "transcript_revalidation";
 
 export type Criticality = "HIGH" | "MEDIUM" | "LOW";
 
@@ -98,6 +99,15 @@ export const TASK_CONFIG: Record<AITaskType, TaskConfig> = {
     primaryModel: process.env.AI_MODEL_WHATSAPP_SUMMARY || "gemini-2.5-flash",
     fallbackModel: process.env.AI_MODEL_WHATSAPP_SUMMARY_FALLBACK || null,
     temperature: 0.2,
+    maxRetries: 1,
+    validationProfile: "none",
+  },
+  transcript_revalidation: {
+    criticality: "MEDIUM",
+    // temperature 0 for fidelity: we only correct STT errors, never rewrite or invent.
+    primaryModel: process.env.AI_MODEL_TRANSCRIPT_REVALIDATION || "gemini-2.5-flash",
+    fallbackModel: process.env.AI_MODEL_TRANSCRIPT_REVALIDATION_FALLBACK || null,
+    temperature: 0,
     maxRetries: 1,
     validationProfile: "none",
   },

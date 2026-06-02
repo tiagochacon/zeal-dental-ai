@@ -194,11 +194,21 @@ export default function NewConsultation() {
     try {
       setIsUploading(true);
       setUploadProgress(0);
-      await uploadAudioMultipart(
-        consultationId,
-        result.rawAudioBlob,
-        Math.max(1, Math.round(result.audioDurationMs / 1000))
-      );
+
+      // Upload the full audio (needed for the accurate batch transcription). A
+      // transient storage 502 must never lose the consultation, so a failure here
+      // degrades gracefully to saving the live transcript below.
+      let uploadOk = true;
+      try {
+        await uploadAudioMultipart(
+          consultationId,
+          result.rawAudioBlob,
+          Math.max(1, Math.round(result.audioDurationMs / 1000))
+        );
+      } catch (uploadError) {
+        uploadOk = false;
+        console.error("[LiveTranscription] Upload do áudio falhou:", uploadError);
+      }
 
       const userWarnings = result.warnings.filter(
         (warning) => !isInternalTranscriptWarning(warning)
@@ -207,30 +217,42 @@ export default function NewConsultation() {
         toast.warning(userWarnings[0]);
       }
 
-      // The saved transcript always comes from the batch transcription of the full
-      // audio (Deepgram nova-3-medical → OpenAI → Whisper, with dental pt-BR context).
-      // The live stream is only for real-time display and is far less accurate for
-      // Brazilian Portuguese dental vocabulary. The live transcript is kept solely as
-      // a fallback in case the batch transcription itself fails.
-      try {
-        toast.info("Gerando transcrição precisa do áudio completo...");
-        await transcribeConsultationMutation.mutateAsync({ consultationId });
-        toast.success("Transcrição concluída!");
-        setLocation(`/consultation/${consultationId}/review`);
-        return;
-      } catch (batchError) {
-        console.error("[LiveTranscription] Batch falhou, usando transcrição ao vivo como fallback:", batchError);
-        if (!result.transcript.trim()) {
-          throw batchError;
+      // The saved transcript prefers the batch transcription of the full audio
+      // (Deepgram nova-3-medical → OpenAI → Whisper, with dental pt-BR context and
+      // an AI revalidation pass). The live stream is only for real-time display and
+      // is far less accurate for Brazilian Portuguese dental vocabulary.
+      if (uploadOk) {
+        try {
+          toast.info("Gerando transcrição precisa do áudio completo...");
+          await transcribeConsultationMutation.mutateAsync({ consultationId });
+          toast.success("Transcrição concluída!");
+          setLocation(`/consultation/${consultationId}/review`);
+          return;
+        } catch (batchError) {
+          console.error("[LiveTranscription] Batch falhou, usando transcrição ao vivo como fallback:", batchError);
         }
-        toast.warning("Transcrição precisa indisponível; usando transcrição ao vivo como fallback.");
-        await updateTranscriptMutation.mutateAsync({
-          consultationId,
-          transcript: result.transcript,
-          transcriptSegments: result.segments,
-        });
-        setLocation(`/consultation/${consultationId}/review`);
       }
+
+      // Fallback: save the live transcript so the consultation is never lost.
+      if (!result.transcript.trim()) {
+        toast.error(
+          uploadOk
+            ? "Não foi possível gerar a transcrição. Tente novamente."
+            : "Falha no envio do áudio e sem transcrição ao vivo. Tente reenviar."
+        );
+        return;
+      }
+      toast.warning(
+        uploadOk
+          ? "Transcrição precisa indisponível; usando transcrição ao vivo como fallback."
+          : "Falha no envio do áudio; usando transcrição ao vivo como fallback."
+      );
+      await updateTranscriptMutation.mutateAsync({
+        consultationId,
+        transcript: result.transcript,
+        transcriptSegments: result.segments,
+      });
+      setLocation(`/consultation/${consultationId}/review`);
     } catch (error: any) {
       console.error("Error finalizing live transcript:", error);
       toast.error("Erro ao finalizar transcrição ao vivo.");

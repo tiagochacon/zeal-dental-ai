@@ -31,6 +31,7 @@ import { validateNeurovendasAnalysis } from "../helpers/validateNeurovendasAnaly
 import { getNeurovendasFallback, countPatientWords } from "../helpers/neurovendasFallback";
 import { enforceLowConfidenceWhenSparse, sanitizeUnsupportedClaims, EVIDENCE_REQUIRED_BLOCK, DISC_EVIDENCE_BLOCK } from "../helpers/antiHallucination";
 import { CONSERVATIVE_DENTAL_PROMPT } from "../helpers/chunkTranscription";
+import { revalidateConsultationTranscript } from "../helpers/transcriptRevalidation";
 import { getConsultationStreamingStatus } from "../helpers/consultationStreamingAvailability";
 import { getMetodologiaContext } from "../_core/metodologiaLoader";
 import { SOAPNote, TreatmentPlan } from "../../drizzle/schema";
@@ -638,13 +639,30 @@ export const consultationsRouter = router({
         throw new Error(`Erro na transcrição: ${result.error}`);
       }
 
+      // AI revalidation pass: corrects residual STT errors using dental clinical
+      // context (technical talk + personal rapport), preserving fidelity. Never
+      // blocks finalization — falls back to the raw transcript on any failure.
+      let finalTranscript = result.text;
+      try {
+        const revalidated = await revalidateConsultationTranscript(
+          result.text,
+          input.consultationId
+        );
+        finalTranscript = revalidated.text;
+        if (revalidated.changed) {
+          console.log(`[Transcription] Consultation ${input.consultationId}: transcript revalidated by AI.`);
+        }
+      } catch (revalErr) {
+        console.warn("[Transcription] Revalidação falhou; usando transcrição bruta:", revalErr);
+      }
+
       await updateConsultation(input.consultationId, {
-        transcript: result.text,
+        transcript: finalTranscript,
         transcriptSegments: result.segments || [],
         status: "transcribed",
       });
 
-      return { success: true, transcript: result.text, segments: result.segments };
+      return { success: true, transcript: finalTranscript, segments: result.segments };
     }),
 
   delete: protectedProcedure
