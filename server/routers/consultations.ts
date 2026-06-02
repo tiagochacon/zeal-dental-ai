@@ -21,6 +21,7 @@ import {
   getUserById,
   incrementConsultationCount,
   getPatientById,
+  getPatientAssignmentsByPatient,
 } from "../db";
 import { storagePut, storageDelete } from "../storage";
 import { transcribeLongAudio } from "../_core/voiceTranscription";
@@ -173,10 +174,28 @@ export const consultationsRouter = router({
         throw new Error("Paciente não encontrado");
       }
 
-      const sameClinic = ctx.user.clinicId && patient.clinicId === ctx.user.clinicId;
-      const isOwnerDentist = patient.dentistId === ctx.user.id;
+      // Numeric-safe comparison: ctx.user.clinicId is normalized to Number, but the
+      // patient row comes raw from Supabase — a string/number mismatch was causing
+      // intermittent "acesso negado" for patients the user can legitimately see.
+      const userId = Number(ctx.user.id);
+      const userClinicId = ctx.user.clinicId != null ? Number(ctx.user.clinicId) : null;
+      const patientClinicId = patient.clinicId != null ? Number(patient.clinicId) : null;
+
+      const isOwnerDentist = Number(patient.dentistId) === userId;
       const isGestor = ctx.user.clinicRole === "gestor" || ctx.user.role === "admin";
+      const sameClinic = userClinicId != null && patientClinicId === userClinicId;
+
+      // Mirror list visibility: a dentist assigned to the patient (even if not the
+      // owner) can also manage attendance. Only queried when the cheaper checks fail.
+      let isAssignedDentist = false;
       if (!isOwnerDentist && !(sameClinic && isGestor)) {
+        const assignments = await getPatientAssignmentsByPatient(patient.id);
+        isAssignedDentist = assignments.some(
+          (a: any) => Number(a.dentistId) === userId
+        );
+      }
+
+      if (!isOwnerDentist && !isAssignedDentist && !(sameClinic && isGestor)) {
         throw new Error("Paciente não encontrado ou acesso negado");
       }
 
