@@ -21,6 +21,11 @@ import type { WhatsAppImportData, WhatsAppMediaSummary } from "../../drizzle/sch
 export const ZIP_MAX_SIZE = 100 * 1024 * 1024; // 100MB
 export const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50MB per audio file
 const LARGE_TXT_THRESHOLD = 20 * 1024 * 1024; // 20MB
+// Audios are transcribed concurrently (bounded) to keep the request well under the
+// platform gateway timeout for large exports with many voice notes. A per-audio
+// timeout prevents a single stuck transcription from blocking the whole import.
+const AUDIO_TRANSCRIBE_CONCURRENCY = 4;
+const AUDIO_TRANSCRIBE_TIMEOUT_MS = 180 * 1000; // 3 min per audio
 const LARGE_TXT_CHUNK_CHARS = 12000;
 const AUDIO_EXTENSIONS = [".opus", ".ogg", ".m4a", ".mp3", ".wav", ".aac"];
 const IMAGE_EXTENSIONS = [".jpg", ".jpeg", ".png", ".webp", ".gif", ".heic"];
@@ -77,6 +82,57 @@ function getMimeForAudio(ext: string): string {
     ".aac": "audio/aac",
   };
   return map[ext] || "audio/ogg";
+}
+
+class TranscriptionTimeoutError extends Error {
+  constructor(ms: number) {
+    super(`Transcrição excedeu o tempo limite (${Math.round(ms / 1000)}s)`);
+    this.name = "TranscriptionTimeoutError";
+  }
+}
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new TranscriptionTimeoutError(ms)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      }
+    );
+  });
+}
+
+/**
+ * Runs `fn` over `items` with at most `limit` concurrent executions, preserving
+ * input order in the returned results array.
+ */
+async function mapWithConcurrency<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (true) {
+      const current = nextIndex++;
+      if (current >= items.length) return;
+      results[current] = await fn(items[current], current);
+    }
+  }
+
+  const workers = Array.from(
+    { length: Math.min(Math.max(1, limit), items.length) },
+    () => worker()
+  );
+  await Promise.all(workers);
+  return results;
 }
 
 function splitTranscriptIntoChunks(transcript: string, maxChars = LARGE_TXT_CHUNK_CHARS): string[] {
@@ -368,58 +424,66 @@ router.post(
         });
       }
 
-      // Transcribe audio files
-      const audioTranscripts: WhatsAppMediaSummary["audioTranscripts"] = [];
+      // Transcribe audio files with bounded concurrency + per-audio timeout.
+      // Sequential transcription of many voice notes was exceeding the platform
+      // gateway timeout on large exports; this keeps order while running in parallel.
       const audioTranscriptMap = new Map<string, string>();
 
-      for (const audio of audioFiles) {
-        try {
-          console.log(`[WhatsApp] Transcribing audio: ${audio.name} (${(audio.buffer.length / 1024).toFixed(0)}KB)`);
+      const audioTranscripts: WhatsAppMediaSummary["audioTranscripts"] = await mapWithConcurrency(
+        audioFiles,
+        AUDIO_TRANSCRIBE_CONCURRENCY,
+        async (audio) => {
+          try {
+            console.log(`[WhatsApp] Transcribing audio: ${audio.name} (${(audio.buffer.length / 1024).toFixed(0)}KB)`);
 
-          // Upload audio to S3 temporarily for transcription
-          const tempKey = `whatsapp-temp/${user.id}/${callId}/${nanoid(8)}${audio.ext}`;
-          const { url: audioUrl } = await storagePut(tempKey, audio.buffer, getMimeForAudio(audio.ext));
+            // Upload audio to S3 temporarily for transcription
+            const tempKey = `whatsapp-temp/${user.id}/${callId}/${nanoid(8)}${audio.ext}`;
+            const { url: audioUrl } = await storagePut(tempKey, audio.buffer, getMimeForAudio(audio.ext));
 
-          const result = await transcribeAudio({
-            audioUrl,
-            audioType: "whatsapp",
-            language: "pt",
-            prompt: "Transcrição de áudio de conversa WhatsApp. Português brasileiro. Diálogo entre atendente de clínica odontológica e paciente/lead.",
-          });
+            const result = await withTimeout(
+              transcribeAudio({
+                audioUrl,
+                audioType: "whatsapp",
+                language: "pt",
+                prompt: "Transcrição de áudio de conversa WhatsApp. Português brasileiro. Diálogo entre atendente de clínica odontológica e paciente/lead.",
+              }),
+              AUDIO_TRANSCRIBE_TIMEOUT_MS
+            );
 
-          if ("error" in result) {
-            console.warn(`[WhatsApp] Failed to transcribe ${audio.name}: ${result.error}`);
-            audioTranscripts.push({
-              fileName: audio.name,
-              speakerGuess: "unknown",
-              transcript: "",
-              durationSeconds: null,
-              status: "failed",
-              error: result.error,
-            });
-          } else {
-            audioTranscripts.push({
+            if ("error" in result) {
+              console.warn(`[WhatsApp] Failed to transcribe ${audio.name}: ${result.error}`);
+              return {
+                fileName: audio.name,
+                speakerGuess: "unknown",
+                transcript: "",
+                durationSeconds: null,
+                status: "failed",
+                error: result.error,
+              } as const;
+            }
+
+            audioTranscriptMap.set(audio.name, result.text);
+            return {
               fileName: audio.name,
               speakerGuess: "unknown",
               transcript: result.text,
               durationSeconds: result.duration || null,
               status: "transcribed",
               error: null,
-            });
-            audioTranscriptMap.set(audio.name, result.text);
+            } as const;
+          } catch (err: any) {
+            console.warn(`[WhatsApp] Error transcribing ${audio.name}:`, err?.message);
+            return {
+              fileName: audio.name,
+              speakerGuess: "unknown",
+              transcript: "",
+              durationSeconds: null,
+              status: "failed",
+              error: err?.message || "Erro desconhecido",
+            } as const;
           }
-        } catch (err: any) {
-          console.warn(`[WhatsApp] Error transcribing ${audio.name}:`, err?.message);
-          audioTranscripts.push({
-            fileName: audio.name,
-            speakerGuess: "unknown",
-            transcript: "",
-            durationSeconds: null,
-            status: "failed",
-            error: err?.message || "Erro desconhecido",
-          });
         }
-      }
+      );
 
       // Build unified transcript
       const transcript = buildUnifiedTranscript(parseResult, audioTranscriptMap);
