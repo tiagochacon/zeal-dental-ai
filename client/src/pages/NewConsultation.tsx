@@ -207,21 +207,30 @@ export default function NewConsultation() {
         toast.warning(userWarnings[0]);
       }
 
-      if (result.fallbackUsed || !result.transcript.trim()) {
-        toast.info("Streaming incompleto. Executando fallback batch no áudio completo...");
+      // The saved transcript always comes from the batch transcription of the full
+      // audio (Deepgram nova-3-medical → OpenAI → Whisper, with dental pt-BR context).
+      // The live stream is only for real-time display and is far less accurate for
+      // Brazilian Portuguese dental vocabulary. The live transcript is kept solely as
+      // a fallback in case the batch transcription itself fails.
+      try {
+        toast.info("Gerando transcrição precisa do áudio completo...");
         await transcribeConsultationMutation.mutateAsync({ consultationId });
-        toast.success("Transcrição finalizada com fallback batch.");
+        toast.success("Transcrição concluída!");
         setLocation(`/consultation/${consultationId}/review`);
         return;
+      } catch (batchError) {
+        console.error("[LiveTranscription] Batch falhou, usando transcrição ao vivo como fallback:", batchError);
+        if (!result.transcript.trim()) {
+          throw batchError;
+        }
+        toast.warning("Transcrição precisa indisponível; usando transcrição ao vivo como fallback.");
+        await updateTranscriptMutation.mutateAsync({
+          consultationId,
+          transcript: result.transcript,
+          transcriptSegments: result.segments,
+        });
+        setLocation(`/consultation/${consultationId}/review`);
       }
-
-      await updateTranscriptMutation.mutateAsync({
-        consultationId,
-        transcript: result.transcript,
-        transcriptSegments: result.segments,
-      });
-      toast.success("Transcrição ao vivo concluída!");
-      setLocation(`/consultation/${consultationId}/review`);
     } catch (error: any) {
       console.error("Error finalizing live transcript:", error);
       toast.error("Erro ao finalizar transcrição ao vivo.");
