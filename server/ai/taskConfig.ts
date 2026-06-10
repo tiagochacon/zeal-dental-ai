@@ -1,8 +1,10 @@
 export type AITaskType =
   | "soap"
+  | "soap_extraction"
   | "treatment_plan"
   | "disc_profile"
   | "neurovendas_consultation"
+  | "neurovendas_extraction"
   | "neurovendas_call"
   | "neurovendas_whatsapp"
   | "video_script"
@@ -38,6 +40,15 @@ export const TASK_CONFIG: Record<AITaskType, TaskConfig> = {
     maxRetries: 2,
     validationProfile: "soap",
   },
+  soap_extraction: {
+    criticality: "HIGH",
+    // Temperature 0 + seed for deterministic extraction — no creativity, only facts.
+    primaryModel: process.env.AI_MODEL_SOAP_EXTRACTION || "gemini-2.5-flash",
+    fallbackModel: process.env.AI_MODEL_SOAP_EXTRACTION_FALLBACK || null,
+    temperature: 0,
+    maxRetries: 2,
+    validationProfile: "json",
+  },
   treatment_plan: {
     criticality: "HIGH",
     primaryModel: process.env.AI_MODEL_TREATMENT_PLAN || "gemini-2.5-flash",
@@ -61,6 +72,15 @@ export const TASK_CONFIG: Record<AITaskType, TaskConfig> = {
     temperature: 0.3,
     maxRetries: 1,
     validationProfile: "neurovendas",
+  },
+  neurovendas_extraction: {
+    criticality: "MEDIUM",
+    // Temperature 0 + seed for deterministic extraction — no creativity, only facts.
+    primaryModel: process.env.AI_MODEL_NEUROVENDAS_EXTRACTION || "gemini-2.5-flash",
+    fallbackModel: process.env.AI_MODEL_NEUROVENDAS_EXTRACTION_FALLBACK || null,
+    temperature: 0,
+    maxRetries: 2,
+    validationProfile: "json",
   },
   neurovendas_call: {
     criticality: "MEDIUM",
