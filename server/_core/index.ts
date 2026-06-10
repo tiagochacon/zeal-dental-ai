@@ -16,6 +16,7 @@ import { registerConsultationStreamingWs } from "../routes/consultationStreaming
 import { getConsultationStreamingStatus } from "../helpers/consultationStreamingAvailability";
 import { transcribeRouter } from "../routes/transcribe.route";
 import whatsappUploadRouter from "../routes/whatsappUpload";
+import { registerHealthRoutes } from "../routes/health";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -81,6 +82,8 @@ async function startServer() {
       createContext,
     })
   );
+  // Health check endpoint (before catch-all)
+  registerHealthRoutes(app);
   // Ensure every unknown API route returns JSON (never HTML fallback)
   app.use("/api/*", (req, res) => {
     res.status(404).json({

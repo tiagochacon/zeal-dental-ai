@@ -42,7 +42,7 @@ interface HealthResponse {
 async function checkDatabase(): Promise<SubsystemStatus> {
   const start = Date.now();
   try {
-    const { error } = await supabase.from("users").select("id").limit(1);
+    const { error } = await supabase.from("Users").select("id").limit(1);
     const latencyMs = Date.now() - start;
     if (error) {
       return { name: "database", status: "degraded", latencyMs, details: error.message };

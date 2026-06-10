@@ -38,6 +38,10 @@ import { SOAPNote, TreatmentPlan } from "../../drizzle/schema";
 import { incrementClinicConsultationCount } from "../clinicBilling";
 import { isAdminEmail } from "../auth";
 import { nanoid } from "nanoid";
+import { runSOAPPipeline, runNeurovendasPipeline } from "../ai/pipeline";
+import { createLogger } from "../lib/logger";
+
+const log = createLogger("router:consultations");
 
 const soapNoteSchema = z.object({
   urgency: z.enum(["high", "medium", "low"]).optional(),
@@ -745,6 +749,44 @@ export const consultationsRouter = router({
         throw new Error("Nenhuma transcrição encontrada para esta consulta");
       }
 
+      // ─── PIPELINE ANTI-ALUCINAÇÃO (2 estágios) ───────────────────────────────
+      // Tenta o pipeline primeiro: Extração → Interpretação com RAG
+      // Se falhar, cai para o fluxo legado (single-stage)
+      try {
+        const pipelineResult = await runSOAPPipeline({
+          consultationId: input.consultationId,
+          transcript: effectiveTranscript,
+        });
+
+        if (pipelineResult) {
+          log.info("SOAP generated via pipeline", {
+            consultationId: input.consultationId,
+            pipelineUsed: true,
+            timing: pipelineResult.timing,
+          });
+
+          const soapNote = pipelineResult.output as unknown as SOAPNote;
+          await updateConsultation(input.consultationId, { soapNote });
+
+          const isAdmin = ctx.user.role === 'admin' || isAdminEmail(ctx.user.email || '');
+          if (!isAdmin) {
+            await incrementClinicConsultationCount(ctx.user);
+          }
+
+          return { success: true, soapNote, pipelineUsed: true };
+        }
+
+        log.warn("Pipeline returned null — falling back to legacy SOAP generation", {
+          consultationId: input.consultationId,
+        });
+      } catch (pipelineErr) {
+        log.error("Pipeline failed — falling back to legacy SOAP generation", {
+          consultationId: input.consultationId,
+          error: pipelineErr instanceof Error ? pipelineErr.message : "Unknown",
+        });
+      }
+
+      // ─── FLUXO LEGADO (single-stage) ─────────────────────────────────────────
       const prompt = `Você é um assistente de IA especializado em documentação odontológica brasileira.
 
 TRANSCRIÇÃO DA CONSULTA:
@@ -1171,6 +1213,53 @@ export const neurovendasRouter = router({
         return { success: true, analysis: consultation.neurovendasAnalysis, cached: true };
       }
 
+      // ─── PIPELINE ANTI-ALUCINAÇÃO (2 estágios) ───────────────────────────────
+      // Tenta o pipeline primeiro: Extração comportamental → Interpretação com RAG
+      try {
+        const pipelineResult = await runNeurovendasPipeline({
+          consultationId: input.consultationId,
+          transcript: neuroTranscript,
+          patientId: consultation.patientId ?? null,
+        });
+
+        if (pipelineResult) {
+          log.info("Neurovendas generated via pipeline", {
+            consultationId: input.consultationId,
+            pipelineUsed: true,
+            timing: pipelineResult.timing,
+          });
+
+          const analysis = pipelineResult.output;
+
+          // Aplicar validações anti-alucinação existentes
+          const perfilPsicografico = (analysis as any)?.perfilPsicografico;
+          if (perfilPsicografico?.discProfile && neuroTranscript) {
+            const disc = perfilPsicografico.discProfile as any;
+            disc.motivadores = sanitizeUnsupportedClaims(neuroTranscript, disc.motivadores || []);
+            disc.medosOuResistencias = sanitizeUnsupportedClaims(neuroTranscript, disc.medosOuResistencias || []);
+            perfilPsicografico.discProfile = enforceLowConfidenceWhenSparse(disc, neuroTranscript);
+          }
+
+          const warnings = validateNeurovendasAnalysis(analysis, 'consulta');
+          if (warnings.length > 0) {
+            log.warn(`Neurovendas pipeline: ${warnings.length} warning(s)`, { consultationId: input.consultationId });
+          }
+
+          await updateConsultation(input.consultationId, { neurovendasAnalysis: analysis as any });
+          return { success: true, analysis, pipelineUsed: true };
+        }
+
+        log.warn("Neurovendas pipeline returned null — falling back to legacy", {
+          consultationId: input.consultationId,
+        });
+      } catch (pipelineErr) {
+        log.error("Neurovendas pipeline failed — falling back to legacy", {
+          consultationId: input.consultationId,
+          error: pipelineErr instanceof Error ? pipelineErr.message : "Unknown",
+        });
+      }
+
+      // ─── FLUXO LEGADO (single-stage) ─────────────────────────────────────────
       const metodologiaContext = await getMetodologiaContext();
       const patientWordCount = countPatientWords(neuroTranscript || '');
 
